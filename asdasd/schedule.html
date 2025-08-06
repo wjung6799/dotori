@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Class Schedule - Dotori School</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <header>
+        <nav class="container">
+            <div class="logo">
+                <img src="assets/images/logo.png" alt="Dotori School Logo" style="max-width: 80px;" class="logo-img">
+                <span class="logo-text" style="display:none; font-size:1.5rem; font-weight:700; color:#6b5b47;">Dotori School</span>
+            </div>
+            <button class="nav-toggle" aria-label="Toggle navigation" style="background:none; border:none; font-size:2rem; color:#6b5b47; display:none; position:absolute; right:24px; top:18px; z-index:1001;">
+                &#9776;
+            </button>
+            <ul class="nav-links">
+                <li><a href="index.html">Home</a></li>
+                <li><a href="about.html">About</a></li>
+                <li><a href="programs.html">Programs</a></li>
+                <li><a href="schedule.html" class="active">Schedule</a></li>
+                <li><a href="contact.html">Contact</a></li>
+            </ul>
+        </nav>
+    </header>
+
+    <section class="container" style="max-width:900px; margin:48px auto;">
+        <h1 style="text-align:center; color:#6b5b47; margin-bottom:2rem;">Class Schedule</h1>
+        <div style="background:#fff; border-radius:18px; box-shadow:0 4px 24px rgba(0,0,0,0.08); padding:2.5rem 2rem;">
+            <table style="width:100%; border-collapse:collapse;">
+                <thead>
+                    <tr style="background:#f7f5f2; color:#6b5b47;">
+                        <th style="padding:1rem;">Grade</th>
+                        <th style="padding:1rem;">Day</th>
+                        <th style="padding:1rem;">Time</th>
+                        <th style="padding:1rem;">Subject</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td style="padding:0.8rem;">K-1</td>
+                        <td style="padding:0.8rem;">Mon, Wed</td>
+                        <td style="padding:0.8rem;">3:00pm - 4:00pm</td>
+                        <td style="padding:0.8rem;">Reading</td>
+                    </tr>
+                    <tr>
+                        <td style="padding:0.8rem;">2-3</td>
+                        <td style="padding:0.8rem;">Tue, Thu</td>
+                        <td style="padding:0.8rem;">4:15pm - 5:15pm</td>
+                        <td style="padding:0.8rem;">Writing</td>
+                    </tr>
+                    <tr>
+                        <td style="padding:0.8rem;">4-5</td>
+                        <td style="padding:0.8rem;">Fri</td>
+                        <td style="padding:0.8rem;">3:00pm - 5:00pm</td>
+                        <td style="padding:0.8rem;">Literacy Activities</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </section>
+
+    <footer style="background:#f7f5f2; padding:2rem 0; text-align:center; color:#888;">
+        <div class="container">
+            &copy; 2025 Dotori School. All rights reserved.
+        </div>
+    </footer>
+
+    <script>
+    // Mobile navbar toggle
+    document.addEventListener('DOMContentLoaded', function() {
+        const navToggle = document.querySelector('.nav-toggle');
+        const navLinks = document.querySelector('.nav-links');
+        navToggle.style.display = 'block';
+        navToggle.addEventListener('click', function() {
+            navLinks.classList.toggle('nav-open');
+        });
+    });
+    </script>
+    <style>
+    @media (max-width: 768px) {
+        .logo-img {
+            display: none !important;
+        }
+        .logo-text {
+            display: inline-block !important;
+        }
+        nav.container {
+            position: relative;
+            min-height: 56px;
+            padding: 0 1rem;
+            background: #fff;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+            display: flex;
+            align-items: center;
+        }
+        body {
+            padding-top: 56px;
+        }
+        .logo {
+            font-size: 1.3rem;
+            font-weight: 700;
+            color: #6b5b47;
+            padding: 0.7rem 0;
+        }
+        .nav-toggle {
+            display: block !important;
+            right: 18px;
+            top: 50%;
+            transform: translateY(-30%);
+            z-index: 1001;
+        }
+        .nav-links {
+            position: absolute;
+            top: 56px;
+            right: 0;
+            background: #fff;
+            width: 100%;
+            flex-direction: column;
+            align-items: flex-start;
+            box-shadow: 0 4px 24px rgba(0,0,0,0.08);
+            display: none;
+            z-index: 1000;
+        }
+        .nav-links.nav-open {
+            display: flex;
+        }
+        .nav-links li {
+            width: 100%;
+            padding: 1rem 2rem;
+            border-bottom: 1px solid #eee;
+        }
+    }
+    @media (min-width: 769px) {
+        nav.container {
+            z-index: 1002;
+        }
+        body {
+            padding-top: 0;
+        }
+        .nav-toggle {
+            display: none !important;
+        }
+        .nav-links {
+            position: static;
+            display: flex !important;
+            flex-direction: row;
+            background: none;
+            box-shadow: none;
+            width: auto;
+        }
+        .nav-links li {
+            padding: 0 1rem;
+            border-bottom: none;
+        }
+    }
+    </style>
+</body>
+</html>
