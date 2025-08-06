@@ -3,8 +3,6 @@ const express = require('express');
 const nodemailer = require('nodemailer');
 const cors = require('cors');
 const path = require('path');
-const fs = require('fs');
-const https = require('https');
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -69,12 +67,6 @@ app.get('/contact', (req, res) => {
   res.sendFile(path.join(__dirname, 'public/contact.html'));
 });
 
-// Replace app.listen with HTTPS server
-const sslOptions = {
-  key: fs.readFileSync('server.key'),
-  cert: fs.readFileSync('server.cert')
-};
-
-https.createServer(sslOptions, app).listen(PORT, () => {
-  console.log(`HTTPS server running on port ${PORT}`);
+app.listen(PORT, () => {
+  console.log(`Server running on port ${PORT}`);
 });
