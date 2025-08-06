@@ -1,0 +1,12 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"type": "shell",
+			"label": "Run Node.js Email Backend",
+			"command": "node index.js",
+			"problemMatcher": [],
+			"isBackground": true
+		}
+	]
+}

@@ -1,0 +1,465 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Programs - Dotori School</title>
+    <link rel="stylesheet" href="styles.css">
+
+</head>
+<body>
+    <header>
+        <nav class="container">
+            <div class="logo">
+                <a href="/">
+                    <img src="assets/images/logo.png" alt="Dotori School Logo" style="max-width: 80px;" class="logo-img">
+                    <span class="logo-text" style="display:none; font-size:1.5rem; font-weight:700; color:#6b5b47;">Dotori School</span>
+                </a>
+            </div>
+            <button class="nav-toggle" aria-label="Toggle navigation" style="background:none; border:none; font-size:2rem; color:#6b5b47; display:none; position:absolute; right:24px; top:18px; z-index:1001;">
+                &#9776;
+            </button>
+            <ul class="nav-links">
+                <li><a href="/">Home</a></li>
+                <li><a href="/about">About</a></li>
+                <li><a href="/programs" class="active">Programs</a></li>
+                <li><a href="/schedule">Schedule</a></li>
+                <li><a href="/contact">Contact</a></li>
+            </ul>
+        </nav>
+    </header>
+
+    <main>
+        <div class="container">
+            <div class="page-header">
+                <h1>Our Programs</h1>
+                <p>Choose from our comprehensive range of programs designed to accelerate your career and unlock your potential. Each program combines theoretical knowledge with hands-on practice.</p>
+            </div>
+
+            <div class="filter-tabs">
+                <div class="filter-tab" onclick="filterPrograms('reading')">Reading</div>
+                <div class="filter-tab" onclick="filterPrograms('writing')">Writing</div>
+                <div class="filter-tab" onclick="filterPrograms('creative')">Korean</div>
+            </div>
+
+            <div class="programs-grid" id="programsGrid">
+                <div class="program-card animate-in" data-category="reading">
+                    <div class="program-badge">Most Popular</div>
+                    <h3>Reading - Phonics and Fluency</h3>
+                    <div class="program-price">$2,499</div>
+                    <div class="program-duration">24 weeks • Part-time</div>
+                    <div class="program-description">
+                        Master the fundamentals of reading with a focus on phonics and fluency. This program is designed for young learners to build a strong foundation in reading skills.
+                    </div>
+                    <ul class="program-features">
+                        <li>Phonics Instruction</li>
+                        <li>Fluency Practice</li>
+                        <li>Comprehension Strategies</li>
+                        <li>Engaging Reading Materials</li>
+                    </ul>
+                    <div class="program-cta">
+                        <a href="#" class="btn btn-primary" onclick="enrollProgram('fullstack')">Enroll Now</a>
+                        <a href="#" class="btn btn-secondary" onclick="learnMore('fullstack')">Learn More</a>
+                    </div>
+                </div>
+
+                <div class="program-card animate-in" data-category="reading">
+                    <div class="program-badge">Career Booster</div>
+                    <h3>Reading - Comprehension and Vocabulary</h3>
+                    <div class="program-price">$1,299</div>
+                    <div class="program-duration">12 weeks • Flexible</div>
+                    <div class="program-description">
+                        Enhance your reading comprehension and vocabulary skills through engaging texts and targeted exercises.
+                    </div>
+                    <ul class="program-features">
+                        <li>Phonics & Vocabulary Development</li>
+                        <li>Comprehension Strategies</li>
+                        <li>Engaging Reading Materials</li>
+                    </ul>
+                    <div class="program-cta">
+                        <a href="#" class="btn btn-primary" onclick="enrollProgram('marketing')">Enroll Now</a>
+                        <a href="#" class="btn btn-secondary" onclick="learnMore('marketing')">Learn More</a>
+                    </div>
+                </div>
+
+                <div class="program-card animate-in" data-category="writing">
+                    <div class="program-badge">High Demand</div>
+                    <h3>Writing - Creative Writing</h3>
+                    <div class="program-price">$1,899</div>
+                    <div class="program-duration">16 weeks • Intensive</div>
+                    <div class="program-description">
+                        Transform raw ideas into compelling narratives using various writing techniques and styles.
+                    </div>
+                    <ul class="program-features">
+                        <li>Character Development</li>
+                        <li>Plot Structure</li>
+                        <li>Writing Style & Voice</li>
+                        <li>Editing & Revision Techniques</li>
+                        <li>Publishing & Marketing Strategies</li>
+                        <li>Peer Review & Feedback</li>
+                        <li>Author Branding</li>
+                    </ul>
+                    <div class="program-cta">
+                        <a href="#" class="btn btn-primary" onclick="enrollProgram('datascience')">Enroll Now</a>
+                        <a href="#" class="btn btn-secondary" onclick="learnMore('datascience')">Learn More</a>
+                    </div>
+                </div>
+
+                <div class="program-card animate-in" data-category="creative">
+                    <div class="program-badge">New</div>
+                    <h3>UX/UI Design Bootcamp</h3>
+                    <div class="program-price">$1,599</div>
+                    <div class="program-duration">14 weeks • Evening</div>
+                    <div class="program-description">
+                        Create user-centered designs that solve real problems. Learn design thinking, prototyping, and industry-standard tools.
+                    </div>
+                    <ul class="program-features">
+                        <li>Design Thinking Process</li>
+                        <li>Figma & Adobe Creative Suite</li>
+                        <li>User Research & Testing</li>
+                        <li>Wireframing & Prototyping</li>
+                        <li>Mobile & Web Design</li>
+                        <li>Portfolio Development</li>
+                        <li>Design System Creation</li>
+                    </ul>
+                    <div class="program-cta">
+                        <a href="#" class="btn btn-primary" onclick="enrollProgram('uxui')">Enroll Now</a>
+                        <a href="#" class="btn btn-secondary" onclick="learnMore('uxui')">Learn More</a>
+                    </div>
+                </div>
+
+                <div class="program-card animate-in" data-category="business">
+                    <div class="program-badge">Executive</div>
+                    <h3>Project Management Professional</h3>
+                    <div class="program-price">$999</div>
+                    <div class="program-duration">8 weeks • Weekend</div>
+                    <div class="program-description">
+                        Master project management methodologies including Agile, Scrum, and traditional approaches. Prepare for PMP certification.
+                    </div>
+                    <ul class="program-features">
+                        <li>Agile & Scrum Frameworks</li>
+                        <li>Project Planning & Execution</li>
+                        <li>Risk Management</li>
+                        <li>Stakeholder Communication</li>
+                        <li>Budget & Resource Management</li>
+                        <li>PMP Exam Preparation</li>
+                        <li>Industry Case Studies</li>
+                    </ul>
+                    <div class="program-cta">
+                        <a href="#" class="btn btn-primary" onclick="enrollProgram('projectmgmt')">Enroll Now</a>
+                        <a href="#" class="btn btn-secondary" onclick="learnMore('projectmgmt')">Learn More</a>
+                    </div>
+                </div>
+
+                <div class="program-card animate-in" data-category="tech">
+                    <div class="program-badge">Emerging Tech</div>
+                    <h3>Cloud Computing & DevOps</h3>
+                    <div class="program-price">$2,199</div>
+                    <div class="program-duration">20 weeks • Hybrid</div>
+                    <div class="program-description">
+                        Master cloud platforms (AWS, Azure, GCP) and DevOps practices. Learn containerization, CI/CD, and infrastructure automation.
+                    </div>
+                    <ul class="program-features">
+                        <li>AWS, Azure, Google Cloud</li>
+                        <li>Docker & Kubernetes</li>
+                        <li>CI/CD Pipelines</li>
+                        <li>Infrastructure as Code</li>
+                        <li>Monitoring & Security</li>
+                        <li>Cloud Certifications</li>
+                        <li>Hands-on Labs</li>
+                    </ul>
+                    <div class="program-cta">
+                        <a href="#" class="btn btn-primary" onclick="enrollProgram('cloud')">Enroll Now</a>
+                        <a href="#" class="btn btn-secondary" onclick="learnMore('cloud')">Learn More</a>
+                    </div>
+                </div>
+            </div>
+
+            <div class="learning-path">
+                <h2>Your Learning Journey</h2>
+                <p style="text-align: center; color: #6b5b47; margin-bottom: 2rem;">
+                    From enrollment to career success, we guide you every step of the way
+                </p>
+                <div class="path-timeline">
+                    <div class="path-step">
+                        <div class="step-icon">1</div>
+                        <div class="step-title">Assessment</div>
+                        <div class="step-description">Evaluate your current skills and career goals</div>
+                    </div>
+                    <div class="path-step">
+                        <div class="step-icon">2</div>
+                        <div class="step-title">Learning</div>
+                        <div class="step-description">Engage in hands-on projects and expert instruction</div>
+                    </div>
+                    <div class="path-step">
+                        <div class="step-icon">3</div>
+                        <div class="step-title">Practice</div>
+                        <div class="step-description">Build portfolio projects with real-world applications</div>
+                    </div>
+                    <div class="path-step">
+                        <div class="step-icon">4</div>
+                        <div class="step-title">Career</div>
+                        <div class="step-description">Get job placement support and ongoing mentorship</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="faq-section">
+                <h2>Frequently Asked Questions</h2>
+                
+                <div class="faq-item">
+                    <div class="faq-question" onclick="toggleFAQ(this)">
+                        What payment options are available?
+                    </div>
+                    <div class="faq-answer">
+                        We offer flexible payment options including full payment upfront (with 10% discount), monthly installments, and income share agreements for qualified students.
+                    </div>
+                </div>
+
+                <div class="faq-item">
+                    <div class="faq-question" onclick="toggleFAQ(this)">
+                        Do I need prior experience to enroll?
+                    </div>
+                    <div class="faq-answer">
+                        Most of our programs are designed for beginners, though some advanced courses may require basic knowledge. Each program page lists specific prerequisites.
+                    </div>
+                </div>
+
+                <div class="faq-item">
+                    <div class="faq-question" onclick="toggleFAQ(this)">
+                        What kind of support do you provide during the program?
+                    </div>
+                    <div class="faq-answer">
+                        You'll have access to instructors, teaching assistants, peer study groups, office hours, and our student success team throughout your journey.
+                    </div>
+                </div>
+
+                <div class="faq-item">
+                    <div class="faq-question" onclick="toggleFAQ(this)">
+                        Are the programs available online or in-person?
+                    </div>
+                    <div class="faq-answer">
+                        We offer flexible learning formats including fully online, in-person, and hybrid options. You can choose what works best for your schedule.
+                    </div>
+                </div>
+
+                <div class="faq-item">
+                    <div class="faq-question" onclick="toggleFAQ(this)">
+                        What happens after I complete a program?
+                    </div>
+                    <div class="faq-answer">
+                        You'll receive a certificate of completion, lifetime access to our alumni network, ongoing career support, and access to advanced courses and workshops.
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <button class="back-button" onclick="goHome()" title="Back to Home">🏠</button>
+
+    <script>
+
+        // Program filtering
+        function filterPrograms(category) {
+            const tabs = document.querySelectorAll('.filter-tab');
+            const cards = document.querySelectorAll('.program-card');
+
+            // Update active tab
+            tabs.forEach(tab => tab.classList.remove('active'));
+            event.target.classList.add('active');
+
+            // Filter cards
+            cards.forEach(card => {
+                if (category === 'all' || card.dataset.category === category) {
+                    if (card.style.display === 'none' || card.style.display === '') {
+                        card.style.display = 'block';
+                        card.style.animation = 'fadeInUp 0.6s ease-out';
+                    }
+                } else {
+                    card.style.display = 'none';
+                    card.style.animation = '';
+                }
+            });
+        }
+
+        // Set default filter to 'reading' on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            filterProgramsDefault('reading');
+        });
+
+        // Helper for default filter (no event)
+        function filterProgramsDefault(category) {
+            const tabs = document.querySelectorAll('.filter-tab');
+            const cards = document.querySelectorAll('.program-card');
+            tabs.forEach(tab => tab.classList.remove('active'));
+            // Activate the reading tab
+            tabs.forEach(tab => {
+                if (tab.textContent.toLowerCase().includes(category)) {
+                    tab.classList.add('active');
+                }
+            });
+            cards.forEach(card => {
+                if (card.dataset.category === category) {
+                    card.style.display = 'block';
+                    card.style.animation = 'fadeInUp 0.6s ease-out';
+                } else {
+                    card.style.display = 'none';
+                    card.style.animation = '';
+                }
+            });
+        }
+
+        // FAQ toggle
+        function toggleFAQ(element) {
+            const answer = element.nextElementSibling;
+            const isActive = element.classList.contains('active');
+
+            // Close all other FAQs
+            document.querySelectorAll('.faq-question').forEach(q => {
+                q.classList.remove('active');
+                q.nextElementSibling.classList.remove('active');
+            });
+
+            // Toggle current FAQ
+            if (!isActive) {
+                element.classList.add('active');
+                answer.classList.add('active');
+            }
+        }
+
+        // Intersection Observer for animations
+        const observerOptions = {
+            threshold: 0.1,
+            rootMargin: '0px 0px -50px 0px'
+        };
+
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.style.animation = 'fadeInUp 0.6s ease-out forwards';
+                }
+            });
+        }, observerOptions);
+
+        // Initialize animations
+        document.addEventListener('DOMContentLoaded', () => {
+            const animatedElements = document.querySelectorAll('.program-card, .learning-path, .faq-section');
+            animatedElements.forEach((el, index) => {
+                el.style.opacity = '0';
+                el.style.transform = 'translateY(30px)';
+                el.style.animationDelay = `${index * 0.1}s`;
+                observer.observe(el);
+            });
+        });
+
+        // Interactive hover effects
+        document.querySelectorAll('.program-card').forEach(card => {
+            card.addEventListener('mouseenter', function() {
+                this.style.transform = 'translateY(-15px) scale(1.02)';
+            });
+            
+            card.addEventListener('mouseleave', function() {
+                this.style.transform = 'translateY(0) scale(1)';
+            });
+        });
+
+        // Smooth scrolling for internal links
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
+                e.preventDefault();
+                const target = document.querySelector(this.getAttribute('href'));
+                if (target) {
+                    target.scrollIntoView({
+                        behavior: 'smooth',
+                        block: 'start'
+                    });
+                }
+            });
+        });
+
+        // Mobile navbar toggle
+        document.addEventListener('DOMContentLoaded', function() {
+            const navToggle = document.querySelector('.nav-toggle');
+            const navLinks = document.querySelector('.nav-links');
+            navToggle.style.display = 'block';
+            navToggle.addEventListener('click', function() {
+                navLinks.classList.toggle('nav-open');
+            });
+        });
+    </script>
+
+    <style>
+    @media (max-width: 768px) {
+        .logo-img {
+            display: none !important;
+        }
+        .logo-text {
+            display: inline-block !important;
+        }
+        nav.container {
+            position: relative;
+            min-height: 56px;
+            padding: 0 1rem;
+            background: #fff;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+            display: flex;
+            align-items: center;
+        }
+        body {
+            padding-top: 56px;
+        }
+        .nav-toggle {
+            display: block !important;
+            /*position: absolute;*/
+            right: 18px;
+            top: 50%;
+            transform: translateY(-30%);
+            z-index: 1001;
+        }
+        .nav-links {
+            position: absolute;
+            top: 56px;
+            right: 0;
+            background: #fff;
+            width: 100%;
+            flex-direction: column;
+            align-items: flex-start;
+            box-shadow: 0 4px 24px rgba(0,0,0,0.08);
+            display: none;
+            z-index: 1000;
+        }
+        .nav-links.nav-open {
+            display: flex;
+        }
+        .nav-links li {
+            width: 100%;
+            padding: 1rem 2rem;
+            border-bottom: 1px solid #eee;
+        }
+    }
+    @media (min-width: 769px) {
+        nav.container {
+            z-index: 1002;
+        }
+        body {
+            padding-top: 0;
+        }
+        .nav-toggle {
+            display: none !important;
+        }
+        .nav-links {
+            position: static;
+            display: flex !important;
+            flex-direction: row;
+            background: none;
+            box-shadow: none;
+            width: auto;
+        }
+        .nav-links li {
+            padding: 0 1rem;
+            border-bottom: none;
+        }
+    }
+    </style>
+</body>
+</html>
