@@ -5,6 +5,18 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Contact Us - Dotori School</title>
     <link rel="stylesheet" href="styles.css">
+    <style>
+    @media (max-width: 768px) {
+        .contact-section {
+            padding-top: 32px !important;
+        }
+    }
+    @media (min-width: 769px) {
+        .contact-section {
+            padding-top: 90px !important;
+        }
+    }
+    </style>
 </head>
 <body>
     <header>
@@ -27,9 +39,9 @@
         </nav>
     </header>
 
-    <section class="container" style="max-width:700px; margin:48px auto;">
-        <h1 style="text-align:center; color:#6b5b47; margin-bottom:2rem;">Contact Us</h1>
+    <section class="container contact-section" style="max-width:700px; margin:48px auto;">
         <div style="background:#fff; border-radius:18px; box-shadow:0 4px 24px rgba(0,0,0,0.08); padding:2.5rem 2rem;">
+            <h1 style="text-align:center; color:#6b5b47; margin-bottom:2rem;">Contact Us</h1>
             <form id="contactForm" style="display:flex; flex-direction:column; gap:1.2rem;" autocomplete="off">
                 <div>
                     <label for="name" style="color:#6b5b47; font-weight:600;">Your Name</label><br>

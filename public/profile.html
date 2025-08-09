@@ -5,7 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Programs - Dotori School</title>
     <link rel="stylesheet" href="styles.css">
-    
+    <link rel="stylesheet" href="profile-responsive.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
 </head>
 <body>
     <header>
@@ -28,65 +29,31 @@
         </nav>
     </header>
 
-    <!-- Dotori About Section -->
-    <section class="container" style="margin: 48px auto 48px auto; max-width: 900px;">
-        <div class="about-dotori-card" style="background: #fff; border-radius: 18px; box-shadow: 0 4px 24px rgba(0,0,0,0.08); padding: 2.5rem 2rem; margin-bottom: 2.5rem;">
-            <h1 style="text-align:center; color:#6b5b47; margin-bottom:1.5rem;">About Dotori</h1>
-            <p style="font-size:1.15rem; color:#444; margin-bottom:2rem; text-align:left;">
-                <strong>Dotori</strong>(도토리)—Korean for acorn—is a K–5 learning center where curiosity takes root and literacy grows. Through rich content and guided instruction, we build strong literacy skills, background knowledge, and critical thinking. We also offer Korean classes and fun, one-day workshops for all ages.
-            </p>
-            <!-- <div style="display:flex; flex-wrap:wrap; gap:2rem; justify-content:center; margin-bottom:2rem;">
-                <div style="flex:1; min-width:220px; background:#f7f5f2; border-radius:12px; padding:1.5rem;">
-                    <h2 style="color:#6b5b47; font-size:1.2rem; margin-bottom:1rem;">Our Approach</h2>
-                    <ul style="padding-left:1.2rem; color:#555;">
-                        <li>Personalized reading and writing instruction for every child</li>
-                        <li>Engaging activities that spark curiosity and creativity</li>
-                        <li>Supportive environment for building confidence and communication skills</li>
-                        <li>Experienced educators passionate about early childhood development</li>
-                    </ul>
-                </div>
-                <div style="flex:1; min-width:220px; background:#f7f5f2; border-radius:12px; padding:1.5rem;">
-                    <h2 style="color:#6b5b47; font-size:1.2rem; margin-bottom:1rem;">Why Choose Dotori?</h2>
-                    <p style="color:#555; margin-bottom:0.5rem;">
-                        Dotori believes every child deserves a strong foundation in literacy. Our curriculum is designed to meet the unique needs of K-5 learners, blending proven teaching methods with fun, interactive lessons. We celebrate each child's progress and encourage families to be active partners in their educational journey.
-                    </p>
-                </div>
-            </div> -->
-            <div style="text-align:center; margin-top:1.5rem;">
-                <h2 style="color:#6b5b47; font-size:1.2rem; margin-bottom:0.7rem;">Join Us</h2>
-                <p style="color:#555; font-size:1.05rem; text-align: left;">
-                    Discover how Dotori can help your child thrive in reading and writing. Contact us to learn more about our programs, schedule a visit, or enroll today!
+    <main>
+        <main class="profile-container">
+            <section class="profile-card">
+                <img src="assets/images/yesol_profile.jpeg" alt="Teacher Yesol" class="profile-img">
+                <h1>Yesol Jung                 <a href="https://www.linkedin.com/in/yesol-jung-ab62a22b2" target="_blank" rel="noopener" style="margin-left:8px; vertical-align:middle; text-decoration:none;">
+                    <i class="fa fa-linkedin-square" style="font-size:24px"></i>
+                </a></h1>
+                <h2>Main Teacher</h2>
+                <p>
+                    Yesol Jung is the head teacher at Dotori. She holds a Master's degree in Education and has over 10 years of experience teaching children and young adults. Her passion for education and dedication to her students make her an invaluable part of our team.
                 </p>
-            </div>
-        </div>
-    </section>
-    <!-- End Dotori About Section -->
+                <ul class="profile-details">
+                    <li><strong>Education:</strong> B.A University of Washington, M.Ed., Seattle University</li>
+                    <li><strong>Experience:</strong> 10+ years in public education</li>
+                    <li><strong>Specialty:</strong> Bilingual Fluency, Creative Learning</li>
+                    
+                    <li><strong>National Board Certified Teacher</strong></li>
+                </ul>
+            </section>
+        </main>
+    </main>
 
-    <!-- Meet Our Staff Section -->
-    <section class="container" style="max-width:900px; margin:0 auto 48px auto;">
-        <h2 style="text-align:center; color:#6b5b47; margin-bottom:2rem;">Meet Your Teacher</h2>
-        <div style="display:flex; justify-content:center; gap:2.5rem; flex-wrap:wrap;">
-            <div class="staff-card" style="background:#fff; border-radius:16px; box-shadow:0 2px 12px rgba(0,0,0,0.07); padding:1.5rem; text-align:center; width:220px;">
-                <img src="assets/images/yesol_profile.jpeg" alt="Staff 1" style="width:90px; height:90px; border-radius:50%; object-fit:cover; margin-bottom:1rem;">
-                <h4 style="margin:0.5rem 0 0.2rem 0; color:#6b5b47;">Mrs. Jung</h4>
-                <p style="font-size:0.95rem; color:#888;">Director/ Teacher</p>
-                <a href="/profile" id="learnMoreBtn" class="btn btn-secondary" style="padding:0.6rem 1.5rem; border-radius:24px; background:#f7f5f2; color:#6b5b47; text-decoration:none;">Learn More</a>
-
-                <!-- Modal Structure -->
-            </div>
-        </div>
-    </section>
-    <!-- End Meet Our Staff Section -->
+    <button class="back-button" onclick="goHome()" title="Back to Home">🏠</button>
 
     <script>
-        // Navigation functions
-        function goHome() {
-            alert('Returning to Home page...');
-        }
-
-        function loadPage(page) {
-            alert(`Loading ${page.charAt(0).toUpperCase() + page.slice(1)} page...`);
-        }
 
         // Program filtering
         function filterPrograms(category) {
@@ -100,19 +67,43 @@
             // Filter cards
             cards.forEach(card => {
                 if (category === 'all' || card.dataset.category === category) {
-                    card.style.display = 'block';
-                    card.style.animation = 'fadeInUp 0.6s ease-out';
+                    if (card.style.display === 'none' || card.style.display === '') {
+                        card.style.display = 'block';
+                        card.style.animation = 'fadeInUp 0.6s ease-out';
+                    }
                 } else {
                     card.style.display = 'none';
+                    card.style.animation = '';
                 }
             });
         }
 
-        // Program enrollment
-        function enrollProgram(program) {
-            alert(`Starting enrollment process for ${program} program. You'll be redirected to our application form.`);
-        }
+        // Set default filter to 'reading' on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            filterProgramsDefault('reading');
+        });
 
+        // Helper for default filter (no event)
+        function filterProgramsDefault(category) {
+            const tabs = document.querySelectorAll('.filter-tab');
+            const cards = document.querySelectorAll('.program-card');
+            tabs.forEach(tab => tab.classList.remove('active'));
+            // Activate the reading tab
+            tabs.forEach(tab => {
+                if (tab.textContent.toLowerCase().includes(category)) {
+                    tab.classList.add('active');
+                }
+            });
+            cards.forEach(card => {
+                if (card.dataset.category === category) {
+                    card.style.display = 'block';
+                    card.style.animation = 'fadeInUp 0.6s ease-out';
+                } else {
+                    card.style.display = 'none';
+                    card.style.animation = '';
+                }
+            });
+        }
 
         // FAQ toggle
         function toggleFAQ(element) {
@@ -192,6 +183,7 @@
             });
         });
     </script>
+
     <style>
     @media (max-width: 768px) {
         .logo-img {
@@ -211,9 +203,6 @@
         }
         body {
             padding-top: 56px;
-        }
-        .main-content, section.container {
-            margin-top: 56px !important;
         }
         .nav-toggle {
             display: block !important;
@@ -247,19 +236,9 @@
     @media (min-width: 769px) {
         nav.container {
             z-index: 1002;
-            position: relative;
-            min-height: 56px;
-            padding: 0 1rem;
-            background: #fff;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.04);
-            display: flex;
-            align-items: center;
         }
         body {
-            padding-top: 56px;
-        }
-        .main-content, section.container {
-            margin-top: 56px !important;
+            padding-top: 0;
         }
         .nav-toggle {
             display: none !important;
@@ -276,10 +255,6 @@
             padding: 0 1rem;
             border-bottom: none;
         }
-    }
-
-    header, nav.container {
-        background: rgba(245, 240, 232, 0.95) !important;
     }
     </style>
 </body>

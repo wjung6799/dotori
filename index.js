@@ -34,6 +34,10 @@ app.get('/contact', (req, res) => {
   res.sendFile(path.join(__dirname, 'public/contact.html'));
 });
 
+app.get('/profile', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public/profile.html'));
+});
+
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });

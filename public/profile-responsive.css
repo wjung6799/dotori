@@ -1,0 +1,53 @@
+/* Profile Image Responsive Sizing */
+
+.profile-container {
+    max-width: 600px;
+    margin: 0 auto;
+    padding-top: 24px;
+}
+
+@media (max-width: 900px) {
+    .profile-container {
+        padding-top: 12px;
+    }
+}
+
+@media (max-width: 600px) {
+    .profile-container {
+        padding-top: 4px;
+    }
+}
+
+.profile-card {
+    background: #fff8f0;
+    border-radius: 16px;
+    box-shadow: 0 2px 16px rgba(139, 115, 85, 0.08);
+    padding: 32px 24px 24px 24px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin-top: 0;
+}
+
+.profile-img {
+    width: 140px;
+    max-width: 28vw;
+    height: auto;
+    border-radius: 12px;
+    margin-bottom: 18px;
+    transition: width 0.2s ease;
+}
+
+@media (max-width: 900px) {
+    .profile-img {
+        width: 100px;
+        max-width: 40vw;
+    }
+}
+
+@media (max-width: 600px) {
+    .profile-img {
+        width: 70px;
+        max-width: 60vw;
+    }
+}
