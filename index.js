@@ -26,9 +26,9 @@ app.get('/programs', (req, res) => {
   res.sendFile(path.join(__dirname, 'public/programs.html'));
 });
 
-app.get('/schedule', (req, res) => {
-  res.sendFile(path.join(__dirname, 'public/schedule.html'));
-});
+// app.get('/schedule', (req, res) => {
+//   res.sendFile(path.join(__dirname, 'public/schedule.html'));
+// });
 
 app.get('/contact', (req, res) => {
   res.sendFile(path.join(__dirname, 'public/contact.html'));
