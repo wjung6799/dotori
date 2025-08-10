@@ -22,6 +22,7 @@
             <ul class="nav-links">
                 <li><a href="/">Home</a></li>
                 <li><a href="/about">About</a></li>
+                <li><a href="/team">Our Team</a></li>
                 <li><a href="/programs" class="active">Programs</a></li>
                 <li><a href="/contact">Contact</a></li>
             </ul>
@@ -32,27 +33,58 @@
         <div class="container">
             <div class="page-header">
                 <h1>Our Programs</h1>
-                <p>Choose from our comprehensive range of programs designed to accelerate your career and unlock your potential. Each program combines theoretical knowledge with hands-on practice.</p>
+                <p>Choose from our comprehensive range of programs in Reading, Writing, and Korean Language—each designed to spark curiosity, strengthen literacy, and develop critical thinking. At Dotori School, we blend rich content with engaging instruction to help students grow in confidence, communication, and a love of learning.</p>
             </div>
 
             <div class="filter-tabs">
                 <div class="filter-tab" onclick="filterPrograms('reading')">Reading</div>
                 <div class="filter-tab" onclick="filterPrograms('writing')">Writing</div>
                 <div class="filter-tab" onclick="filterPrograms('creative')">Korean</div>
+                <div class="filter-tab" onclick="filterPrograms('extend')">Extended Hours</div>
             </div>
 
             <div class="programs-grid" id="programsGrid">
+                <div class="program-card animate-in" data-category="extend">
+                    <h3>Dotori Grove</h3>
+                    <div class="program-duration">Ongoing · Available for Dotori students only</div>
+                    <ul class="program-features">
+                        <li>Open to current Dotori students on the day of their class</li>
+                        <li>Also open Fridays from 4:00–8:00 PM</li>
+                        <li>A warm, safe space for students to relax, read, or play educational board games</li>
+                        <li>Access the Dotori Library and connect with friends in a supervised setting</li>
+                        <li>Homework help available from Mrs. Jung during select hours</li>
+                        <li>No rush for parent pickup—students can stay until closing time at their own pace</li>
+                    </ul>
+                </div>
                 <div class="program-card animate-in" data-category="reading">
                     <h3>Book Club</h3>
-                    <div class="program-duration">10 weeks</div>
+                    <div class="program-duration">10 weeks · 1 class/week · 60 minutes · Max 6 students/class</div>
                     <div class="program-description">
-                        Master the fundamentals of reading with a focus on phonics and fluency. This program is designed for young learners to build a strong foundation in reading skills.
+                        Build strong literacy skills through engaging stories, discussions, and projects.
                     </div>
                     <ul class="program-features">
-                        <li>Phonics Instruction</li>
-                        <li>Fluency Practice</li>
-                        <li>Comprehension Strategies</li>
-                        <li>Engaging Reading Materials</li>
+                        <li>Read 2 books in 10 weeks</li>
+                        <li>Expand vocabulary & background knowledge</li>
+                        <li>Practice comprehension and expression through discussions and projects</li>
+                        <li>Weekly homework to reinforce learning</li>
+                        <li>Parent conference held after the course</li>
+                    </ul>
+                    <div class="program-cta">
+                        <a href="/assets/pdf/brochure_reading.pdf" class="btn btn-primary" download style="width:100%;text-align:center;">Download Brochure</a>
+                    </div>
+                </div>
+
+                <div class="program-card animate-in" data-category="reading">
+                    <h3>Explore Reading <span style="color:#b48b5f; font-size:1rem; font-weight:500;">(Coming Soon)</span></h3>
+                    <div class="program-duration">TBD</div>
+                    <div class="program-description">
+                        Engage with the world through National Geographic’s acclaimed curriculum. Students will read rich, authentic texts while building essential reading skills.
+                    </div>
+                    <ul class="program-features">
+                        <li>Build academic vocabulary & background knowledge with science/social studies content</li>
+                        <li>Read maps, photos, and infographics to strengthen comprehension and critical thinking</li>
+                        <li>Connect reading to writing, discussion, and short research tasks</li>
+                        <li>Grow curiosity and global awareness through cross-curricular themes</li>
                     </ul>
                     <div class="program-cta">
                         <a href="/assets/pdf/brochure_reading.pdf" class="btn btn-primary" download style="width:100%;text-align:center;">Download Brochure</a>
@@ -60,19 +92,17 @@
                 </div>
 
                 <div class="program-card animate-in" data-category="writing">
-                    <h3>Writing - Creative Writing</h3>
-                    <div class="program-duration">10 weeks</div>
+                    <h3>Writing</h3>
+                    <div class="program-duration">10 weeks · 1 class/week · 60 minutes · Max 6 students/class</div>
                     <div class="program-description">
-                        Transform raw ideas into compelling narratives using various writing techniques and styles.
+                        Build strong writing skills through background knowledge, vocabulary, and language functions.
                     </div>
                     <ul class="program-features">
-                        <li>Character Development</li>
-                        <li>Plot Structure</li>
-                        <li>Writing Style & Voice</li>
-                        <li>Editing & Revision Techniques</li>
-                        <li>Publishing & Marketing Strategies</li>
-                        <li>Peer Review & Feedback</li>
-                        <li>Author Branding</li>
+                        <li>Explore engaging science and social studies topics to build background knowledge</li>
+                        <li>Learn academic and topic-specific vocabulary to enhance expression</li>
+                        <li>Practice sentence structures and purposes (describe, explain, persuade)</li>
+                        <li>Weekly homework to reinforce skills</li>
+                        <li>Parent conference held after the course</li>
                     </ul>
                     <div class="program-cta">
                         <a href="/assets/pdf/brochure_writing.pdf" class="btn btn-primary" download style="width:100%;text-align:center;">Download Brochure</a>
@@ -96,20 +126,75 @@
                 </div> -->
 
                 <div class="program-card animate-in" data-category="creative">
-                    <h3>Korean Language Program</h3>
-                    <div class="program-duration">10 weeks</div>
+                    <h3>Korean A: Hangul Foundations (K–2)</h3>
+                    <div class="program-duration">15 weeks · 1 class/week · 90 minutes · Max 6 students/class</div>
                     <div class="program-description">
-                        Immerse yourself in the Korean language and culture. Our program covers speaking, listening, reading, and writing skills.
+                        Master Korean phonics (한글) with joyful, context-rich lessons.
                     </div>
                     <ul class="program-features">
-                        <li>Conversational Korean</li>
-                        <li>Korean Grammar & Vocabulary</li>
-                        <li>Cultural Insights & Activities</li>
+                        <li>Focus on basic consonants and core phonics skills</li>
+                        <li>Learn through stories, culture, and hands-on activities</li>
+                        <li>Build early reading/writing confidence</li>
+                        <li>Weekly homework to reinforce learning</li>
+                        <li>Parent conference held after the course</li>
                     </ul>
                     <div class="program-cta">
                         <a href="/assets/pdf/brochure_korean.pdf" class="btn btn-primary" download style="width:100%;text-align:center;">Download Brochure</a>
                     </div>
                 </div>
+
+                <div class="program-card animate-in" data-category="creative">
+                    <h3>Korean B: Speaking (Grades 3–5)</h3>
+                    <div class="program-duration">10 weeks · 1 class/week · 60 minutes · Max 6 students/class</div>
+                    <div class="program-description">
+                        Build conversational Korean through fun, authentic media.
+                    </div>
+                    <ul class="program-features">
+                        <li>Practice speaking & listening with movies, K-pop, K-dramas</li>
+                        <li>Strengthen vocabulary and everyday expressions</li>
+                        <li>Make “language connections” between English and Korean</li>
+                        <li>Weekly homework to support progress</li>
+                        <li>Parent conference held after the course</li>
+                    </ul>
+                    <div class="program-cta">
+                        <a href="/assets/pdf/brochure_korean.pdf" class="btn btn-primary" download style="width:100%;text-align:center;">Download Brochure</a>
+                    </div>
+                </div>
+
+                <div class="program-card animate-in" data-category="creative">
+                    <h3>K-Book Club <span style="color:#b48b5f; font-size:1rem; font-weight:500;">(Coming Soon)</span></h3>
+                    <div class="program-duration">TBD</div>
+                    <div class="program-description">
+                        Read, discuss, and write in Korean with engaging, level-appropriate books.
+                    </div>
+                    <ul class="program-features">
+                        <li>Expand vocabulary and cultural knowledge through literature</li>
+                        <li>Practice comprehension and expression in Korean</li>
+                        <li>Develop critical thinking through guided discussions</li>
+                        <li>Creative projects to deepen understanding</li>
+                    </ul>
+                    <div class="program-cta">
+                        <a href="/contact" class="btn btn-primary" style="width:100%;text-align:center; background:#b48b5f; border:none;">Join Waitlist</a>
+                    </div>
+                </div>
+
+                <div class="program-card animate-in" data-category="creative">
+                    <h3>Korean Event Classes <span style="color:#b48b5f; font-size:1rem; font-weight:500;">(Coming Soon)</span></h3>
+                    <div class="program-duration">TBD</div>
+                    <div class="program-description">
+                        One-day Korean cultural and language experiences for all ages.
+                    </div>
+                    <ul class="program-features">
+                        <li>Themed activities such as art, read-alouds, and games</li>
+                        <li>Seasonal events tied to Korean holidays and traditions</li>
+                        <li>Hands-on, interactive learning in a fun setting</li>
+                    </ul>
+                    <div class="program-cta">
+                        <a href="/contact" class="btn btn-primary" style="width:100%;text-align:center; background:#b48b5f; border:none;">Join Waitlist</a>
+                    </div>
+                </div>
+
+
         </div>
     </main>
     <script>
