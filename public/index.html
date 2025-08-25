@@ -8,7 +8,30 @@
     <link rel="icon" type="image/x-icon" href="assets/images/logo.png">
 </head>
 <body>
-    <header>
+        <!-- Popup Container -->
+        <div id="popup" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); display: flex; align-items: center; justify-content: center; z-index: 9999; font-family: Arial, sans-serif;">
+            <div style="background: #fff; padding: 20px 30px; border-radius: 10px; max-width: 420px; text-align: center; box-shadow: 0 4px 10px rgba(0,0,0,0.2); position: relative;">
+                <h2 style="margin-top: 0; color: #6b4e16;">Dotori School</h2>
+                <h3 style="margin: 5px 0; color: #6b4e16;">Early Bird Registration</h3>
+                <p style="font-size: 16px; color: #333; margin-bottom: 10px;">
+                    Early Bird: <strong>Aug 25 – Sep 1</strong><br>
+                    Regular Registration until <strong>Sep 15</strong>
+                </p>
+                <p style="font-size: 14px; color: #444; margin-bottom: 15px;">
+                    To register, please contact us and let us know which class you’d like to join.
+                </p>
+                <!-- Register Now 버튼 -->
+                <a href="/contact" style="display: inline-block; margin-top: 5px; padding: 10px 18px; background: #6b4e16; color: #fff; text-decoration: none; border-radius: 5px; font-weight: bold;">Register Now</a>
+                <hr style="margin: 15px 0;">
+                <p style="font-size: 15px; color: #333; margin: 10px 0 0;">
+                    <strong>Open House:</strong><br>
+                    Sep 5 (Fri) 5–6 PM<br>
+                    Sep 6 (Sat) 1–2 PM
+                </p>
+                <button id="closePopup" style="margin-top: 15px; padding: 8px 16px; background: #999; color: #fff; border: none; border-radius: 5px; cursor: pointer;">Close</button>
+            </div>
+        </div>
+        <header>
         <nav class="container">
             <div class="logo">
                 <a href="/">
@@ -152,6 +175,13 @@
         navToggle.style.display = 'block';
         navToggle.addEventListener('click', function() {
             navLinks.classList.toggle('nav-open');
+        });
+
+        // Popup close functionality
+        const popup = document.getElementById('popup');
+        const closeBtn = document.getElementById('closePopup');
+        closeBtn.addEventListener('click', function() {
+            popup.style.display = 'none';
         });
     });
     </script>
