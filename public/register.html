@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Register for a Class - Dotori School</title>
+    <link rel="icon" type="image/x-icon" href="assets/images/logo.png">
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="profile-responsive.css">
+</head>
+<body>
+    <header>
+        <nav class="container">
+            <div class="logo">
+                <a href="/">
+                    <img src="assets/images/logo.png" alt="Dotori School Logo" style="max-width: 80px;" class="logo-img">
+                    <span class="logo-text" style="display:none; font-size:1.5rem; font-weight:700; color:#6b5b47;">Dotori School</span>
+                </a>
+            </div>
+            <button class="nav-toggle" aria-label="Toggle navigation" style="background:none; border:none; font-size:2rem; color:#6b5b47; display:none; position:absolute; right:24px; top:18px; z-index:1001;">&#9776;</button>
+            <ul class="nav-links">
+                <li><a href="/">Home</a></li>
+                <li><a href="/about">About</a></li>
+                <li><a href="/team">Our Team</a></li>
+                <li><a href="/programs">Programs</a></li>
+                <li><a href="/contact">Contact</a></li>
+                <li><a href="/register" class="active">Register</a></li>
+            </ul>
+        </nav>
+    </header>
+    <main class="container" style="max-width:600px; margin:48px auto; padding-top:90px;">
+        <h1 style="text-align:center; color:#6b5b47; margin-bottom:2rem;">Register for a Class</h1>
+    <form id="registerForm" style="background:#fff; border-radius:18px; box-shadow:0 4px 24px rgba(0,0,0,0.08); padding:2.5rem 2rem; display:flex; flex-direction:column; gap:1.2rem;" autocomplete="off">
+            <div>
+                <label for="studentName" style="color:#6b5b47; font-weight:600;">Student Name</label><br>
+                <input type="text" id="studentName" name="studentName" required style="width:100%; padding:0.7rem; border-radius:8px; border:1px solid #ddd;">
+            </div>
+            <div>
+                <label for="parentName" style="color:#6b5b47; font-weight:600;">Parent/Guardian Name</label><br>
+                <input type="text" id="parentName" name="parentName" required style="width:100%; padding:0.7rem; border-radius:8px; border:1px solid #ddd;">
+            </div>
+            <div>
+                <label for="email" style="color:#6b5b47; font-weight:600;">Email Address</label><br>
+                <input type="email" id="email" name="email" required style="width:100%; padding:0.7rem; border-radius:8px; border:1px solid #ddd;">
+            </div>
+            <div>
+                <label for="phone" style="color:#6b5b47; font-weight:600;">Phone Number</label><br>
+                <input type="tel" id="phone" name="phone" required style="width:100%; padding:0.7rem; border-radius:8px; border:1px solid #ddd;">
+            </div>
+            <div>
+                <label style="color:#6b5b47; font-weight:600;">Select Program(s)</label><br>
+                <div style="display:flex; flex-direction:column; gap:0.5rem;">
+                    <label><input type="checkbox" name="program" value="Writing (K-1)"> Writing (K-1)</label>
+                    <label><input type="checkbox" name="program" value="Writing (2-3)"> Writing (2-3)</label>
+                    <label><input type="checkbox" name="program" value="Writing (4-5)"> Writing (4-5)</label>
+                    <label><input type="checkbox" name="program" value="Book Club (K-1)"> Book Club (K-1)</label>
+                    <label><input type="checkbox" name="program" value="Book Club (2-3)"> Book Club (2-3)</label>
+                    <label><input type="checkbox" name="program" value="Book Club (4-5)"> Book Club (4-5)</label>
+                    <label><input type="checkbox" name="program" value="Korean Speaking (3-5)"> Korean Speaking (3-5)</label>
+                    <label><input type="checkbox" name="program" value="Hangul Foundations (K-2)"> Hangul Foundations (K-2)</label>
+                </div>
+            </div>
+            <div>
+                <label for="notes" style="color:#6b5b47; font-weight:600;">Additional Notes</label><br>
+                <textarea id="notes" name="notes" rows="4" style="width:100%; padding:0.7rem; border-radius:8px; border:1px solid #ddd;"></textarea>
+            </div>
+            <button type="submit" class="btn btn-primary" style="padding:0.8rem 2rem; border-radius:30px; background:#6b5b47; color:#fff; font-size:1.1rem; font-weight:600; border:none;">Submit Registration</button>
+        </form>
+        <div id="registerMessage" style="margin-top:1rem; text-align:center;"></div>
+    </main>
+    <footer style="background:#f7f5f2; padding:2rem 0; text-align:center; color:#888;">
+        <div class="container">
+            &copy; 2025 Dotori School. All rights reserved.
+        </div>
+    </footer>
+    <script>
+    // Mobile navbar toggle
+    document.addEventListener('DOMContentLoaded', function() {
+        const navToggle = document.querySelector('.nav-toggle');
+        const navLinks = document.querySelector('.nav-links');
+        navToggle.style.display = 'block';
+        navToggle.addEventListener('click', function() {
+            navLinks.classList.toggle('nav-open');
+        });
+    });
+    // Registration form submission (POST to /api/register)
+    document.getElementById('registerForm').addEventListener('submit', async function(e) {
+        e.preventDefault();
+        const selectedPrograms = Array.from(document.querySelectorAll('input[name="program"]:checked')).map(cb => cb.value);
+        const data = {
+            studentName: this.studentName.value,
+            parentName: this.parentName.value,
+            email: this.email.value,
+            phone: this.phone.value,
+            programs: selectedPrograms,
+            notes: this.notes.value
+        };
+        try {
+            const res = await fetch('/api/register', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            });
+            if (res.ok) {
+                document.getElementById('registerMessage').textContent = 'Thank you for registering! An invoice has been sent to your email.';
+                this.reset();
+            } else {
+                document.getElementById('registerMessage').textContent = 'Registration failed. Please try again.';
+            }
+        } catch {
+            document.getElementById('registerMessage').textContent = 'Registration failed. Please try again.';
+        }
+    });
+    </script>
+</body>
+</html>

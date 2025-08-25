@@ -10,8 +10,11 @@ app.use(cors());
 app.use(express.json());
 app.use(express.static('public'));
 
+
 const contactHandler = require('./api/contact');
+const registerHandler = require('./api/register');
 app.post('/api/contact', contactHandler);
+app.post('/api/register', registerHandler);
 
 // Serve individual HTML files for each route
 app.get('/', (req, res) => {
@@ -24,6 +27,10 @@ app.get('/about', (req, res) => {
 
 app.get('/programs', (req, res) => {
   res.sendFile(path.join(__dirname, 'public/programs.html'));
+});
+
+app.get('/register', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public/register.html'));
 });
 
 // app.get('/schedule', (req, res) => {
