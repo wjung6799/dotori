@@ -39,7 +39,7 @@
             </div>
 
             <!-- Course Periods -->
-            <div style="display:grid; grid-template-columns:repeat(3,1fr); gap:1rem; margin-bottom:1.5rem;">
+            <div class="cal-period-grid" style="display:grid; gap:1rem; margin-bottom:1.5rem;">
                 <div style="background:#e8a87c22; border-left:4px solid #e8a87c; border-radius:8px; padding:0.8rem;">
                     <div style="font-weight:700; color:#6b5b47; margin-bottom:0.2rem;">Fall Quarter</div>
                     <div style="font-size:0.85rem; color:#888;">Sept 22 – Dec 6, 2025</div>
@@ -86,7 +86,7 @@
             <!-- Important Dates -->
             <div style="border:1px solid #e0dbd4; border-radius:12px; padding:1.5rem; margin-bottom:3rem;">
                 <h3 style="color:#6b5b47; margin:0 0 1.2rem 0; font-size:1.05rem; letter-spacing:0.01em;">Important Dates</h3>
-                <div style="display:grid; grid-template-columns:repeat(3,1fr); gap:1.5rem;">
+                <div class="cal-important-grid" style="display:grid; gap:1.5rem;">
                     <div>
                         <div style="color:#b85e1a; font-weight:700; margin-bottom:0.6rem; border-bottom:2px solid #e8a87c; padding-bottom:0.3rem; font-size:0.95rem;">Fall Quarter</div>
                         <ul style="list-style:none; padding:0; margin:0; font-size:0.83rem; line-height:2;">
@@ -264,6 +264,24 @@
     </script>
 
     <style>
+    /* Grid defaults (desktop) */
+    .cal-period-grid   { grid-template-columns: repeat(3, 1fr); }
+    .cal-important-grid { grid-template-columns: repeat(3, 1fr); }
+
+    /* Tablet: 2-col months + 2-col periods, 1-col important dates */
+    @media (max-width: 900px) {
+        .cal-period-grid    { grid-template-columns: 1fr 1fr; }
+        #calendarMonths     { grid-template-columns: 1fr 1fr !important; }
+        .cal-important-grid { grid-template-columns: 1fr; }
+    }
+
+    /* Mobile: everything single column */
+    @media (max-width: 540px) {
+        .cal-period-grid { grid-template-columns: 1fr; }
+        #calendarMonths  { grid-template-columns: 1fr !important; }
+        .page-header h1  { font-size: 1.3rem; }
+    }
+
     @media (max-width: 768px) {
         .logo-img { display: none !important; }
         .logo-text { display: inline-block !important; }
@@ -273,6 +291,8 @@
             display: flex; align-items: center;
         }
         body { padding-top: 56px; }
+        main { margin-top: 0 !important; padding-top: 1rem; }
+        .page-header { padding: 1.5rem 1rem !important; margin-bottom: 1.5rem !important; }
         .nav-toggle { display: block !important; right: 18px; top: 50%; transform: translateY(-30%); z-index: 1001; }
         .nav-links {
             position: absolute; top: 56px; right: 0; background: #fff;
