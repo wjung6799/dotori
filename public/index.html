@@ -8,71 +8,19 @@
     <link rel="icon" type="image/x-icon" href="assets/images/logo.png">
 </head>
 <body>
-    <!-- Registration Popup (disabled)
-    <div id="registrationPopup" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); display: none; align-items: center; justify-content: center; z-index: 9999; font-family: Arial, sans-serif;">
-        <div style="background: #f8f6f3; padding: 30px 35px; border-radius: 15px; max-width: 480px; width: 90%; text-align: left; box-shadow: 0 8px 32px rgba(0,0,0,0.3); position: relative; line-height: 1.5;">
-            <button id="closePopup" style="position: absolute; top: 15px; right: 15px; background: none; border: none; font-size: 24px; color: #999; cursor: pointer; width: 30px; height: 30px; display: flex; align-items: center; justify-content: center;">&times;</button>
-            <div style="background: #f8f6f3; padding: 20px; border-radius: 10px; margin-bottom: 20px;">
-                <h2 style="margin: 0 0 15px 0; color: #2c5282; font-weight: 600;">
-                    <span style="font-size: 20px;">❄️</span> Winter Quarter Registration is Now Open!
-                </h2>
-
-                <div style="margin-left: 20px; margin-bottom: 15px;">
-
-                    <p style="margin: 8px 0; color: #333;">
-                        <strong>New Student Registration — Early Bird (15% off Tuition)</strong><br>
-                        <span style="font-size: 16px;">👉</span> December 6 – 15
-                    </p>
-
-                    <p style="margin: 8px 0; color: #333;">
-                        <strong>General Registration Deadline</strong><br>
-                        <span style="font-size: 16px;">👉</span> December 28
-                    </p>
-                </div>
-
-                <p style="margin: 15px 0 10px 0; color: #d2691e; font-weight: 600; font-size: 15px;">
-                    Max 4 students per class — spots fill quickly!
-                </p>
-
-                <div style="text-align: center; margin-top: 15px;">
-                    <a href="/contact" style="position: relative; display: inline-block; padding: 12px 32px; background: #fff; color: #000; text-decoration: none; border-radius: 25px; font-weight: 700; font-size: 16px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); border: 2px solid #e0e0e0; overflow: visible;">
-                        Register Now
-                        <span style="position: absolute; top: -8px; right: -8px; background: linear-gradient(135deg, #dc143c, #c41230); color: #fff; padding: 4px 10px; border-radius: 12px; font-size: 11px; font-weight: 600; box-shadow: 0 2px 8px rgba(220,20,60,0.4); transform: rotate(15deg);">15% OFF</span>
-                    </a>
-                </div>
-            </div>
-
-            <div style="margin-bottom: 20px;">
-                <label style="display: flex; align-items: center; gap: 8px; color: #666; cursor: pointer; font-size: 14px;">
-                    <input type="checkbox" id="dontShowAgain" style="margin: 0;">
-                    <span>Don't show me this again</span>
-                </label>
-            </div>
-
-            <div style="text-align: center;">
-                <a href="/contact" style="display: inline-block; padding: 12px 24px; background: #6b5b47; color: #fff; text-decoration: none; border-radius: 25px; font-weight: 600; font-size: 16px; margin-right: 10px;">Contact Us</a>
-                <button id="closePopupBtn" style="padding: 12px 24px; background: #e0e0e0; color: #666; border: none; border-radius: 25px; cursor: pointer; font-weight: 600; font-size: 16px;">Close</button>
+    <!-- Registration Closed Popup -->
+    <div id="registrationPopup" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); display: flex; align-items: center; justify-content: center; z-index: 9999; font-family: Arial, sans-serif;">
+        <div style="background: #f8f6f3; padding: 35px 40px; border-radius: 15px; max-width: 480px; width: 90%; text-align: center; box-shadow: 0 8px 32px rgba(0,0,0,0.3); position: relative; line-height: 1.6;">
+            <button id="closePopup" style="position: absolute; top: 12px; right: 15px; background: none; border: none; font-size: 24px; color: #999; cursor: pointer;">&times;</button>
+            <p style="margin: 0 0 10px 0; color: #333; font-size: 16px;">Spring 2026 registration is now <strong>closed</strong>.</p>
+            <p style="margin: 0 0 10px 0; color: #555; font-size: 15px;">Spring Quarter: <strong>March 30 – June 13</strong></p>
+            <p style="margin: 0 0 25px 0; color: #555; font-size: 15px;">Registration for Fall quarter opens in <strong>September</strong>.</p>
+            <div style="display: flex; gap: 10px; justify-content: center;">
+                <a href="/contact" style="display: inline-block; padding: 12px 24px; background: #6b5b47; color: #fff; text-decoration: none; border-radius: 25px; font-weight: 600; font-size: 15px;">Contact Us</a>
+                <button id="closePopupBtn" style="padding: 12px 24px; background: #e0e0e0; color: #666; border: none; border-radius: 25px; cursor: pointer; font-weight: 600; font-size: 15px;">Close</button>
             </div>
         </div>
     </div>
-    -->
-        <!-- Popup Container -->
-        <!-- <div id="popup" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); display: flex; align-items: center; justify-content: center; z-index: 9999; font-family: Arial, sans-serif;">
-            <div style="background: #fff; padding: 20px 30px; border-radius: 10px; max-width: 420px; text-align: center; box-shadow: 0 4px 10px rgba(0,0,0,0.2); position: relative;">
-                <h2 style="margin-top: 0; color: #6b4e16;">Dotori School</h2>
-                <h3 style="margin: 5px 0; color: #6b4e16;">Registration Now Open!</h3>
-                <p style="font-size: 16px; color: #333; margin-bottom: 10px;">
-                    Early Bird: <strong>Aug 25 – Sep 1</strong><br>
-                    Regular Registration until <strong>Sep 15</strong>
-                </p>
-                <p style="font-size: 14px; color: #444; margin-bottom: 15px;">
-                    To register, please contact us and let us know which class you’d like to join.
-                </p>
-                <a href="/contact" style="display: inline-block; margin-top: 5px; padding: 10px 18px; background: #6b4e16; color: #fff; text-decoration: none; border-radius: 5px; font-weight: bold;">Register Now</a>
-                <hr style="margin: 15px 0;">
-                <button id="closePopup" style="margin-top: 15px; padding: 8px 16px; background: #999; color: #fff; border: none; border-radius: 5px; cursor: pointer;">Close</button>
-            </div>
-        </div> -->
         <header>
         <nav class="container">
             <div class="logo">
@@ -247,67 +195,30 @@ Dotori is a great fit for families seeking small-group instruction, after-school
             navLinks.classList.toggle('nav-open');
         });
 
-        // Registration Popup functionality (disabled)
-        /*
+        // Registration Closed Popup
         const popup = document.getElementById('registrationPopup');
         const closeBtn = document.getElementById('closePopup');
         const closeBtn2 = document.getElementById('closePopupBtn');
-        const dontShowAgainCheckbox = document.getElementById('dontShowAgain');
 
-        if (!popup) {
-            console.error('Popup element not found');
-            return;
-        }
-
-        // Check if user has permanently dismissed popup
-        const popupPermanentlyDismissed = localStorage.getItem('registrationPopupDismissed');
-
-        console.log('Popup permanently dismissed:', popupPermanentlyDismissed);
-
-        if (!popupPermanentlyDismissed) {
-            // Show popup on every page load unless permanently dismissed
-            console.log('Showing popup...');
-            setTimeout(() => {
-                popup.style.display = 'flex';
-            }, 500);
-        } else {
-            console.log('Popup permanently dismissed');
-        }
-
-        // For testing: Add this to browser console to reset popup:
-        // localStorage.removeItem('registrationPopupDismissed'); sessionStorage.removeItem('registrationPopupShown'); location.reload();
-
-        // Close popup functionality
-        function closeRegistrationPopup() {
-            const dontShowAgain = dontShowAgainCheckbox && dontShowAgainCheckbox.checked;
-
-            popup.style.display = 'none';
-
-            if (dontShowAgain) {
-                // Permanently dismiss popup
-                localStorage.setItem('registrationPopupDismissed', 'true');
-                console.log('Popup permanently dismissed');
+        if (popup) {
+            const dismissed = sessionStorage.getItem('registrationPopupClosed');
+            if (!dismissed) {
+                setTimeout(() => { popup.style.display = 'flex'; }, 500);
             } else {
-                // Just close for now - will show again on next page load/refresh
-                console.log('Popup closed temporarily - will show on next page load');
+                popup.style.display = 'none';
             }
-        }
 
-        if (closeBtn) {
-            closeBtn.addEventListener('click', closeRegistrationPopup);
-        }
-
-        if (closeBtn2) {
-            closeBtn2.addEventListener('click', closeRegistrationPopup);
-        }
-
-        // Close popup when clicking outside
-        popup.addEventListener('click', function(e) {
-            if (e.target === popup) {
-                closeRegistrationPopup();
+            function closeRegistrationPopup() {
+                popup.style.display = 'none';
+                sessionStorage.setItem('registrationPopupClosed', 'true');
             }
-        });
-        */
+
+            if (closeBtn) closeBtn.addEventListener('click', closeRegistrationPopup);
+            if (closeBtn2) closeBtn2.addEventListener('click', closeRegistrationPopup);
+            popup.addEventListener('click', function(e) {
+                if (e.target === popup) closeRegistrationPopup();
+            });
+        }
 
         // Hide Elfsight watermark/attribution link
         function hideElfsightWatermark() {
