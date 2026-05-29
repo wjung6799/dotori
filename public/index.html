@@ -9,7 +9,7 @@
 </head>
 <body>
     <!-- Registration Closed Popup -->
-    <div id="registrationPopup" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); display: flex; align-items: center; justify-content: center; z-index: 9999; font-family: Arial, sans-serif;">
+    <div id="registrationPopup" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); display: none; align-items: center; justify-content: center; z-index: 9999; font-family: Arial, sans-serif;">
         <div style="background: #f8f6f3; padding: 35px 40px; border-radius: 15px; max-width: 480px; width: 90%; text-align: center; box-shadow: 0 8px 32px rgba(0,0,0,0.3); position: relative; line-height: 1.6;">
             <button id="closePopup" style="position: absolute; top: 12px; right: 15px; background: none; border: none; font-size: 24px; color: #999; cursor: pointer;">&times;</button>
             <p style="margin: 0 0 10px 0; color: #333; font-size: 16px;">Spring 2026 registration is now <strong>closed</strong>.</p>
@@ -201,12 +201,9 @@ Dotori is a great fit for families seeking small-group instruction, after-school
         const closeBtn2 = document.getElementById('closePopupBtn');
 
         if (popup) {
-            const dismissed = sessionStorage.getItem('registrationPopupClosed');
-            if (!dismissed) {
-                setTimeout(() => { popup.style.display = 'flex'; }, 500);
-            } else {
-                popup.style.display = 'none';
-            }
+            // Registration Closed popup disabled — keep hidden.
+            // To re-enable, restore the auto-show below.
+            popup.style.display = 'none';
 
             function closeRegistrationPopup() {
                 popup.style.display = 'none';
