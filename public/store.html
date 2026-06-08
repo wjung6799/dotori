@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Store · Dotori School</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="icon" type="image/x-icon" href="assets/images/logo.png">
+    <style>
+        .store-wrap {
+            max-width: 520px;
+            margin: 0 auto;
+            padding: 48px 20px 64px;
+            text-align: center;
+        }
+        .store-logo { max-width: 110px; margin: 0 auto 1rem; display: block; }
+        .store-wrap h1 { font-size: 2rem; color: #6b5b47; margin: 0 0 0.4rem; }
+        .store-wrap .tagline { color: #8b7355; font-size: 1.05rem; margin: 0 0 2.2rem; }
+        .store-links { display: flex; flex-direction: column; gap: 1rem; }
+        .store-link {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.6rem;
+            padding: 1.05rem 1.4rem;
+            background: #fff;
+            border: 2px solid #e6ddd0;
+            border-radius: 16px;
+            color: #6b5b47;
+            font-size: 1.08rem;
+            font-weight: 700;
+            text-decoration: none;
+            box-shadow: 0 3px 10px rgba(139,115,85,0.08);
+            transition: transform 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
+        }
+        .store-link:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(139,115,85,0.18);
+            background: #fbf9f5;
+        }
+        .store-link.primary {
+            background: linear-gradient(135deg, #8b7355, #a0856b);
+            color: #fff;
+            border-color: transparent;
+        }
+        .store-link.primary:hover { background: linear-gradient(135deg, #7a6549, #8f7660); }
+        .store-link .ico { font-size: 1.3rem; line-height: 1; }
+    </style>
+</head>
+<body>
+    <header>
+        <nav class="container">
+            <div class="logo">
+                <a href="/">
+                    <img src="assets/images/logo.png" alt="Dotori School Logo" style="max-width: 80px;" class="logo-img">
+                    <span class="logo-text" style="display:none; font-size:1.5rem; font-weight:700; color:#6b5b47;">Dotori School</span>
+                </a>
+            </div>
+            <button class="nav-toggle" aria-label="Toggle navigation" style="background:none; border:none; font-size:2rem; color:#6b5b47; display:none; position:absolute; right:24px; top:18px; z-index:1001;">
+                &#9776;
+            </button>
+            <ul class="nav-links">
+                <li><a href="/">Home</a></li>
+                <li><a href="/about">About</a></li>
+                <li><a href="/team">Our Team</a></li>
+                <li><a href="/calendar">Calendar</a></li>
+                <li><a href="/programs">Programs</a></li>
+                <li><a href="/contact">Contact</a></li>
+                <li><a href="/store" class="active">Store</a></li>
+            </ul>
+        </nav>
+    </header>
+
+    <main class="store-wrap" style="margin-top:56px;">
+        <img src="assets/images/logo.png" alt="Dotori School Logo" class="store-logo">
+        <h1>Dotori School Store</h1>
+        <p class="tagline">Books, workbooks &amp; merchandise — all in one place.</p>
+
+        <div class="store-links">
+            <!-- Primary: Amazon author store -->
+            <a class="store-link primary" href="https://www.amazon.com/stores/author/B0GWTZKS55/allbooks" target="_blank" rel="noopener">
+                <span class="ico">📚</span> Shop Books on Amazon
+            </a>
+
+            <!-- Internal links -->
+            <a class="store-link" href="/programs">
+                <span class="ico">🎓</span> Explore Our Programs
+            </a>
+            <a class="store-link" href="/contact">
+                <span class="ico">✉️</span> Contact Us
+            </a>
+
+            <!--
+              To add more buttons (Instagram, Shopify, YouTube, etc.), copy a block:
+              <a class="store-link" href="https://YOUR-LINK" target="_blank" rel="noopener">
+                  <span class="ico">🔗</span> Link label
+              </a>
+            -->
+        </div>
+    </main>
+
+    <footer style="background:#f7f5f2; padding:2rem 0; text-align:center; color:#888;">
+        <div class="container">
+            <div style="margin-bottom:1rem;">
+                <p style="margin:0.3rem 0; color:#6b5b47; font-weight:600;">12721 NE Bel Red Rd. #220 (2nd Floor) Bellevue WA 98005</p>
+                <p style="margin:0.3rem 0; color:#6b5b47; font-weight:600;">info@dotorischool.org</p>
+            </div>
+            <p style="margin:0;">&copy; 2025 Dotori School. All rights reserved.</p>
+        </div>
+    </footer>
+</body>
+</html>
