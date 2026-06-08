@@ -71,7 +71,7 @@
         </nav>
     </header>
 
-    <main class="store-wrap" style="margin-top:56px;">
+    <main class="store-wrap">
         <img src="assets/images/logo.png" alt="Dotori School Logo" class="store-logo">
         <h1>Dotori School Store</h1>
         <p class="tagline">Books, workbooks &amp; merchandise — all in one place.</p>
@@ -85,14 +85,6 @@
             <!-- Merchandise -->
             <a class="store-link" href="https://dotori-store-2.myshopify.com/" target="_blank" rel="noopener">
                 <span class="ico">🛍️</span> Shop Merchandise
-            </a>
-
-            <!-- Internal links -->
-            <a class="store-link" href="/programs">
-                <span class="ico">🎓</span> Explore Our Programs
-            </a>
-            <a class="store-link" href="/contact">
-                <span class="ico">✉️</span> Contact Us
             </a>
 
             <!--
@@ -113,5 +105,107 @@
             <p style="margin:0;">&copy; 2025 Dotori School. All rights reserved.</p>
         </div>
     </footer>
+
+    <script>
+        // Mobile navbar toggle
+        document.addEventListener('DOMContentLoaded', function() {
+            const navToggle = document.querySelector('.nav-toggle');
+            const navLinks = document.querySelector('.nav-links');
+            navToggle.style.display = 'block';
+            navToggle.addEventListener('click', function() {
+                navLinks.classList.toggle('nav-open');
+            });
+        });
+    </script>
+    <style>
+    @media (max-width: 768px) {
+        .logo-img {
+            display: none !important;
+        }
+        .logo-text {
+            display: inline-block !important;
+        }
+        nav.container {
+            position: relative;
+            min-height: 56px;
+            padding: 0 1rem;
+            background: #fff;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+            display: flex;
+            align-items: center;
+        }
+        body {
+            padding-top: 56px;
+        }
+        .main-content, section.container {
+            margin-top: 56px !important;
+        }
+        .nav-toggle {
+            display: block !important;
+            /*position: absolute;*/
+            right: 18px;
+            top: 50%;
+            transform: translateY(-30%);
+            z-index: 1001;
+        }
+        .nav-links {
+            position: absolute;
+            top: 56px;
+            right: 0;
+            background: #fff;
+            width: 100%;
+            flex-direction: column;
+            align-items: flex-start;
+            box-shadow: 0 4px 24px rgba(0,0,0,0.08);
+            display: none;
+            z-index: 1000;
+        }
+        .nav-links.nav-open {
+            display: flex;
+        }
+        .nav-links li {
+            width: 100%;
+            padding: 1rem 2rem;
+            border-bottom: 1px solid #eee;
+        }
+    }
+    @media (min-width: 769px) {
+        nav.container {
+            z-index: 1002;
+            position: relative;
+            min-height: 56px;
+            padding: 0 1rem;
+            background: #fff;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+            display: flex;
+            align-items: center;
+        }
+        body {
+            padding-top: 56px;
+        }
+        .main-content, section.container {
+            margin-top: 56px !important;
+        }
+        .nav-toggle {
+            display: none !important;
+        }
+        .nav-links {
+            position: static;
+            display: flex !important;
+            flex-direction: row;
+            background: none;
+            box-shadow: none;
+            width: auto;
+        }
+        .nav-links li {
+            padding: 0 1rem;
+            border-bottom: none;
+        }
+    }
+
+    header, nav.container {
+        background: rgba(245, 240, 232, 0.95) !important;
+    }
+    </style>
 </body>
 </html>
