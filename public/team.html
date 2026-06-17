@@ -55,6 +55,18 @@
                 </ul>
                 <p style="text-align:center; margin:1rem 0 0 0;"><a href="mailto:yesoljung@dotorischool.org" style="color:#6b5b47; text-decoration:underline; font-size:0.95rem;">yesoljung@dotorischool.org</a></p>
             </section>
+            <section class="profile-card">
+                <img src="assets/images/teacher2_profile.jpeg" alt="Teacher Won Jung" class="profile-img" style="object-position: center 18%;">
+                <h2>Won Jung</h2>
+                <h2>(Mr. Jung)</h2>
+                <h3>STEM Teacher</h3>
+                <ul class="profile-details">
+                    <li><strong>Education:</strong> University of Washington — Physics (Math minor)</li>
+                    <li><strong>Experience:</strong> Previously at Meta, Microsoft, and Boeing</li>
+                    <li><strong>Specialty:</strong> Math, Physics, Computer Science</li>
+                </ul>
+                <p style="text-align:center; margin:1rem 0 0 0;"><a href="mailto:wonjung@dotorischool.org" style="color:#6b5b47; text-decoration:underline; font-size:0.95rem;">wonjung@dotorischool.org</a></p>
+            </section>
             <!-- Add more team members here as needed -->
         </section>
     </main>
@@ -188,13 +200,16 @@
     /* Responsive team grid layout */
     .profile-container {
         display: flex;
+        flex-wrap: wrap;
         justify-content: center;
-        align-items: start;
+        align-items: stretch;
+        gap: 2rem;
     }
 
     .profile-card {
-        max-width: 600px;
+        max-width: 480px;
         width: 100%;
+        flex: 1 1 380px;
     }
     
     /* Profile image styling */
