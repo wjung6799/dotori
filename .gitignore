@@ -1,12 +1,26 @@
-# Node
-node_modules/
-.env
-*.log
-dist/
-build/
-.DS_Store
-npm-debug.log*
-.env.*
+# dependencies
+/node_modules
 
-.devdiary/
+# next.js
+/.next/
+/out/
+
+# production
+/build
+
+# misc
+.DS_Store
+*.pem
+
+# debug
+npm-debug.log*
+
+# local env files
+.env*.local
+.env
+
+# vercel
+.vercel
+
+# local dev tools
 .devguard/

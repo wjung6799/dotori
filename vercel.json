@@ -1,12 +1,8 @@
 {
-  "rewrites": [
-    { "source": "/about", "destination": "/about.html" },
-    { "source": "/programs", "destination": "/programs.html" },
-    { "source": "/schedule", "destination": "/schedule.html" },
-    { "source": "/contact", "destination": "/contact.html" },
-    { "source": "/team", "destination": "/team.html" },
-    { "source": "/calendar", "destination": "/calendar.html" },
-    { "source": "/store", "destination": "/store.html" },
-    { "source": "/shop", "destination": "/store.html" }
+  "crons": [
+    {
+      "path": "/api/cron/poll-lulu",
+      "schedule": "0 * * * *"
+    }
   ]
 }
