@@ -2,6 +2,7 @@ import NextAuth from 'next-auth';
 import Credentials from 'next-auth/providers/credentials';
 import { MongoDBAdapter } from '@auth/mongodb-adapter';
 import bcrypt from 'bcryptjs';
+import { ObjectId } from 'mongodb';
 
 import clientPromise from '@/lib/mongodb';
 import authConfig from '@/auth.config';
@@ -14,6 +15,23 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   ...authConfig,
   adapter: MongoDBAdapter(clientPromise),
   session: { strategy: 'jwt' },
+  events: {
+    // OAuth (Google) users are created by the adapter with no `role`, so they
+    // never appear in the admin/tutor family lists (which query role:'family').
+    // Default new adapter-created users to 'family'. Credentials signups set
+    // their own role in /api/register, so this only affects OAuth users.
+    async createUser({ user }) {
+      try {
+        const db = (await clientPromise).db();
+        await db.collection('users').updateOne(
+          { _id: new ObjectId(user.id) },
+          { $set: { role: 'family' } },
+        );
+      } catch (err) {
+        console.error('createUser role default failed:', err);
+      }
+    },
+  },
   providers: [
     ...authConfig.providers,
     Credentials({
