@@ -24,3 +24,5 @@ npm-debug.log*
 
 # local dev tools
 .devguard/
+
+.devdiary/

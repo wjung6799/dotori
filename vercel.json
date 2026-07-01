@@ -1,8 +1,0 @@
-{
-  "crons": [
-    {
-      "path": "/api/cron/poll-lulu",
-      "schedule": "0 * * * *"
-    }
-  ]
-}
