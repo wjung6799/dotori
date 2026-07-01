@@ -6,5 +6,9 @@ import authConfig from '@/auth.config';
 export const { auth: middleware } = NextAuth(authConfig);
 
 export const config = {
+  // Run on the Node.js runtime (not Edge): next-auth pulls in `jose`, which uses
+  // DecompressionStream — unsupported in the Edge Runtime. Node middleware is
+  // stable as of Next.js 15.5.
+  runtime: 'nodejs',
   matcher: ['/profile/:path*', '/admin/:path*', '/tutor/:path*'],
 };
