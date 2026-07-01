@@ -3,80 +3,6 @@
 import { useState } from 'react';
 import Link from 'next/link';
 
-const pageStyles = `
-    @media (max-width: 768px) {
-        .logo-img {
-            display: none !important;
-        }
-        .logo-text {
-            display: inline-block !important;
-        }
-        nav.container {
-            position: relative;
-            min-height: 56px;
-            padding: 0 1rem;
-            background: #fff;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.04);
-            display: flex;
-            align-items: center;
-        }
-        body {
-            padding-top: 56px;
-        }
-        .nav-toggle {
-            display: block !important;
-            /*position: absolute;*/
-            right: 18px;
-            top: 50%;
-            transform: translateY(-30%);
-            z-index: 1001;
-        }
-        .nav-links {
-            position: absolute;
-            top: 56px;
-            right: 0;
-            background: #fff;
-            width: 100%;
-            flex-direction: column;
-            align-items: flex-start;
-            box-shadow: 0 4px 24px rgba(0,0,0,0.08);
-            display: none;
-            z-index: 1000;
-        }
-        .nav-links.nav-open {
-            display: flex;
-        }
-        .nav-links li {
-            width: 100%;
-            padding: 1rem 2rem;
-            border-bottom: 1px solid #eee;
-        }
-    }
-    @media (min-width: 769px) {
-        nav.container {
-            z-index: 1002;
-        }
-        body {
-            padding-top: 0;
-        }
-        .nav-toggle {
-            display: none !important;
-        }
-        .nav-links {
-            position: static;
-            display: flex !important;
-            flex-direction: row;
-            background: none;
-            box-shadow: none;
-            width: auto;
-        }
-        .nav-links li {
-            padding: 0 1rem;
-            border-bottom: none;
-        }
-    }
-`;
-
 export default function ProgramsPage() {
   const [activeCategory, setActiveCategory] = useState('reading');
 
@@ -87,7 +13,6 @@ export default function ProgramsPage() {
 
   return (
     <>
-      <style dangerouslySetInnerHTML={{ __html: pageStyles }} />
       <main>
         <div className="container">
           <div className="page-header">

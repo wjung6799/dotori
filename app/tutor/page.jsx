@@ -62,7 +62,7 @@ export default function TutorDashboard() {
       </p>
 
       <div style={{ display: 'flex', gap: 6, borderBottom: '1px solid #eee', marginBottom: 20, flexWrap: 'wrap' }}>
-        {[['availability', 'My Availability'], ['sessions', 'Add Sessions'], ['bookings', 'My Bookings']].map(([k, l]) => (
+        {[['availability', 'My Availability'], ['sessions', 'Add Sessions'], ['bookings', 'My Bookings'], ['feedback', 'Feedback']].map(([k, l]) => (
           <button key={k} onClick={() => setTab(k)} style={tabBtn(tab === k)}>{l}</button>
         ))}
       </div>
@@ -82,6 +82,7 @@ export default function TutorDashboard() {
       )}
       {tab === 'sessions' && <SessionsTab />}
       {tab === 'bookings' && <BookingsTab />}
+      {tab === 'feedback' && <FeedbackTab />}
     </section>
   );
 }
@@ -167,6 +168,74 @@ function BookingsTab() {
         </Row>
       ))}
       {bookings.length === 0 && <Empty>No upcoming bookings.</Empty>}
+    </Card>
+  );
+}
+
+function FeedbackTab() {
+  const [families, setFamilies] = useState([]);
+  const [items, setItems] = useState([]);
+  const [userId, setUserId] = useState('');
+  const [studentName, setStudentName] = useState('');
+  const [text, setText] = useState('');
+  const [msg, setMsg] = useState('');
+
+  const load = useCallback(() => {
+    fetch('/api/tutor/feedback').then((r) => r.json()).then((d) => setItems(d.feedback || []));
+  }, []);
+  useEffect(() => {
+    fetch('/api/tutor/families').then((r) => r.json()).then((d) => setFamilies(d.families || []));
+    load();
+  }, [load]);
+
+  async function submit(e) {
+    e.preventDefault();
+    setMsg('');
+    const res = await fetch('/api/tutor/feedback', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ userId, studentName, text }),
+    });
+    const d = await res.json();
+    if (!res.ok) setMsg(d.error || 'Failed.');
+    else { setMsg('Feedback sent.'); setText(''); setStudentName(''); load(); }
+  }
+
+  const famById = (id) => families.find((f) => String(f._id) === String(id));
+
+  return (
+    <Card>
+      <form onSubmit={submit} style={{ display: 'grid', gap: 10, maxWidth: 560 }}>
+        <label style={lbl()}>Family</label>
+        <select value={userId} onChange={(e) => setUserId(e.target.value)} style={inp()} required>
+          <option value="">Select a family…</option>
+          {families.map((f) => <option key={f._id} value={f._id}>{famName(f)} ({f.email})</option>)}
+        </select>
+        <label style={lbl()}>Student name (optional)</label>
+        <input value={studentName} onChange={(e) => setStudentName(e.target.value)} style={inp()} placeholder="e.g. Mochi" />
+        <label style={lbl()}>Feedback</label>
+        <textarea
+          value={text}
+          onChange={(e) => setText(e.target.value)}
+          style={{ ...inp(), minHeight: 140, resize: 'vertical', fontFamily: 'inherit' }}
+          placeholder="Write feedback for the family…"
+          required
+        />
+        <button style={btn()} disabled={!userId || !text.trim()}>Send feedback</button>
+        {msg && <span style={{ color: msg === 'Feedback sent.' ? '#1e6b2e' : '#a3261a' }}>{msg}</span>}
+      </form>
+
+      <h3 style={{ color: BROWN, marginTop: 24 }}>Feedback you&apos;ve sent</h3>
+      {items.map((it) => (
+        <div key={it._id} style={{ padding: '12px 0', borderBottom: '1px solid #f0ede8' }}>
+          <div style={{ color: BROWN, fontSize: '0.85rem', marginBottom: 4 }}>
+            <strong>{famName(famById(it.userId))}</strong>
+            {it.studentName ? ` · ${it.studentName}` : ''}
+            <span style={{ color: '#9b8b77' }}> · {new Date(it.createdAt).toLocaleDateString()}</span>
+          </div>
+          <div style={{ color: '#5c5145', fontSize: '0.92rem', whiteSpace: 'pre-wrap' }}>{it.text}</div>
+        </div>
+      ))}
+      {items.length === 0 && <Empty>No feedback yet.</Empty>}
     </Card>
   );
 }

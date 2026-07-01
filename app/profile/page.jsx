@@ -27,6 +27,7 @@ export default function ProfilePage() {
   const [activeTab, setActiveTab] = useState('account');
 
   const [reports, setReports] = useState(null);
+  const [feedback, setFeedback] = useState(null);
 
   // Account form state
   const [editFirstName, setEditFirstName] = useState('');
@@ -93,6 +94,7 @@ export default function ProfilePage() {
   useEffect(() => {
     if (!currentUser) return;
     if (activeTab === 'reports') loadReports();
+    if (activeTab === 'feedback') loadFeedback();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeTab, currentUser]);
 
@@ -100,6 +102,12 @@ export default function ProfilePage() {
     const res = await fetch('/api/family/reports');
     const data = await res.json();
     setReports(data.reports || []);
+  }
+
+  async function loadFeedback() {
+    const res = await fetch('/api/family/feedback');
+    const data = await res.json();
+    setFeedback(data.feedback || []);
   }
 
   // ---- Account form ----
@@ -199,9 +207,39 @@ export default function ProfilePage() {
     ));
   }
 
+  function renderFeedback() {
+    if (feedback === null) return <p style={{ color: '#aaa' }}>Loading…</p>;
+    if (feedback.length === 0) {
+      return (
+        <div style={{ textAlign: 'center', padding: '3rem 1rem', color: '#aaa' }}>
+          <div style={{ fontSize: '2.5rem', marginBottom: '0.5rem' }}>💬</div>
+          <p>No feedback yet. Notes from your tutor will appear here.</p>
+        </div>
+      );
+    }
+    return feedback.map((f, i) => (
+      <div
+        key={i}
+        style={{
+          border: '1px solid #eee',
+          borderRadius: 12,
+          padding: '1.2rem 1.5rem',
+          marginBottom: '0.8rem',
+        }}
+      >
+        <div style={{ color: '#888', fontSize: '0.82rem', marginBottom: '0.5rem' }}>
+          {f.tutorName || 'Dotori School'}
+          {f.studentName ? ` · ${f.studentName}` : ''} · {new Date(f.createdAt).toLocaleDateString()}
+        </div>
+        <div style={{ color: '#4a4038', whiteSpace: 'pre-wrap', lineHeight: 1.55 }}>{f.text}</div>
+      </div>
+    ));
+  }
+
   const tabs = [
     { key: 'account', label: 'Account Information' },
     { key: 'reports', label: 'Report Cards' },
+    { key: 'feedback', label: 'Feedback' },
   ];
 
   return (
@@ -516,6 +554,12 @@ export default function ProfilePage() {
         <div style={{ display: activeTab === 'reports' ? 'block' : 'none' }}>
           <h2 style={{ color: '#6b5b47', fontSize: '1.15rem', margin: '0 0 1.2rem' }}>Report Cards</h2>
           <div>{renderReports()}</div>
+        </div>
+
+        {/* FEEDBACK TAB */}
+        <div style={{ display: activeTab === 'feedback' ? 'block' : 'none' }}>
+          <h2 style={{ color: '#6b5b47', fontSize: '1.15rem', margin: '0 0 1.2rem' }}>Feedback</h2>
+          <div>{renderFeedback()}</div>
         </div>
       </div>
     </main>

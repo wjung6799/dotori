@@ -22,17 +22,28 @@ export async function POST(request) {
       return Response.json({ error: 'This booking can no longer be cancelled.' }, { status: 400 });
     }
 
+    // Refund policy: a session credit is only refunded when the family cancels
+    // at least 12 hours before the session starts. Cancellations inside the
+    // 12-hour window are non-refundable — the credit stays consumed.
+    const REFUND_CUTOFF_MS = 12 * 60 * 60 * 1000;
+    const refundable = booking.startAt.getTime() - Date.now() >= REFUND_CUTOFF_MS;
+
     booking.status = 'cancelled';
     await booking.save();
 
-    // Refund the credit it consumed.
-    if (booking.creditId) {
+    if (refundable && booking.creditId) {
       await SessionCredit.findByIdAndUpdate(booking.creditId, {
         $inc: { remainingSessions: 1 },
       });
     }
 
-    return Response.json({ ok: true });
+    return Response.json({
+      ok: true,
+      refunded: refundable,
+      message: refundable
+        ? 'Your session was cancelled and a session credit was refunded.'
+        : 'Your session was cancelled. Cancellations within 12 hours of the start time are not refundable, so no credit was returned.',
+    });
   } catch (err) {
     console.error('Cancel error:', err);
     return Response.json({ error: 'Failed to cancel the booking.' }, { status: 500 });

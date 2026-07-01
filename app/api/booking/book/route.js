@@ -1,8 +1,12 @@
+import { formatInTimeZone } from 'date-fns-tz';
+
 import dbConnect from '@/lib/db';
 import TutorSchedule from '@/lib/models/TutorSchedule';
+import Tutor from '@/lib/models/Tutor';
 import Booking from '@/lib/models/Booking';
 import SessionCredit from '@/lib/models/SessionCredit';
-import { slotTimesForDate, scheduleMatchesDate } from '@/lib/slots';
+import { slotTimesForDate, scheduleMatchesDate, SITE_TIMEZONE } from '@/lib/slots';
+import { sendBookingConfirmation } from '@/lib/mailer';
 import { getCurrentUser, unauthorized } from '@/lib/auth-helpers';
 
 export const dynamic = 'force-dynamic';
@@ -95,6 +99,28 @@ export async function POST(request) {
         endAt: end,
         subject: schedule.subject || '',
       });
+
+      // Best-effort confirmation email — never let a mail failure break booking.
+      try {
+        if (user.email) {
+          const tutor = await Tutor.findById(schedule.tutorId).select('name');
+          const whenLabel =
+            `${formatInTimeZone(start, SITE_TIMEZONE, 'EEE, MMM d, yyyy · h:mm a')}` +
+            ` – ${formatInTimeZone(end, SITE_TIMEZONE, 'h:mm a')}`;
+          await sendBookingConfirmation({
+            to: user.email,
+            parentName: user.firstName || user.name || '',
+            studentName: studentName.trim(),
+            tutorName: tutor?.name || 'your tutor',
+            whenLabel,
+            subject: schedule.subject || '',
+            siteUrl: process.env.SITE_URL || '',
+          });
+        }
+      } catch (mailErr) {
+        console.error('Booking confirmation email failed:', mailErr);
+      }
+
       return Response.json({ ok: true, booking });
     } catch (createErr) {
       // Roll the credit back if the booking insert failed.
