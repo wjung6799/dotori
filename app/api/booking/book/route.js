@@ -3,10 +3,11 @@ import { formatInTimeZone } from 'date-fns-tz';
 import dbConnect from '@/lib/db';
 import TutorSchedule from '@/lib/models/TutorSchedule';
 import Tutor from '@/lib/models/Tutor';
+import User from '@/lib/models/User';
 import Booking from '@/lib/models/Booking';
 import SessionCredit from '@/lib/models/SessionCredit';
 import { slotTimesForDate, scheduleMatchesDate, SITE_TIMEZONE } from '@/lib/slots';
-import { sendBookingConfirmation } from '@/lib/mailer';
+import { sendBookingConfirmation, sendTutorBookingAlert } from '@/lib/mailer';
 import { getCurrentUser, unauthorized } from '@/lib/auth-helpers';
 
 export const dynamic = 'force-dynamic';
@@ -100,25 +101,49 @@ export async function POST(request) {
         subject: schedule.subject || '',
       });
 
-      // Best-effort confirmation email — never let a mail failure break booking.
+      // Best-effort notification emails — never let a mail failure break booking.
+      const whenLabel =
+        `${formatInTimeZone(start, SITE_TIMEZONE, 'EEE, MMM d, yyyy · h:mm a')}` +
+        ` – ${formatInTimeZone(end, SITE_TIMEZONE, 'h:mm a')}`;
+      const parentName = user.firstName || user.name || '';
+      const tutor = await Tutor.findById(schedule.tutorId).select('name userId').catch(() => null);
+      const siteUrl = process.env.SITE_URL || '';
+
+      // Confirmation to the family.
       try {
         if (user.email) {
-          const tutor = await Tutor.findById(schedule.tutorId).select('name');
-          const whenLabel =
-            `${formatInTimeZone(start, SITE_TIMEZONE, 'EEE, MMM d, yyyy · h:mm a')}` +
-            ` – ${formatInTimeZone(end, SITE_TIMEZONE, 'h:mm a')}`;
           await sendBookingConfirmation({
             to: user.email,
-            parentName: user.firstName || user.name || '',
+            parentName,
             studentName: studentName.trim(),
             tutorName: tutor?.name || 'your tutor',
             whenLabel,
             subject: schedule.subject || '',
-            siteUrl: process.env.SITE_URL || '',
+            siteUrl,
           });
         }
       } catch (mailErr) {
-        console.error('Booking confirmation email failed:', mailErr);
+        console.error('Family booking email failed:', mailErr);
+      }
+
+      // Notification to the tutor's linked login email (isolated from the above).
+      try {
+        if (tutor?.userId) {
+          const tutorUser = await User.findById(tutor.userId).select('email firstName name');
+          if (tutorUser?.email) {
+            await sendTutorBookingAlert({
+              to: tutorUser.email,
+              tutorName: tutorUser.firstName || tutor.name || '',
+              studentName: studentName.trim(),
+              parentName: parentName || user.email || 'A family',
+              whenLabel,
+              subject: schedule.subject || '',
+              siteUrl,
+            });
+          }
+        }
+      } catch (mailErr) {
+        console.error('Tutor booking email failed:', mailErr);
       }
 
       return Response.json({ ok: true, booking });
