@@ -12,7 +12,7 @@ import { getCurrentUser, unauthorized } from '@/lib/auth-helpers';
 
 export const dynamic = 'force-dynamic';
 
-const MIN_LEAD_MS = 60 * 60 * 1000; // 1 hour
+const MIN_LEAD_MS = 0; // last-minute booking allowed, right up to the slot start
 
 // POST /api/booking/book — body: { scheduleId, dateKey: "YYYY-MM-DD", studentName }
 export async function POST(request) {
@@ -44,7 +44,7 @@ export async function POST(request) {
 
     const { start, end } = slotTimesForDate(schedule, dateKey);
     if (start.getTime() < Date.now() + MIN_LEAD_MS) {
-      return Response.json({ error: 'That time is too soon or already passed.' }, { status: 400 });
+      return Response.json({ error: 'That time has already passed.' }, { status: 400 });
     }
 
     // Capacity check.
