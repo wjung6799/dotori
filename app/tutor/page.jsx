@@ -81,7 +81,7 @@ export default function TutorDashboard() {
         </Card>
       )}
       {tab === 'sessions' && <SessionsTab />}
-      {tab === 'bookings' && <BookingsTab />}
+      {tab === 'bookings' && <BookingsTab tutorId={data?.tutor?._id} />}
       {tab === 'feedback' && <FeedbackTab />}
     </section>
   );
@@ -151,23 +151,190 @@ function SessionsTab() {
   );
 }
 
-function BookingsTab() {
+const whenText = (d) =>
+  new Date(d).toLocaleString('en-US', { weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
+
+function BookingsTab({ tutorId }) {
   const [bookings, setBookings] = useState([]);
-  useEffect(() => {
+  const [pastBookings, setPastBookings] = useState([]);
+  const [families, setFamilies] = useState([]);
+  const [slots, setSlots] = useState([]);
+  const [pastSlots, setPastSlots] = useState([]);
+  const [mode, setMode] = useState('upcoming'); // 'upcoming' | 'past'
+  const [userId, setUserId] = useState('');
+  const [studentName, setStudentName] = useState('');
+  const [slotKey, setSlotKey] = useState('');
+  const [recurring, setRecurring] = useState(false);
+  const [msg, setMsg] = useState(null);
+  const [busy, setBusy] = useState(false);
+
+  const isPast = mode === 'past';
+  const options = isPast ? pastSlots : slots;
+
+  const loadBookings = useCallback(() => {
     fetch('/api/tutor/bookings').then((r) => r.json()).then((d) => setBookings(d.bookings || []));
+    fetch('/api/tutor/bookings?past=1').then((r) => r.json()).then((d) => setPastBookings(d.bookings || []));
   }, []);
+  const loadSlots = useCallback(() => {
+    if (!tutorId) return;
+    fetch(`/api/booking/slots?tutorId=${tutorId}&days=56`)
+      .then((r) => r.json())
+      .then((d) => setSlots(d.slots || []));
+    fetch('/api/tutor/past-slots?days=60')
+      .then((r) => r.json())
+      .then((d) => setPastSlots(d.slots || []));
+  }, [tutorId]);
+  useEffect(() => {
+    loadBookings();
+    fetch('/api/tutor/families').then((r) => r.json()).then((d) => setFamilies(d.families || []));
+  }, [loadBookings]);
+  useEffect(() => { loadSlots(); }, [loadSlots]);
+
+  function switchMode(next) {
+    setMode(next);
+    setSlotKey('');
+    setRecurring(false);
+    setMsg(null);
+  }
+
+  async function book(e) {
+    e.preventDefault();
+    setMsg(null);
+    if (!userId || !studentName.trim() || !slotKey) {
+      setMsg({ ok: false, text: 'Pick a family, enter a student, and choose a time.' });
+      return;
+    }
+    const [scheduleId, dateKey] = slotKey.split('|');
+    setBusy(true);
+    try {
+      const res = await fetch('/api/tutor/bookings', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userId,
+          studentName: studentName.trim(),
+          scheduleId,
+          dateKey,
+          recurring: isPast ? false : recurring,
+          logPast: isPast,
+        }),
+      });
+      const d = await res.json();
+      if (!res.ok) setMsg({ ok: false, text: d.error || 'Failed to book.' });
+      else {
+        let text;
+        if (d.logged) {
+          text = d.creditConsumed
+            ? 'Session recorded — one of the family’s sessions was used.'
+            : 'Session recorded. The family had no sessions left, so no credit was deducted.';
+        } else if (d.recurring) {
+          text = `Weekly booking set — ${d.recurring.booked} upcoming session${d.recurring.booked === 1 ? '' : 's'} booked. It’ll keep booking each week (credits permitting).`;
+        } else if (d.creditConsumed) {
+          text = 'Session booked — one of the family’s sessions was used.';
+        } else {
+          text = 'Session booked. The family had no sessions left, so no credit was deducted.';
+        }
+        setMsg({ ok: true, text });
+        setStudentName('');
+        setSlotKey('');
+        setRecurring(false);
+        loadBookings();
+        loadSlots();
+      }
+    } finally { setBusy(false); }
+  }
+
+  async function cancelBooking(id, logged) {
+    const q = logged
+      ? 'Remove this logged session? The family’s credit will be refunded.'
+      : 'Cancel this session? The family’s credit will be refunded.';
+    if (!confirm(q)) return;
+    const res = await fetch(`/api/tutor/bookings/${id}`, { method: 'DELETE' });
+    if (res.ok) { loadBookings(); loadSlots(); }
+  }
+
   return (
     <Card>
+      <h3 style={{ color: BROWN, marginTop: 0 }}>Book a student into a session</h3>
+      <div style={{ display: 'flex', gap: 6, marginBottom: 16 }}>
+        {[['upcoming', 'Upcoming session'], ['past', 'Session that already happened']].map(([k, l]) => (
+          <button key={k} type="button" onClick={() => switchMode(k)} style={pill(mode === k)}>{l}</button>
+        ))}
+      </div>
+      {isPast && (
+        <p style={{ color: '#9b8b77', fontSize: '0.85rem', margin: '0 0 14px', maxWidth: 460 }}>
+          For a student who showed up without booking. The session is recorded as completed and a
+          session is deducted — the family isn’t emailed.
+        </p>
+      )}
+      <form onSubmit={book} style={{ display: 'grid', gap: 10, maxWidth: 460, marginBottom: 28 }}>
+        <label style={lbl()}>Family</label>
+        <select value={userId} onChange={(e) => setUserId(e.target.value)} style={inp()} required>
+          <option value="">Select a family…</option>
+          {families.map((f) => <option key={f._id} value={f._id}>{famName(f)} ({f.email})</option>)}
+        </select>
+        <label style={lbl()}>Student name</label>
+        <input value={studentName} onChange={(e) => setStudentName(e.target.value)} style={inp()} placeholder="Which student?" required />
+        <label style={lbl()}>{isPast ? 'Which session did they attend?' : 'Time slot'}</label>
+        <select value={slotKey} onChange={(e) => setSlotKey(e.target.value)} style={inp()} required>
+          <option value="">
+            {options.length
+              ? 'Select a time…'
+              : isPast
+                ? 'No open seats in your last 8 weeks of sessions'
+                : 'No open times in the next 8 weeks'}
+          </option>
+          {options.map((s) => (
+            <option key={`${s.scheduleId}|${s.dateKey}`} value={`${s.scheduleId}|${s.dateKey}`}>
+              {s.dateLabel} · {s.timeLabel}{s.subject ? ` · ${s.subject}` : ''}
+            </option>
+          ))}
+        </select>
+        {!isPast && (
+          <label style={{ display: 'flex', alignItems: 'flex-start', gap: 8, cursor: 'pointer', color: BROWN, fontSize: '0.9rem' }}>
+            <input type="checkbox" checked={recurring} onChange={(e) => setRecurring(e.target.checked)} style={{ marginTop: 3 }} />
+            <span>
+              <strong>Repeat weekly</strong>
+              <span style={{ display: 'block', fontSize: '0.8rem', color: '#9b8b77' }}>
+                Keeps this same weekly time booked from the family’s sessions. Needs a session balance to continue.
+              </span>
+            </span>
+          </label>
+        )}
+        <button style={btn()} disabled={busy || !userId || !slotKey}>
+          {busy ? (isPast ? 'Recording…' : 'Booking…') : isPast ? 'Record attendance' : recurring ? 'Book weekly' : 'Book session'}
+        </button>
+        {msg && <span style={{ color: msg.ok ? '#1e6b2e' : '#a3261a' }}>{msg.text}</span>}
+      </form>
+
       <h3 style={{ color: BROWN, marginTop: 0 }}>Your upcoming bookings</h3>
       {bookings.map((b) => (
         <Row key={b._id}>
           <div style={{ color: BROWN, fontSize: '0.9rem' }}>
-            <strong>{new Date(b.startAt).toLocaleString('en-US', { weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}</strong>
+            <strong>{whenText(b.startAt)}</strong>
             {' · '}{b.studentName}{' · '}<span style={{ color: '#9b8b77' }}>{famName(b.userId)}</span>
+            {b.recurringId && <span title="Part of a weekly booking" style={{ marginLeft: 8, fontSize: '0.72rem', color: ACCENT, fontWeight: 700 }}>↻ weekly</span>}
           </div>
+          <button onClick={() => cancelBooking(b._id)} style={danger()}>Cancel</button>
         </Row>
       ))}
       {bookings.length === 0 && <Empty>No upcoming bookings.</Empty>}
+
+      <h3 style={{ color: BROWN, marginTop: 24 }}>Past sessions</h3>
+      {pastBookings.map((b) => (
+        <Row key={b._id}>
+          <div style={{ color: BROWN, fontSize: '0.9rem' }}>
+            <strong>{whenText(b.startAt)}</strong>
+            {' · '}{b.studentName}{' · '}<span style={{ color: '#9b8b77' }}>{famName(b.userId)}</span>
+            {b.status === 'completed' && <span title="Attendance logged after the session" style={{ marginLeft: 8, fontSize: '0.72rem', color: ACCENT, fontWeight: 700 }}>✓ logged</span>}
+          </div>
+          {/* Only a logged session can be undone here — removing one that was booked
+              normally would refund a credit for a session actually delivered. */}
+          {b.status === 'completed' && (
+            <button onClick={() => cancelBooking(b._id, true)} style={danger()}>Remove</button>
+          )}
+        </Row>
+      ))}
+      {pastBookings.length === 0 && <Empty>No past sessions on record.</Empty>}
     </Card>
   );
 }
@@ -253,6 +420,7 @@ function Empty({ children }) {
   return <p style={{ color: '#9b8b77', margin: '8px 0 0' }}>{children}</p>;
 }
 const tabBtn = (on) => ({ padding: '10px 16px', border: 'none', borderBottom: `3px solid ${on ? ACCENT : 'transparent'}`, background: 'none', color: on ? BROWN : '#9b8b77', fontWeight: 600, cursor: 'pointer' });
+const pill = (on) => ({ padding: '7px 14px', borderRadius: 999, border: `1.5px solid ${on ? ACCENT : '#e6ddd2'}`, background: on ? ACCENT : '#fff', color: on ? '#fff' : '#9b8b77', fontWeight: 600, fontSize: '0.85rem', cursor: 'pointer' });
 const inp = () => ({ padding: '9px 12px', borderRadius: 9, border: '1.5px solid #e6ddd2', fontSize: '0.95rem' });
 const lbl = () => ({ color: BROWN, fontWeight: 600, fontSize: '0.88rem' });
 const btn = () => ({ padding: '9px 18px', borderRadius: 9, border: 'none', background: ACCENT, color: '#fff', fontWeight: 700, cursor: 'pointer' });

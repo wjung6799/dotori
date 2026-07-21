@@ -22,6 +22,14 @@ function fmtBookingTime(iso) {
 function monthDay(d) {
   return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
 }
+// Minutes-from-midnight → "4:00 PM" (mirrors lib/slots minuteLabel for the client).
+function minLabel(min) {
+  const h = Math.floor(min / 60);
+  const m = min % 60;
+  const ampm = h >= 12 ? 'PM' : 'AM';
+  const h12 = h % 12 === 0 ? 12 : h % 12;
+  return `${h12}:${String(m).padStart(2, '0')} ${ampm}`;
+}
 
 export default function SchedulePage() {
   const { status } = useSession();
@@ -34,8 +42,14 @@ export default function SchedulePage() {
   const [weekOffset, setWeekOffset] = useState(0);
   const [picked, setPicked] = useState(null); // slot being confirmed
   const [studentName, setStudentName] = useState('');
+  const [recurring, setRecurring] = useState(false); // repeat weekly toggle
   const [msg, setMsg] = useState(null);
   const [busy, setBusy] = useState(false);
+
+  function closeModal() {
+    setPicked(null);
+    setRecurring(false);
+  }
 
   useEffect(() => {
     fetch('/api/booking/tutors')
@@ -93,13 +107,18 @@ export default function SchedulePage() {
       const res = await fetch('/api/booking/book', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ scheduleId: picked.scheduleId, dateKey: picked.dateKey, studentName: studentName.trim() }),
+        body: JSON.stringify({ scheduleId: picked.scheduleId, dateKey: picked.dateKey, studentName: studentName.trim(), recurring }),
       });
       const data = await res.json();
       if (!res.ok) setMsg({ type: 'error', text: data.error || 'Could not book.' });
       else {
-        setMsg({ type: 'success', text: 'Session booked!' });
-        setPicked(null);
+        setMsg({
+          type: 'success',
+          text: data.recurring
+            ? `Weekly session set — ${data.recurring.booked} upcoming session${data.recurring.booked === 1 ? '' : 's'} booked. We'll keep booking it each week.`
+            : 'Session booked!',
+        });
+        closeModal();
         loadMe();
         loadSlots();
       }
@@ -107,7 +126,7 @@ export default function SchedulePage() {
   }
 
   async function cancel(bookingId) {
-    if (!confirm('Cancel this session? Your session credit will be refunded.')) return;
+    if (!confirm('Cancel this session? Your session credit will be refunded if it is more than 12 hours away.')) return;
     const res = await fetch('/api/booking/cancel', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ bookingId }),
@@ -115,9 +134,24 @@ export default function SchedulePage() {
     if (res.ok) { loadMe(); loadSlots(); }
   }
 
+  async function cancelSeries(recurringId) {
+    if (!confirm('Cancel this weekly booking? All upcoming sessions in the series will be cancelled (credits refunded where eligible), and no new weeks will be booked.')) return;
+    const res = await fetch('/api/booking/cancel', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ recurringId, series: true }),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (res.ok) {
+      setMsg({ type: 'success', text: data.message || 'Weekly booking cancelled.' });
+      loadMe();
+      loadSlots();
+    }
+  }
+
   const upcoming = (me?.bookings || []).filter(
     (b) => b.status === 'scheduled' && new Date(b.startAt) >= new Date(),
   );
+  const recurringSeries = me?.recurring || [];
   const selectedTutor = tutors.find((t) => t._id === tutorId);
 
   return (
@@ -224,7 +258,7 @@ export default function SchedulePage() {
 
       {/* Confirm modal */}
       {picked && (
-        <div style={overlay()} onClick={() => setPicked(null)}>
+        <div style={overlay()} onClick={closeModal}>
           <div style={modal()} onClick={(e) => e.stopPropagation()}>
             <h3 style={{ color: BROWN, margin: '0 0 4px' }}>Confirm booking</h3>
             <div style={{ color: '#9b8b77', marginBottom: 14 }}>
@@ -234,18 +268,53 @@ export default function SchedulePage() {
             <label style={kicker()}>Student name</label>
             <input value={studentName} onChange={(e) => setStudentName(e.target.value)} placeholder="Which student?" autoFocus
               style={{ width: '100%', padding: '10px 12px', borderRadius: 10, border: '1.5px solid #e6ddd2', margin: '6px 0 14px', fontSize: '1rem' }} />
+
+            {/* Repeat weekly — progressive disclosure: one-off stays one click */}
+            <label style={{ display: 'flex', alignItems: 'flex-start', gap: 10, padding: '10px 12px', borderRadius: 10, border: `1.5px solid ${recurring ? ACCENT : '#e6ddd2'}`, background: recurring ? '#fff7f1' : '#fff', cursor: 'pointer', marginBottom: 14 }}>
+              <input type="checkbox" checked={recurring} onChange={(e) => setRecurring(e.target.checked)} style={{ marginTop: 3 }} />
+              <span>
+                <span style={{ fontWeight: 700, color: BROWN }}>Repeat this weekly</span>
+                <span style={{ display: 'block', fontSize: '0.8rem', color: '#9b8b77' }}>
+                  We&apos;ll keep this same time booked every week from your session balance. Cancel anytime.
+                </span>
+              </span>
+            </label>
+
             {me && (
               <div style={{ fontSize: '0.85rem', color: me.totalRemaining > 0 ? '#1e6b2e' : '#a3261a', marginBottom: 12 }}>
                 {me.totalRemaining > 0
-                  ? `You have ${me.totalRemaining} session${me.totalRemaining === 1 ? '' : 's'} — one will be used.`
+                  ? recurring
+                    ? `You have ${me.totalRemaining} session${me.totalRemaining === 1 ? '' : 's'} — the next few weeks will be booked now, then one each week until they run out.`
+                    : `You have ${me.totalRemaining} session${me.totalRemaining === 1 ? '' : 's'} — one will be used.`
                   : 'You have no sessions left to use.'}
               </div>
             )}
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
-              <button onClick={() => setPicked(null)} style={ghost()} disabled={busy}>Cancel</button>
-              <button onClick={confirmBooking} style={btn()} disabled={busy}>{busy ? 'Booking…' : 'Confirm'}</button>
+              <button onClick={closeModal} style={ghost()} disabled={busy}>Cancel</button>
+              <button onClick={confirmBooking} style={btn()} disabled={busy}>{busy ? 'Booking…' : recurring ? 'Book weekly' : 'Confirm'}</button>
             </div>
           </div>
+        </div>
+      )}
+
+      {/* Standing weekly bookings */}
+      {loggedIn && recurringSeries.length > 0 && (
+        <div style={{ ...card(), marginTop: 24 }}>
+          <h2 style={{ color: BROWN, fontSize: '1.2rem', marginTop: 0 }}>Your weekly bookings</h2>
+          {recurringSeries.map((r) => (
+            <div key={r._id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 0', borderBottom: '1px solid #f0ede8', gap: 12 }}>
+              <div>
+                <div style={{ fontWeight: 600, color: BROWN }}>
+                  ↻ Every {DOW_SHORT[r.dayOfWeek]} at {minLabel(r.startMinute)}
+                  {r.status === 'paused' && <span style={{ marginLeft: 8, fontSize: '0.72rem', color: '#a3261a', fontWeight: 700 }}>PAUSED — out of sessions</span>}
+                </div>
+                <div style={{ fontSize: '0.85rem', color: '#9b8b77' }}>
+                  {r.studentName} · {r.tutorId?.name || 'Tutor'}{r.subject ? ` · ${r.subject}` : ''}
+                </div>
+              </div>
+              <button onClick={() => cancelSeries(r._id)} style={ghostDanger()}>Cancel weekly</button>
+            </div>
+          ))}
         </div>
       )}
 
@@ -257,7 +326,10 @@ export default function SchedulePage() {
           {upcoming.map((b) => (
             <div key={b._id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 0', borderBottom: '1px solid #f0ede8', gap: 12 }}>
               <div>
-                <div style={{ fontWeight: 600, color: BROWN }}>{fmtBookingTime(b.startAt)}</div>
+                <div style={{ fontWeight: 600, color: BROWN }}>
+                  {fmtBookingTime(b.startAt)}
+                  {b.recurringId && <span title="Part of a weekly booking" style={{ marginLeft: 8, fontSize: '0.72rem', color: ACCENT, fontWeight: 700 }}>↻ weekly</span>}
+                </div>
                 <div style={{ fontSize: '0.85rem', color: '#9b8b77' }}>
                   {b.studentName} · {b.tutorId?.name || 'Tutor'}{b.subject ? ` · ${b.subject}` : ''}
                 </div>
