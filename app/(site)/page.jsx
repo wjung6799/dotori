@@ -129,7 +129,7 @@ export default async function HomePage() {
           {founders.map((f) => (
             <FounderCard
               key={f.id}
-              img={f.photoUrl}
+              img={f.photo?.url || f.photoUrl}
               name={f.name}
               role={f.role}
               body={f.homeBlurb}

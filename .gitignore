@@ -26,3 +26,6 @@ npm-debug.log*
 .devguard/
 
 .devdiary/
+
+# Payload CMS local upload storage
+media/

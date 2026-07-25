@@ -76,7 +76,7 @@ export default async function AboutPage() {
             {c.founderHeading}
           </h1>
           <img
-            src={founder.photoUrl || '/assets/images/yesol_profile.jpeg'}
+            src={founder.photo?.url || founder.photoUrl || '/assets/images/yesol_profile.jpeg'}
             alt={founder.name || 'Founder'}
             className="profile-img"
             style={{

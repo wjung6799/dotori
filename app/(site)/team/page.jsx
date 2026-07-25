@@ -54,7 +54,7 @@ export default async function TeamPage() {
           {team.map((m) => (
             <section className="profile-card" key={m.id}>
               <img
-                src={m.photoUrl}
+                src={m.photo?.url || m.photoUrl}
                 alt={m.name}
                 className="profile-img"
                 style={m.imgPosition && m.imgPosition !== 'center' ? { objectPosition: m.imgPosition } : undefined}

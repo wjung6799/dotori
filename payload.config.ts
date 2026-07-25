@@ -41,10 +41,15 @@ export default buildConfig({
       admin: { useAsTitle: 'email' },
       fields: [{ name: 'name', type: 'text' }],
     },
-    // Uploadable images — the media library staff drop photos into.
+    // Uploadable images/PDFs — the media library staff drop files into. Stored
+    // on disk under ./media and served (publicly) at /cms-api/media/file/<name>.
     {
       slug: 'media',
-      upload: true,
+      upload: {
+        staticDir: path.resolve(dirname, 'media'),
+        mimeTypes: ['image/*', 'application/pdf'],
+      },
+      access: { read: () => true }, // public site needs to load the files
       admin: { useAsTitle: 'filename' },
       fields: [{ name: 'alt', type: 'text', label: 'Alt text (for accessibility)' }],
     },
@@ -59,7 +64,8 @@ export default buildConfig({
         text('name', ''),
         text('honorific', '', 'Honorific (e.g. "(Mrs. Jung)")'),
         text('role', '', 'Role / title'),
-        text('photoUrl', '', 'Photo URL (path under /public, e.g. /assets/images/…)'),
+        { name: 'photo', type: 'upload', relationTo: 'media', label: 'Photo (upload — overrides Photo URL below)' },
+        text('photoUrl', '', 'Photo URL (fallback path under /public, e.g. /assets/images/…)'),
         text('imgPosition', 'center', 'Photo object-position (CSS, e.g. "center 18%")'),
         text('email', ''),
         area('homeBlurb', '', 'Short bio shown in the Home "founders" section'),
@@ -73,6 +79,38 @@ export default buildConfig({
         },
         { name: 'order', type: 'number', defaultValue: 0, admin: { description: 'Lower shows first.' } },
         { name: 'showOnHome', type: 'checkbox', defaultValue: true, label: 'Feature in the Home founders section' },
+      ],
+    },
+    // Blog posts. Public /blog lists the published ones; /blog/<slug> is the post.
+    {
+      slug: 'posts',
+      labels: { singular: 'Blog Post', plural: 'Blog Posts' },
+      access: { read: () => true }, // public; queries filter to status=published
+      admin: { useAsTitle: 'title', defaultColumns: ['title', 'status', 'publishedDate'] },
+      fields: [
+        text('title', ''),
+        {
+          name: 'slug',
+          type: 'text',
+          required: true,
+          unique: true,
+          admin: { description: 'URL part, e.g. "welcome-to-dotori" → /blog/welcome-to-dotori' },
+        },
+        { name: 'coverImage', type: 'upload', relationTo: 'media', label: 'Cover image (optional)' },
+        area('excerpt', '', 'Short summary shown on the blog list'),
+        { name: 'body', type: 'richText', label: 'Post body' },
+        text('author', 'Dotori School'),
+        { name: 'publishedDate', type: 'date', admin: { date: { pickerAppearance: 'dayOnly' } } },
+        {
+          name: 'status',
+          type: 'select',
+          defaultValue: 'draft',
+          options: [
+            { label: 'Draft', value: 'draft' },
+            { label: 'Published', value: 'published' },
+          ],
+          admin: { position: 'sidebar' },
+        },
       ],
     },
   ],
