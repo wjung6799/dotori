@@ -1,4 +1,14 @@
-export default function AboutPage() {
+import { getGlobal, getTeam } from '@/lib/cms';
+
+export const dynamic = 'force-dynamic';
+
+export default async function AboutPage() {
+  const c = await getGlobal('aboutPage');
+  const team = await getTeam();
+  // The "Meet the Founder" narrative belongs to Yesol (the member with an
+  // aboutNarrative filled in); fall back to the first member.
+  const founder = team.find((m) => m.aboutNarrative) || team[0] || {};
+
   return (
     <>
       {/* Dotori About Section */}
@@ -14,17 +24,13 @@ export default function AboutPage() {
           }}
         >
           <h1 style={{ textAlign: 'center', color: '#6b5b47', marginBottom: '1.5rem' }}>
-            Dotori School is ideal for
+            {c.idealForHeading}
           </h1>
           <div style={{ fontSize: '1.15rem', color: '#444', textAlign: 'left' }}>
             <ul style={{ paddingLeft: '1.5rem', marginTop: '1rem', lineHeight: 1.8 }}>
-              <li>Students who require a solid foundation in English reading and writing skills</li>
-              <li>Students who benefit from small-group instruction (maximum 4 students per class)</li>
-              <li>Students who are new to English and benefit from structured language development</li>
-              <li>English–Korean bilingual learners seeking strong literacy support</li>
-              <li>Students who want to learn Korean in an engaging and enjoyable way</li>
-              <li>Students building academic confidence in communication and classroom participation</li>
-              <li>Families looking for high-quality, in-person afterschool enrichment in the Redmond/Bellevue area</li>
+              {(c.idealForItems || []).map((it, i) => (
+                <li key={i}>{it.text}</li>
+              ))}
             </ul>
           </div>
         </div>
@@ -38,7 +44,7 @@ export default function AboutPage() {
           style={{ borderRadius: 18, padding: '2.5rem 2rem', marginBottom: '2.5rem' }}
         >
           <h1 style={{ textAlign: 'center', color: '#6b5b47', marginBottom: '1.5rem' }}>
-            Our Core Values
+            {c.coreValuesHeading}
           </h1>
           <img
             src="/assets/images/core_values_small.png"
@@ -67,11 +73,11 @@ export default function AboutPage() {
           }}
         >
           <h1 style={{ textAlign: 'center', color: '#6b5b47', marginBottom: '1.5rem' }}>
-            Meet the Founder
+            {c.founderHeading}
           </h1>
           <img
-            src="/assets/images/yesol_profile.jpeg"
-            alt="Teacher Yesol"
+            src={founder.photoUrl || '/assets/images/yesol_profile.jpeg'}
+            alt={founder.name || 'Founder'}
             className="profile-img"
             style={{
               display: 'block',
@@ -89,25 +95,23 @@ export default function AboutPage() {
               color: '#444',
               marginBottom: '1.5rem',
               textAlign: 'left',
+              whiteSpace: 'pre-line',
             }}
           >
-            Hello, I’m Yesol Jung—an educator, curriculum designer, and the heart behind Dotori
-            School.
-            <br />
-            For over a decade, I’ve taught in diverse schools across Washington State, working with
-            students from different backgrounds, languages, and cultures. My passion for language
-            learning, literacy development, and cultural connection inspired me to create a space
-            where these values come together.
-            <br />
-            <br />
-            I chose the name Dotori—meaning “acorn” in Korean—because I believe every learner holds
-            the potential to grow into something extraordinary, given the right care, guidance, and
-            environment.
+            {founder.aboutNarrative}
           </p>
-          <p style={{ color: '#555', fontSize: '1.05rem', textAlign: 'left' }}>
-            Discover how Dotori can help your child thrive in reading and writing. Contact us to
-            learn more about our programs, schedule a visit, or enroll today!
+          <p style={{ color: '#555', fontSize: '1.05rem', textAlign: 'left', marginBottom: '1.25rem' }}>
+            {c.founderCtaBody}
           </p>
+          <div style={{ textAlign: 'center' }}>
+            <a
+              href="/diagnostic"
+              className="btn btn-primary"
+              style={{ display: 'inline-block', flex: 'none', padding: '0.8rem 2rem' }}
+            >
+              {c.ctaText}
+            </a>
+          </div>
         </div>
       </section>
     </>

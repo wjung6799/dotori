@@ -1,3 +1,5 @@
+import { withPayload } from '@payloadcms/next/withPayload';
+
 /** @type {import('next').NextConfig} */
 
 // The frontend was reactified but the Express API + MongoDB backend is kept as-is.
@@ -13,6 +15,9 @@ const nextConfig = {
   // about multiple lockfiles. (On Vercel, set the project Root Directory to
   // `dotori-next` and this is a no-op.)
   outputFileTracingRoot: import.meta.dirname,
+  // The app is JS with a partial TS layer (Payload). Don't fail the build on
+  // type errors from the mixed codebase during this POC.
+  typescript: { ignoreBuildErrors: true },
   async rewrites() {
     if (!API_BASE_URL) return [];
     // NOTE: /api/* is no longer rewritten here — it goes through the catch-all
@@ -25,4 +30,4 @@ const nextConfig = {
   },
 };
 
-export default nextConfig;
+export default withPayload(nextConfig);

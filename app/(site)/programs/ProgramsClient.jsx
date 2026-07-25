@@ -3,7 +3,11 @@
 import { useState } from 'react';
 import Link from 'next/link';
 
-export default function ProgramsPage() {
+// Presentational + interactive part of the Programs page. Heading, intro copy,
+// and the Korean tab label come from the CMS (see page.jsx); the class cards are
+// still hardcoded for this POC (only the intro/heading/tab-label are editable).
+// introHtml is pre-rendered HTML from the server (no lexical code in this bundle).
+export default function ProgramsClient({ heading, introHtml, koreanTabLabel }) {
   const [activeCategory, setActiveCategory] = useState('reading');
 
   const cardStyle = (category) => ({
@@ -16,8 +20,12 @@ export default function ProgramsPage() {
       <main>
         <div className="container">
           <div className="page-header">
-            <h1>Our Programs</h1>
-            <p style={{ textAlign: 'left' }}>Choose from our comprehensive range of programs in Reading, Writing, and Korean Language—each designed to spark curiosity, strengthen literacy, and develop critical thinking. At Dotori School, we blend rich content with engaging instruction to help students grow in confidence, communication, and a love of learning.</p>
+            <h1>{heading}</h1>
+            {introHtml ? (
+              <div style={{ textAlign: 'left' }} dangerouslySetInnerHTML={{ __html: introHtml }} />
+            ) : (
+              <p style={{ textAlign: 'left' }}>Dotori&rsquo;s Language track is built around <strong>English reading and writing</strong> &mdash; strong literacy is the heart of everything we do, from early readers to confident writers. For families who also want to keep the Korean language alive, we offer <strong>Korean classes on the side</strong>. Every class is small-group, with a personalized lesson plan for each student.</p>
+            )}
           </div>
 
           <div className="filter-tabs">
@@ -37,7 +45,7 @@ export default function ProgramsPage() {
               className={`filter-tab${activeCategory === 'creative' ? ' active' : ''}`}
               onClick={() => setActiveCategory('creative')}
             >
-              Korean
+              {koreanTabLabel}
             </div>
             <div
               className={`filter-tab${activeCategory === 'tutor' ? ' active' : ''}`}
@@ -63,13 +71,13 @@ export default function ProgramsPage() {
                 <li>Tailored lessons to meet each student&rsquo;s unique needs</li>
               </ul>
               <div className="program-cta">
-                <Link href="/contact" className="btn btn-primary" style={{ width: '100%', textAlign: 'center' }}>Contact Us for More Information</Link>
+                <Link href="/diagnostic" className="btn btn-primary" style={{ width: '100%', textAlign: 'center' }}>Book a Free Diagnostic</Link>
               </div>
             </div>
 
             <div className="program-card animate-in" data-category="reading" style={cardStyle('reading')}>
               <h3>Book Club</h3>
-              <div className="program-duration">10 weeks · 1 class/week · 90 minutes · Max 4 students/class</div>
+              <div className="program-duration">10 weeks · 1 class/week · 90 minutes · Small-group class</div>
               <div className="program-schedule" style={{ margin: '1rem 0', padding: '0.75rem', background: '#f8f6f3', borderRadius: 8, fontSize: '0.9rem' }}>
                 📅 <strong>Class Schedule</strong><br />
                 🟢 K–1 · Wed · 4:00–5:00 PM<br />
@@ -91,7 +99,7 @@ export default function ProgramsPage() {
 
             <div className="program-card animate-in" data-category="reading" style={cardStyle('reading')}>
               <h3>Reading Comprehension</h3>
-              <div className="program-duration">10 weeks · 1 class/week · 60 minutes · Max 4 students/class</div>
+              <div className="program-duration">10 weeks · 1 class/week · 60 minutes · Small-group class</div>
               <div className="program-schedule" style={{ margin: '1rem 0', padding: '0.75rem', background: '#f8f6f3', borderRadius: 8, fontSize: '0.9rem' }}>
                 📅 <strong>Class Schedule</strong><br />
                 🔵 Gr. 2–3 · Tue · 6:00–7:00 PM<br />
@@ -110,7 +118,7 @@ export default function ProgramsPage() {
 
             <div className="program-card animate-in" data-category="writing" style={cardStyle('writing')}>
               <h3>Foundational Writing</h3>
-              <div className="program-duration">10 weeks · 1 class/week · 60 minutes · Max 4 students/class</div>
+              <div className="program-duration">10 weeks · 1 class/week · 60 minutes · Small-group class</div>
               <div className="program-schedule" style={{ margin: '1rem 0', padding: '0.75rem', background: '#f8f6f3', borderRadius: 8, fontSize: '0.9rem' }}>
                 📅 <strong>Class Schedule</strong><br />
                 🔵 Gr. 2–3 · Tue · 4:00–5:00 PM (Persuasive Writing)<br />
@@ -131,7 +139,7 @@ export default function ProgramsPage() {
 
             <div className="program-card animate-in" data-category="writing" style={cardStyle('writing')}>
               <h3>Writer&rsquo;s Workshop</h3>
-              <div className="program-duration">10 weeks · 1 class/week · 90 minutes · Max 4 students/class</div>
+              <div className="program-duration">10 weeks · 1 class/week · 90 minutes · Small-group class</div>
               <div className="program-schedule" style={{ margin: '1rem 0', padding: '0.75rem', background: '#f8f6f3', borderRadius: 8, fontSize: '0.9rem' }}>
                 📅 <strong>Class Schedule</strong><br />
                 🟣 Gr. 3–6 · Sat · 1:30–3:00 PM
@@ -148,7 +156,7 @@ export default function ProgramsPage() {
 
             <div className="program-card animate-in" data-category="creative" style={cardStyle('creative')}>
               <h3>K-1 Hangeul (Korean Phonics)</h3>
-              <div className="program-duration">10 weeks · 1 class/week · 90 minutes · Max 4 students/class</div>
+              <div className="program-duration">10 weeks · 1 class/week · 90 minutes · Small-group class</div>
               <div className="program-schedule" style={{ margin: '1rem 0', padding: '0.75rem', background: '#f8f6f3', borderRadius: 8, fontSize: '0.9rem' }}>
                 📅 <strong>Class Schedule</strong><br />
                 🟢 K–1 Lev.1 · Wed · 2:30–4:00 PM<br />
@@ -168,7 +176,7 @@ export default function ProgramsPage() {
 
             <div className="program-card animate-in" data-category="creative" style={cardStyle('creative')}>
               <h3>Korean Book Club (Advanced)</h3>
-              <div className="program-duration">10 weeks · 1 class/week · 90 minutes · Max 4 students/class</div>
+              <div className="program-duration">10 weeks · 1 class/week · 90 minutes · Small-group class</div>
               <div className="program-schedule" style={{ margin: '1rem 0', padding: '0.75rem', background: '#f8f6f3', borderRadius: 8, fontSize: '0.9rem' }}>
                 📅 <strong>Class Schedule</strong><br />
                 🟣 Gr. 3–6 · Fri · 6:30–8:00 PM<br />
@@ -195,7 +203,7 @@ export default function ProgramsPage() {
               </div>
               <div className="program-cta" style={{ display: 'flex', gap: '0.5rem' }}>
                 <a href="/assets/pdf/summer_camp_info.pdf" className="btn btn-secondary" target="_blank" rel="noreferrer" style={{ flex: 1, textAlign: 'center' }}>Summer Camp Details</a>
-                <Link href="/contact" className="btn btn-primary" style={{ flex: 1, textAlign: 'center' }}>Contact Us</Link>
+                <Link href="/diagnostic" className="btn btn-primary" style={{ flex: 1, textAlign: 'center' }}>Book a Free Diagnostic</Link>
               </div>
             </div>
           </div>

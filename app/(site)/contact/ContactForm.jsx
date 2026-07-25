@@ -12,7 +12,7 @@ const inputStyle = {
 
 const labelStyle = { color: '#6b5b47', fontWeight: 600 };
 
-export default function ContactPage() {
+export default function ContactForm({ heading }) {
   const [parentFirstName, setParentFirstName] = useState('');
   const [parentLastName, setParentLastName] = useState('');
   const [email, setEmail] = useState('');
@@ -118,7 +118,7 @@ export default function ContactPage() {
           }}
         >
           <h1 style={{ textAlign: 'center', color: '#6b5b47', marginBottom: '2rem' }}>
-            Contact Us
+            {heading}
           </h1>
           <form
             id="contactForm"
