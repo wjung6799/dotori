@@ -85,7 +85,12 @@ export default buildConfig({
     {
       slug: 'posts',
       labels: { singular: 'Blog Post', plural: 'Blog Posts' },
-      access: { read: () => true }, // public; queries filter to status=published
+      access: {
+        // Public callers (no logged-in CMS user) can only read PUBLISHED posts;
+        // returning a query constraint hides drafts at the API layer, not just in
+        // the page code. Authenticated staff see everything.
+        read: ({ req: { user } }) => (user ? true : { status: { equals: 'published' } }),
+      },
       admin: { useAsTitle: 'title', defaultColumns: ['title', 'status', 'publishedDate'] },
       fields: [
         text('title', ''),

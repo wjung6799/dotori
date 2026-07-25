@@ -105,6 +105,9 @@ main {
     padding: 4rem 0;
     background: rgba(255, 255, 255, 0.6);
     border-radius: 30px;
+    /* Clear the fixed navbar (taller than the body's 56px top padding) so the
+       card's rounded top border isn't tucked underneath it. */
+    margin-top: 2rem;
     margin-bottom: 3rem;
     backdrop-filter: blur(15px);
     box-shadow: 0 20px 40px rgba(139, 115, 85, 0.1);
