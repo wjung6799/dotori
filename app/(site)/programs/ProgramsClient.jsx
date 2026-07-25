@@ -1,13 +1,13 @@
 'use client';
 
-import { useState } from 'react';
+import { Fragment, useState } from 'react';
 import Link from 'next/link';
 
-// Presentational + interactive part of the Programs page. Heading, intro copy,
-// and the Korean tab label come from the CMS (see page.jsx); the class cards are
-// still hardcoded for this POC (only the intro/heading/tab-label are editable).
-// introHtml is pre-rendered HTML from the server (no lexical code in this bundle).
-export default function ProgramsClient({ heading, introHtml, koreanTabLabel }) {
+// Presentational + interactive part of the Programs page. Everything — heading,
+// intro, Korean tab label, AND the program cards — comes from the CMS (see
+// page.jsx). introHtml is pre-rendered HTML from the server (no lexical code in
+// this bundle); `programs` is the array of card objects.
+export default function ProgramsClient({ heading, introHtml, koreanTabLabel, programs = [] }) {
   const [activeCategory, setActiveCategory] = useState('reading');
 
   const cardStyle = (category) => ({
@@ -62,153 +62,65 @@ export default function ProgramsClient({ heading, introHtml, koreanTabLabel }) {
           </div>
 
           <div className="programs-grid" id="programsGrid">
-            <div className="program-card animate-in" data-category="tutor" style={cardStyle('tutor')}>
-              <h3>1:1 Tutoring</h3>
-              <div className="program-duration">Flexible scheduling with the instructor</div>
-              <ul className="program-features">
-                <li>Arrange sessions directly with the instructor to fit your schedule</li>
-                <li>Personalized support in any academic area</li>
-                <li>Tailored lessons to meet each student&rsquo;s unique needs</li>
-              </ul>
-              <div className="program-cta">
-                <Link href="/diagnostic" className="btn btn-primary" style={{ width: '100%', textAlign: 'center' }}>Book a Free Diagnostic</Link>
-              </div>
-            </div>
+            {programs.map((p, idx) => (
+              <div key={idx} className="program-card animate-in" data-category={p.category} style={cardStyle(p.category)}>
+                <h3>{p.title}</h3>
+                {p.duration ? <div className="program-duration">{p.duration}</div> : null}
 
-            <div className="program-card animate-in" data-category="reading" style={cardStyle('reading')}>
-              <h3>Book Club</h3>
-              <div className="program-duration">10 weeks · 1 class/week · 90 minutes · Small-group class</div>
-              <div className="program-schedule" style={{ margin: '1rem 0', padding: '0.75rem', background: '#f8f6f3', borderRadius: 8, fontSize: '0.9rem' }}>
-                📅 <strong>Class Schedule</strong><br />
-                🟢 K–1 · Wed · 4:00–5:00 PM<br />
-                🔵 Gr. 2–3 · Mon <em>or</em> Thu · 5:00–6:30 PM (choose one day)<br />
-                🟣 Gr. 4–5 · Thu · 6:30–8:00 PM
-              </div>
-              <div className="program-cta" style={{ display: 'flex', gap: '0.5rem' }}>
-                <a href="/assets/pdf/bookclub_english.pdf" className="btn btn-primary" download style={{ flex: 1, textAlign: 'center', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>Course Description (English)</a>
-                <a href="/assets/pdf/bookclub_korean.pdf" className="btn btn-primary" download style={{ flex: 1, textAlign: 'center', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>수업 안내 (한국어)</a>
-              </div>
-              <div style={{ margin: '1rem 0 0.5rem 0', fontWeight: 600, color: '#4a3c28', fontSize: '0.95rem' }}>Spring 2026 Curriculum</div>
-              <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
-                <a href="/assets/pdf/curriculum_bookclub_k1.pdf" className="btn btn-secondary" target="_blank" rel="noreferrer" style={{ flex: 1, textAlign: 'center', fontSize: '0.85rem', padding: '0.6rem 0.8rem' }}>K–1 (Wed)</a>
-                <a href="/assets/pdf/curriculum_bookclub_23_mon.pdf" className="btn btn-secondary" target="_blank" rel="noreferrer" style={{ flex: 1, textAlign: 'center', fontSize: '0.85rem', padding: '0.6rem 0.8rem' }}>Gr. 2–3 (Mon)</a>
-                <a href="/assets/pdf/curriculum_bookclub_23_thu.pdf" className="btn btn-secondary" target="_blank" rel="noreferrer" style={{ flex: 1, textAlign: 'center', fontSize: '0.85rem', padding: '0.6rem 0.8rem' }}>Gr. 2–3 (Thu)</a>
-                <a href="/assets/pdf/curriculum_bookclub_45.pdf" className="btn btn-secondary" target="_blank" rel="noreferrer" style={{ flex: 1, textAlign: 'center', fontSize: '0.85rem', padding: '0.6rem 0.8rem' }}>Gr. 4–5 (Thu)</a>
-              </div>
-            </div>
+                {p.features && p.features.length > 0 ? (
+                  <ul className="program-features">
+                    {p.features.map((f, i) => <li key={i}>{f.text}</li>)}
+                  </ul>
+                ) : null}
 
-            <div className="program-card animate-in" data-category="reading" style={cardStyle('reading')}>
-              <h3>Reading Comprehension</h3>
-              <div className="program-duration">10 weeks · 1 class/week · 60 minutes · Small-group class</div>
-              <div className="program-schedule" style={{ margin: '1rem 0', padding: '0.75rem', background: '#f8f6f3', borderRadius: 8, fontSize: '0.9rem' }}>
-                📅 <strong>Class Schedule</strong><br />
-                🔵 Gr. 2–3 · Tue · 6:00–7:00 PM<br />
-                🟣 Gr. 4–5 · Wed · 7:00–8:00 PM
-              </div>
-              <div className="program-cta" style={{ display: 'flex', gap: '0.5rem' }}>
-                <a href="/assets/pdf/reading_english.pdf" className="btn btn-primary" download style={{ flex: 1, textAlign: 'center', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>Course Description (English)</a>
-                <a href="/assets/pdf/reading_korean.pdf" className="btn btn-primary" download style={{ flex: 1, textAlign: 'center', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>수업 안내 (한국어)</a>
-              </div>
-              <div style={{ margin: '1rem 0 0.5rem 0', fontWeight: 600, color: '#4a3c28', fontSize: '0.95rem' }}>Spring 2026 Curriculum</div>
-              <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
-                <a href="/assets/pdf/curriculum_reading_23.pdf" className="btn btn-secondary" target="_blank" rel="noreferrer" style={{ flex: 1, textAlign: 'center', fontSize: '0.85rem', padding: '0.6rem 0.8rem' }}>Gr. 2–3 (Tue)</a>
-                <a href="/assets/pdf/curriculum_reading_45.pdf" className="btn btn-secondary" target="_blank" rel="noreferrer" style={{ flex: 1, textAlign: 'center', fontSize: '0.85rem', padding: '0.6rem 0.8rem' }}>Gr. 4–5 (Wed)</a>
-              </div>
-            </div>
+                {p.schedule ? (
+                  <div className="program-schedule" style={{ margin: '1rem 0', padding: '0.75rem', background: '#f8f6f3', borderRadius: 8, fontSize: '0.9rem' }}>
+                    📅 <strong>{p.scheduleTitle}</strong><br />
+                    {p.schedule.split('\n').map((line, i, arr) => (
+                      <Fragment key={i}>{line}{i < arr.length - 1 ? <br /> : null}</Fragment>
+                    ))}
+                  </div>
+                ) : null}
 
-            <div className="program-card animate-in" data-category="writing" style={cardStyle('writing')}>
-              <h3>Foundational Writing</h3>
-              <div className="program-duration">10 weeks · 1 class/week · 60 minutes · Small-group class</div>
-              <div className="program-schedule" style={{ margin: '1rem 0', padding: '0.75rem', background: '#f8f6f3', borderRadius: 8, fontSize: '0.9rem' }}>
-                📅 <strong>Class Schedule</strong><br />
-                🔵 Gr. 2–3 · Tue · 4:00–5:00 PM (Persuasive Writing)<br />
-                🔵 Gr. 2–3 · Tue · 5:00–6:00 PM (Narrative Writing)<br />
-                🟣 Gr. 4–5 · Mon · 7:30–8:30 PM
-              </div>
-              <div className="program-cta" style={{ display: 'flex', gap: '0.5rem' }}>
-                <a href="/assets/pdf/writing_english.pdf" className="btn btn-primary" download style={{ flex: 1, textAlign: 'center', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>Course Description (English)</a>
-                <a href="/assets/pdf/writing_korean.pdf" className="btn btn-primary" download style={{ flex: 1, textAlign: 'center', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>수업 안내 (한국어)</a>
-              </div>
-              <div style={{ margin: '1rem 0 0.5rem 0', fontWeight: 600, color: '#4a3c28', fontSize: '0.95rem' }}>Spring 2026 Curriculum</div>
-              <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
-                <a href="/assets/pdf/curriculum_writing_23_persuasive.pdf" className="btn btn-secondary" target="_blank" rel="noreferrer" style={{ flex: 1, textAlign: 'center', fontSize: '0.85rem', padding: '0.6rem 0.8rem' }}>Gr. 2–3 Persuasive (Tue)</a>
-                <a href="/assets/pdf/curriculum_writing_23_narrative.pdf" className="btn btn-secondary" target="_blank" rel="noreferrer" style={{ flex: 1, textAlign: 'center', fontSize: '0.85rem', padding: '0.6rem 0.8rem' }}>Gr. 2–3 Narrative (Tue)</a>
-                <a href="/assets/pdf/curriculum_writing_45.pdf" className="btn btn-secondary" target="_blank" rel="noreferrer" style={{ flex: 1, textAlign: 'center', fontSize: '0.85rem', padding: '0.6rem 0.8rem' }}>Gr. 4–5 (Mon)</a>
-              </div>
-            </div>
+                {p.ctas && p.ctas.length > 0 ? (
+                  <div className="program-cta" style={{ display: 'flex', gap: '0.5rem' }}>
+                    {p.ctas.map((cta, i) => <CtaButton key={i} cta={cta} />)}
+                  </div>
+                ) : null}
 
-            <div className="program-card animate-in" data-category="writing" style={cardStyle('writing')}>
-              <h3>Writer&rsquo;s Workshop</h3>
-              <div className="program-duration">10 weeks · 1 class/week · 90 minutes · Small-group class</div>
-              <div className="program-schedule" style={{ margin: '1rem 0', padding: '0.75rem', background: '#f8f6f3', borderRadius: 8, fontSize: '0.9rem' }}>
-                📅 <strong>Class Schedule</strong><br />
-                🟣 Gr. 3–6 · Sat · 1:30–3:00 PM
+                {p.curriculumLinks && p.curriculumLinks.length > 0 ? (
+                  <>
+                    <div style={{ margin: '1rem 0 0.5rem 0', fontWeight: 600, color: '#4a3c28', fontSize: '0.95rem' }}>
+                      {p.curriculumHeading}
+                    </div>
+                    <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+                      {p.curriculumLinks.map((l, i) => (
+                        <a key={i} href={l.href} className="btn btn-secondary" target="_blank" rel="noreferrer" style={{ flex: 1, textAlign: 'center', fontSize: '0.85rem', padding: '0.6rem 0.8rem' }}>
+                          {l.label}
+                        </a>
+                      ))}
+                    </div>
+                  </>
+                ) : null}
               </div>
-              <div className="program-cta" style={{ display: 'flex', gap: '0.5rem' }}>
-                <a href="/assets/pdf/workshop_english.pdf" className="btn btn-primary" download style={{ flex: 1, textAlign: 'center', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>Course Description (English)</a>
-                <a href="/assets/pdf/workshop_korean.pdf" className="btn btn-primary" download style={{ flex: 1, textAlign: 'center', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>수업 안내 (한국어)</a>
-              </div>
-              <div style={{ margin: '1rem 0 0.5rem 0', fontWeight: 600, color: '#4a3c28', fontSize: '0.95rem' }}>Spring 2026 Curriculum</div>
-              <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
-                <a href="/assets/pdf/curriculum_workshop.pdf" className="btn btn-secondary" target="_blank" rel="noreferrer" style={{ flex: 1, textAlign: 'center', fontSize: '0.85rem', padding: '0.6rem 0.8rem' }}>Gr. 3–6 (Sat)</a>
-              </div>
-            </div>
-
-            <div className="program-card animate-in" data-category="creative" style={cardStyle('creative')}>
-              <h3>K-1 Hangeul (Korean Phonics)</h3>
-              <div className="program-duration">10 weeks · 1 class/week · 90 minutes · Small-group class</div>
-              <div className="program-schedule" style={{ margin: '1rem 0', padding: '0.75rem', background: '#f8f6f3', borderRadius: 8, fontSize: '0.9rem' }}>
-                📅 <strong>Class Schedule</strong><br />
-                🟢 K–1 Lev.1 · Wed · 2:30–4:00 PM<br />
-                🟢 K–1 Lev.2 · Fri · 4:30–6:00 PM <em>or</em> Sat · 3:30–5:00 PM (choose one day)
-              </div>
-              <div className="program-cta" style={{ display: 'flex', gap: '0.5rem' }}>
-                <a href="/assets/pdf/hangeul_english.pdf" className="btn btn-primary" download style={{ flex: 1, textAlign: 'center', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>Course Description (English)</a>
-                <a href="/assets/pdf/hangeul_korean.pdf" className="btn btn-primary" download style={{ flex: 1, textAlign: 'center', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>수업 안내 (한국어)</a>
-              </div>
-              <div style={{ margin: '1rem 0 0.5rem 0', fontWeight: 600, color: '#4a3c28', fontSize: '0.95rem' }}>Spring 2026 Curriculum</div>
-              <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
-                <a href="/assets/pdf/curriculum_hangeul_lev1.pdf" className="btn btn-secondary" target="_blank" rel="noreferrer" style={{ flex: 1, textAlign: 'center', fontSize: '0.85rem', padding: '0.6rem 0.8rem' }}>Lev.1 (Wed)</a>
-                <a href="/assets/pdf/curriculum_hangeul_lev2_fri.pdf" className="btn btn-secondary" target="_blank" rel="noreferrer" style={{ flex: 1, textAlign: 'center', fontSize: '0.85rem', padding: '0.6rem 0.8rem' }}>Lev.2 (Fri)</a>
-                <a href="/assets/pdf/curriculum_hangeul_lev2_sat.pdf" className="btn btn-secondary" target="_blank" rel="noreferrer" style={{ flex: 1, textAlign: 'center', fontSize: '0.85rem', padding: '0.6rem 0.8rem' }}>Lev.2 (Sat)</a>
-              </div>
-            </div>
-
-            <div className="program-card animate-in" data-category="creative" style={cardStyle('creative')}>
-              <h3>Korean Book Club (Advanced)</h3>
-              <div className="program-duration">10 weeks · 1 class/week · 90 minutes · Small-group class</div>
-              <div className="program-schedule" style={{ margin: '1rem 0', padding: '0.75rem', background: '#f8f6f3', borderRadius: 8, fontSize: '0.9rem' }}>
-                📅 <strong>Class Schedule</strong><br />
-                🟣 Gr. 3–6 · Fri · 6:30–8:00 PM<br />
-                <em>(Students must already read and write in Korean fluently)</em>
-              </div>
-              <div className="program-cta" style={{ display: 'flex', gap: '0.5rem' }}>
-                <a href="/assets/pdf/korean_bookclub_english.pdf" className="btn btn-primary" download style={{ flex: 1, textAlign: 'center', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>Course Description (English)</a>
-                <a href="/assets/pdf/korean_bookclub_korean.pdf" className="btn btn-primary" download style={{ flex: 1, textAlign: 'center', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>수업 안내 (한국어)</a>
-              </div>
-              <div style={{ margin: '1rem 0 0.5rem 0', fontWeight: 600, color: '#4a3c28', fontSize: '0.95rem' }}>Spring 2026 Curriculum</div>
-              <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
-                <a href="/assets/pdf/curriculum_korean_bookclub.pdf" className="btn btn-secondary" target="_blank" rel="noreferrer" style={{ flex: 1, textAlign: 'center', fontSize: '0.85rem', padding: '0.6rem 0.8rem' }}>Korean Book Club (Fri)</a>
-              </div>
-            </div>
-
-            <div className="program-card animate-in" data-category="summer" style={cardStyle('summer')}>
-              <h3>Summer Camp</h3>
-              <div className="program-schedule" style={{ margin: '1rem 0', padding: '0.75rem', background: '#f8f6f3', borderRadius: 8, fontSize: '0.9rem' }}>
-                📅 <strong>Session Schedule</strong><br />
-                🔵 Gr. 2–3 · June 22 – July 3<br />
-                🟢 K–1 · July 6 – July 17<br />
-                🟣 Gr. 4–5 · July 20 – July 31<br />
-                🟣 Gr. 4–5 · August 3 – August 14
-              </div>
-              <div className="program-cta" style={{ display: 'flex', gap: '0.5rem' }}>
-                <a href="/assets/pdf/summer_camp_info.pdf" className="btn btn-secondary" target="_blank" rel="noreferrer" style={{ flex: 1, textAlign: 'center' }}>Summer Camp Details</a>
-                <Link href="/diagnostic" className="btn btn-primary" style={{ flex: 1, textAlign: 'center' }}>Book a Free Diagnostic</Link>
-              </div>
-            </div>
+            ))}
           </div>
         </div>
       </main>
     </>
   );
+}
+
+// One CTA button. Internal app links (e.g. /diagnostic) use Next's Link;
+// file paths and external URLs use a plain anchor (with download when flagged).
+function CtaButton({ cta }) {
+  const cls = `btn btn-${cta.style || 'primary'}`;
+  const style = { flex: 1, textAlign: 'center', display: 'flex', alignItems: 'center', justifyContent: 'center' };
+  const href = cta.href || '#';
+  const isInternal = href.startsWith('/') && !href.startsWith('/assets');
+  if (isInternal) {
+    return <Link href={href} className={cls} style={style}>{cta.label}</Link>;
+  }
+  const linkProps = cta.download ? { download: true } : { target: '_blank', rel: 'noreferrer' };
+  return <a href={href} className={cls} style={style} {...linkProps}>{cta.label}</a>;
 }

@@ -26,6 +26,7 @@ export default async function ProgramsPage() {
       heading={data?.heading || 'English Reading & Writing'}
       introHtml={introHtml}
       koreanTabLabel={data?.koreanTabLabel || 'Korean'}
+      programs={data?.programs || []}
     />
   );
 }
