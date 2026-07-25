@@ -13,6 +13,7 @@
     "@payloadcms/db-mongodb": "^3.86.0",
     "@payloadcms/next": "^3.86.0",
     "@payloadcms/richtext-lexical": "^3.86.0",
+    "@payloadcms/storage-vercel-blob": "^3.86.0",
     "@vercel/blob": "^2.5.0",
     "bcryptjs": "^3.0.3",
     "date-fns": "^4.4.0",

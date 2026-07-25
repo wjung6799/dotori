@@ -3,6 +3,7 @@ import { fileURLToPath } from 'url';
 import { buildConfig } from 'payload';
 import { mongooseAdapter } from '@payloadcms/db-mongodb';
 import { lexicalEditor } from '@payloadcms/richtext-lexical';
+import { vercelBlobStorage } from '@payloadcms/storage-vercel-blob';
 import sharp from 'sharp';
 
 const dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -42,11 +43,11 @@ export default buildConfig({
       fields: [{ name: 'name', type: 'text' }],
     },
     // Uploadable images/PDFs — the media library staff drop files into. Stored
-    // on disk under ./media and served (publicly) at /cms-api/media/file/<name>.
+    // in Vercel Blob (see the plugin below), which works on serverless; files
+    // are served from public Blob URLs.
     {
       slug: 'media',
       upload: {
-        staticDir: path.resolve(dirname, 'media'),
         mimeTypes: ['image/*', 'application/pdf'],
       },
       access: { read: () => true }, // public site needs to load the files
@@ -357,6 +358,16 @@ export default buildConfig({
   }),
 
   secret: process.env.PAYLOAD_SECRET || '',
+
+  // Store uploaded media in Vercel Blob so files persist on serverless (local
+  // disk doesn't exist on Vercel). The token is set by the linked Blob store.
+  plugins: [
+    vercelBlobStorage({
+      enabled: true,
+      collections: { media: true },
+      token: process.env.BLOB_READ_WRITE_TOKEN,
+    }),
+  ],
 
   sharp,
 
