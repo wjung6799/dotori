@@ -95,7 +95,7 @@ export default function ProgramsClient({ heading, introHtml, koreanTabLabel, pro
                     </div>
                     <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
                       {p.curriculumLinks.map((l, i) => (
-                        <a key={i} href={l.href} className="btn btn-secondary" target="_blank" rel="noreferrer" style={{ flex: 1, textAlign: 'center', fontSize: '0.85rem', padding: '0.6rem 0.8rem' }}>
+                        <a key={i} href={l.file?.url || l.href} className="btn btn-secondary" target="_blank" rel="noreferrer" style={{ flex: 1, textAlign: 'center', fontSize: '0.85rem', padding: '0.6rem 0.8rem' }}>
                           {l.label}
                         </a>
                       ))}
@@ -116,7 +116,8 @@ export default function ProgramsClient({ heading, introHtml, koreanTabLabel, pro
 function CtaButton({ cta }) {
   const cls = `btn btn-${cta.style || 'primary'}`;
   const style = { flex: 1, textAlign: 'center', display: 'flex', alignItems: 'center', justifyContent: 'center' };
-  const href = cta.href || '#';
+  // Prefer an uploaded file (Blob URL); fall back to the typed link/path.
+  const href = cta.file?.url || cta.href || '#';
   const isInternal = href.startsWith('/') && !href.startsWith('/assets');
   if (isInternal) {
     return <Link href={href} className={cls} style={style}>{cta.label}</Link>;

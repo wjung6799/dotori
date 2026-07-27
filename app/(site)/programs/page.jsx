@@ -15,7 +15,8 @@ export default async function ProgramsPage() {
   let introHtml = '';
   try {
     const payload = await getPayload({ config });
-    data = await payload.findGlobal({ slug: 'programsPage' });
+    // depth:1 populates the PDF file uploads nested in program cards (ctas/curriculum).
+    data = await payload.findGlobal({ slug: 'programsPage', depth: 1 });
     if (data?.intro) introHtml = convertLexicalToHTML({ data: data.intro });
   } catch (err) {
     console.error('Programs CMS read failed, using fallback copy:', err);

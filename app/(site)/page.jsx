@@ -67,7 +67,7 @@ export default async function HomePage() {
             {c.heroCtaText}
           </Link>
           <img
-            src="/assets/images/hero-image.png"
+            src={c.heroImage?.url || '/assets/images/hero-image.png'}
             alt="Dotori School — personalized language and math tutoring in Bellevue"
             style={{ display: 'block', maxWidth: '68%', height: 'auto', borderRadius: 12, margin: '2.5rem auto 0' }}
           />

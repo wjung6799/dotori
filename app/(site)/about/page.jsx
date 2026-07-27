@@ -47,7 +47,7 @@ export default async function AboutPage() {
             {c.coreValuesHeading}
           </h1>
           <img
-            src="/assets/images/core_values_small.png"
+            src={c.coreValuesImage?.url || '/assets/images/core_values_small.png'}
             alt="Core Values"
             style={{
               display: 'block',
