@@ -268,6 +268,7 @@ function CreateModal({ creating, onClose, onSubmit }) {
   const [capacity, setCapacity] = useState('1');
   const [subject, setSubject] = useState('');
   const [recurrence, setRecurrence] = useState('weekly');
+  const [diagnostic, setDiagnostic] = useState(false);
   const [busy, setBusy] = useState(false);
 
   const options = [
@@ -289,6 +290,7 @@ function CreateModal({ creating, onClose, onSubmit }) {
         startMinute: fromHHMM(start),
         durationMinutes: Math.max(SNAP, Number(dur) || DEFAULT_DUR),
         capacity: Math.max(1, Number(capacity) || 1),
+        kind: diagnostic ? 'diagnostic' : 'session',
         subject,
       });
     } finally { setBusy(false); }
@@ -312,6 +314,20 @@ function CreateModal({ creating, onClose, onSubmit }) {
           <select value={recurrence} onChange={(e) => setRecurrence(e.target.value)} style={{ ...inp(), minWidth: 240 }}>
             {options.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
           </select>
+        </label>
+        <label
+          style={{
+            display: 'flex', alignItems: 'flex-start', gap: 8, marginBottom: 14,
+            padding: '10px 12px', borderRadius: 9,
+            background: diagnostic ? '#eef7ea' : '#faf8f5',
+            border: `1.5px solid ${diagnostic ? GREEN : '#ece5db'}`, cursor: 'pointer',
+          }}
+        >
+          <input type="checkbox" checked={diagnostic} onChange={(e) => setDiagnostic(e.target.checked)} style={{ marginTop: 3 }} />
+          <span style={{ fontSize: '0.82rem', color: BROWN }}>
+            <strong>Free diagnostic slot</strong> — bookable from the public /diagnostic page without an
+            account, and never charges a session credit. Kept off the paid schedule.
+          </span>
         </label>
         <div style={{ display: 'grid', gap: 8 }}>
           <button onClick={go} disabled={busy} style={btn()}>{busy ? 'Adding…' : 'Add availability'}</button>

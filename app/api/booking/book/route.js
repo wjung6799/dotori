@@ -48,7 +48,9 @@ export async function POST(request) {
 
     await dbConnect();
     const schedule = await TutorSchedule.findById(scheduleId);
-    if (!schedule || !schedule.active) {
+    if (!schedule || !schedule.active || schedule.kind === 'diagnostic') {
+      // Diagnostic slots are free and booked only via /api/booking/diagnostic;
+      // they must never be claimed with a paid credit through this route.
       return Response.json({ error: 'That time is no longer available.' }, { status: 404 });
     }
 

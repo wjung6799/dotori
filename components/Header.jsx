@@ -7,13 +7,12 @@ import { useSession, signOut } from 'next-auth/react';
 
 const NAV_LINKS = [
   { href: '/', label: 'Home' },
+  { href: '/programs', label: 'Language' },
+  { href: '/math', label: 'Math & Test Prep' },
   { href: '/about', label: 'About' },
   { href: '/team', label: 'Our Team' },
-  { href: '/calendar', label: 'Calendar' },
-  { href: '/programs', label: 'Programs' },
-  { href: '/schedule', label: 'Schedule' },
-  { href: '/contact', label: 'Contact' },
-  { href: '/store', label: 'Store' },
+  { href: '/schedule', label: 'Schedule', authOnly: true },
+  { href: '/diagnostic', label: 'Book Free Diagnostic', cta: true },
 ];
 
 export default function Header() {
@@ -22,6 +21,9 @@ export default function Header() {
   const { data: session, status } = useSession();
   const role = session?.user?.role;
   const close = () => setOpen(false);
+
+  // Hide auth-only links (e.g. Schedule, the family booking page) until signed in.
+  const navLinks = NAV_LINKS.filter((l) => !l.authOnly || status === 'authenticated');
 
   // Auth links — rendered both inside the mobile dropdown and in the
   // right-hand desktop zone (CSS shows the right one per breakpoint).
@@ -108,11 +110,17 @@ export default function Header() {
 
         {/* Center: main links (auth links append here for the mobile dropdown) */}
         <ul className={`nav-links${open ? ' nav-open' : ''}`}>
-          {NAV_LINKS.map((link) => (
+          {navLinks.map((link) => (
             <li key={link.href}>
               <Link
                 href={link.href}
-                className={pathname === link.href ? 'active' : undefined}
+                className={
+                  link.cta
+                    ? `login-btn${pathname === link.href ? ' active' : ''}`
+                    : pathname === link.href
+                      ? 'active'
+                      : undefined
+                }
                 onClick={close}
               >
                 {link.label}

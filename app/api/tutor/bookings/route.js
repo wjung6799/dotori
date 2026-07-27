@@ -77,6 +77,8 @@ export async function POST(request) {
 
     const name = studentName.trim();
     const attended = Boolean(logPast);
+    // A diagnostic slot is free: mirror its kind and never consume a credit.
+    const isDiagnostic = schedule.kind === 'diagnostic';
     const res = await attemptBooking({
       userId: family._id,
       studentName: name,
@@ -85,6 +87,8 @@ export async function POST(request) {
       allowWithoutCredit: true,
       allowPast: attended,
       status: attended ? 'completed' : 'scheduled',
+      kind: isDiagnostic ? 'diagnostic' : 'session',
+      consumeCredit: !isDiagnostic,
     });
     if (!res.ok) {
       return Response.json({ error: res.error }, { status: STATUS_FOR[res.code] || 500 });

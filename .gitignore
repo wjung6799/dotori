@@ -29,3 +29,6 @@ npm-debug.log*
 
 # Payload CMS local upload storage
 media/
+.env*
+next-env.d.ts
+.checkmate/
