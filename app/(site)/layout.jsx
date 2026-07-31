@@ -23,7 +23,9 @@ export const metadata = {
 export default function RootLayout({ children }) {
   return (
     <html lang="en">
-      <body>
+      {/* suppressHydrationWarning: browser extensions (e.g. Grammarly) inject
+          attributes into <body> before React hydrates; ignore that mismatch. */}
+      <body suppressHydrationWarning>
         <Providers>
           <Header />
           {children}
