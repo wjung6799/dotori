@@ -9,7 +9,7 @@ import { createLuluJob } from '@/lib/luluClient';
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
-// POST /api/payments/webhook — Stripe webhook. Uses the raw request body so the
+// POST /api/payments/webhook: Stripe webhook. Uses the raw request body so the
 // signature verifies (Next does not parse the body for us here).
 export async function POST(request) {
   const stripe = getStripe();

@@ -84,7 +84,7 @@ export async function POST(request) {
     const refunded = await refundIfDue(booking);
 
     // If it was one week of a standing booking, make sure the cron doesn't just
-    // re-book it — record the date as a skip on the series (series stays active).
+    // re-book it: record the date as a skip on the series (series stays active).
     if (booking.recurringId) {
       const dateKey = formatInTimeZone(booking.startAt, SITE_TIMEZONE, 'yyyy-MM-dd');
       await RecurringBooking.findByIdAndUpdate(booking.recurringId, {

@@ -8,20 +8,14 @@ export default function Footer() {
   return (
     <footer style={{ background: '#f7f5f2', padding: '2.5rem 0 2rem', color: '#888' }}>
       <div className="container" style={{ textAlign: 'center' }}>
-        {/* Primary CTA */}
-        <Link
-          href="/diagnostic"
-          className="btn btn-primary"
-          style={{ display: 'inline-block', flex: 'none', padding: '0.8rem 2rem', marginBottom: '1.5rem' }}
-        >
-          Book a Free Diagnostic Assessment
-        </Link>
-
         {/* Secondary links (demoted from the primary nav) */}
         <nav style={{ display: 'flex', flexWrap: 'wrap', gap: '1.25rem', justifyContent: 'center', marginBottom: '1.5rem' }}>
           {[
-            ['/programs', 'Language'],
+            ['/programs', 'English Literacy'],
             ['/math', 'Math & Test Prep'],
+            ['/korean', 'Korean Language'],
+            ['/private-lessons', 'Private/Semi-Private Lessons'],
+            ['/summer-camp', 'Summer Camp'],
             ['/team', 'Our Team'],
             ['/calendar', 'Calendar'],
             ['/contact', 'Contact'],

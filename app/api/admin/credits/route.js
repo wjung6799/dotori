@@ -6,7 +6,7 @@ import { getAdminUser, forbidden } from '@/lib/auth-helpers';
 
 export const dynamic = 'force-dynamic';
 
-// GET /api/admin/credits?userId=... — credit grants (optionally for one family)
+// GET /api/admin/credits?userId=...: credit grants (optionally for one family)
 export async function GET(request) {
   if (!(await getAdminUser())) return forbidden();
   try {
@@ -28,7 +28,7 @@ export async function GET(request) {
   }
 }
 
-// POST /api/admin/credits — grant N sessions to a family (after offline payment)
+// POST /api/admin/credits: grant N sessions to a family (after offline payment)
 export async function POST(request) {
   const admin = await getAdminUser();
   if (!admin) return forbidden();

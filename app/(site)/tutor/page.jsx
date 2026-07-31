@@ -224,12 +224,12 @@ function BookingsTab({ tutorId }) {
         let text;
         if (d.logged) {
           text = d.creditConsumed
-            ? 'Session recorded — one of the family’s sessions was used.'
+            ? 'Session recorded. One of the family’s sessions was used.'
             : 'Session recorded. The family had no sessions left, so no credit was deducted.';
         } else if (d.recurring) {
-          text = `Weekly booking set — ${d.recurring.booked} upcoming session${d.recurring.booked === 1 ? '' : 's'} booked. It’ll keep booking each week (credits permitting).`;
+          text = `Weekly booking set: ${d.recurring.booked} upcoming session${d.recurring.booked === 1 ? '' : 's'} booked. It’ll keep booking each week (credits permitting).`;
         } else if (d.creditConsumed) {
-          text = 'Session booked — one of the family’s sessions was used.';
+          text = 'Session booked. One of the family’s sessions was used.';
         } else {
           text = 'Session booked. The family had no sessions left, so no credit was deducted.';
         }
@@ -263,7 +263,7 @@ function BookingsTab({ tutorId }) {
       {isPast && (
         <p style={{ color: '#9b8b77', fontSize: '0.85rem', margin: '0 0 14px', maxWidth: 460 }}>
           For a student who showed up without booking. The session is recorded as completed and a
-          session is deducted — the family isn’t emailed.
+          session is deducted; the family isn’t emailed.
         </p>
       )}
       <form onSubmit={book} style={{ display: 'grid', gap: 10, maxWidth: 460, marginBottom: 28 }}>
@@ -327,7 +327,7 @@ function BookingsTab({ tutorId }) {
             {' · '}{b.studentName}{' · '}<span style={{ color: '#9b8b77' }}>{famName(b.userId)}</span>
             {b.status === 'completed' && <span title="Attendance logged after the session" style={{ marginLeft: 8, fontSize: '0.72rem', color: ACCENT, fontWeight: 700 }}>✓ logged</span>}
           </div>
-          {/* Only a logged session can be undone here — removing one that was booked
+          {/* Only a logged session can be undone here; removing one that was booked
               normally would refund a credit for a session actually delivered. */}
           {b.status === 'completed' && (
             <button onClick={() => cancelBooking(b._id, true)} style={danger()}>Remove</button>

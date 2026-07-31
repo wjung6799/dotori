@@ -4,7 +4,7 @@ import { getAdminUser, forbidden } from '@/lib/auth-helpers';
 
 export const dynamic = 'force-dynamic';
 
-// DELETE /api/admin/credits/:id — remove a session grant.
+// DELETE /api/admin/credits/:id: remove a session grant.
 export async function DELETE(request, { params }) {
   if (!(await getAdminUser())) return forbidden();
   try {

@@ -5,7 +5,7 @@ import { cancelOccurrence } from '@/lib/schedule-admin';
 
 export const dynamic = 'force-dynamic';
 
-// POST /api/admin/schedules/:id/cancel-instance — body: { dateKey, reason? }
+// POST /api/admin/schedules/:id/cancel-instance: body: { dateKey, reason? }
 // Cancels a single occurrence of a recurring slot (refunds bookings on it).
 export async function POST(request, { params }) {
   if (!(await getAdminUser())) return forbidden();

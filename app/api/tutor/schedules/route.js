@@ -6,7 +6,7 @@ import { getMyTutor, notTutor } from '@/lib/tutor-helpers';
 
 export const dynamic = 'force-dynamic';
 
-// POST /api/tutor/schedules — create one of the signed-in tutor's own slots.
+// POST /api/tutor/schedules: create one of the signed-in tutor's own slots.
 // Recurring: { dayOfWeek, startMinute, ... }. One-off: { specificDate, startMinute, ... }.
 export async function POST(request) {
   const { user, tutor } = await getMyTutor();

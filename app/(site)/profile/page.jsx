@@ -61,7 +61,7 @@ export default function ProfilePage() {
           profile = data.user;
         }
       } catch {
-        /* backend unavailable — fall back to session below */
+        /* backend unavailable; fall back to session below */
       }
       if (cancelled) return;
       setCurrentUser({

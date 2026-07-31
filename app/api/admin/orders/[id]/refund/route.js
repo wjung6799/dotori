@@ -5,7 +5,7 @@ import { getAdminUser, forbidden } from '@/lib/auth-helpers';
 
 export const dynamic = 'force-dynamic';
 
-// POST /api/admin/orders/:id/refund — refund the Stripe charge, mark refunded.
+// POST /api/admin/orders/:id/refund: refund the Stripe charge, mark refunded.
 export async function POST(request, { params }) {
   if (!(await getAdminUser())) return forbidden();
   try {

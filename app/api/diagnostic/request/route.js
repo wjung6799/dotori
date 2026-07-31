@@ -4,12 +4,12 @@ import { rateLimit, check, record, clientIp } from '@/lib/rate-limit';
 export const dynamic = 'force-dynamic';
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-const TRACK_LABEL = { math: 'Math & Test Prep', language: 'Language', both: 'Both (Language & Math)' };
+const TRACK_LABEL = { math: 'Math & Test Prep', language: 'Literacy', both: 'Both (Literacy & Math)' };
 const SCHOOL_EMAIL = process.env.CONTACT_EMAIL || 'info@dotorischool.org';
 
-// POST /api/diagnostic/request — PUBLIC, no auth. A family sends a message asking
+// POST /api/diagnostic/request: PUBLIC, no auth. A family sends a message asking
 // for a free diagnostic; we email the school (the actual lead) and confirm to the
-// parent. No slot/booking/credit — the school reaches out to schedule.
+// parent. No slot/booking/credit; the school reaches out to schedule.
 export async function POST(request) {
   let body;
   try {
@@ -52,7 +52,7 @@ export async function POST(request) {
     );
   }
 
-  // The school alert IS the lead — if it can't send, tell the family to email
+  // The school alert IS the lead; if it can't send, tell the family to email
   // directly rather than falsely confirm.
   try {
     await sendDiagnosticRequestAlert({

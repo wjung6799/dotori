@@ -4,7 +4,7 @@ import { getGlobal } from '@/lib/cms';
 export const metadata = {
   title: 'Math Tutoring & Test Prep in Bellevue | AMC, Physics, Coding | Dotori School',
   description:
-    'Personalized math and test prep in Bellevue — small groups, each on their own plan. School math, AMC competition math, physics, and Python coding. Free diagnostic assessment. Daytime slots for homeschoolers.',
+    'Personalized math and test prep in Bellevue. Small groups, each on their own plan. School math, AMC competition math, physics, and Python coding. Free diagnostic assessment. Daytime slots for homeschoolers.',
 };
 
 export const dynamic = 'force-dynamic';
@@ -57,7 +57,7 @@ export default async function MathPage() {
           ))}
         </div>
 
-        {/* Calendar hooks */}
+        {/* Calendar hooks (also shown on the Calendar page) */}
         <div className="faq-section">
           <h2>{c.calendarHeading}</h2>
           <div style={{ display: 'grid', gap: '0.5rem', maxWidth: 640, margin: '0 auto' }}>
@@ -68,11 +68,6 @@ export default async function MathPage() {
               </div>
             ))}
           </div>
-          <p style={{ textAlign: 'center', marginTop: '1.5rem' }}>
-            <a href="/assets/pdf/dotori_calendar_2026-27.pdf" target="_blank" rel="noreferrer" className="btn btn-secondary" style={{ display: 'inline-block', flex: 'none', padding: '0.7rem 1.5rem' }}>
-              View the 2026–27 calendar (PDF)
-            </a>
-          </p>
         </div>
 
         {/* Homeschool line */}
@@ -80,14 +75,11 @@ export default async function MathPage() {
           {c.homeschoolNote}
         </div>
 
-        {/* Bottom CTA */}
+        {/* Bottom note */}
         <div style={{ textAlign: 'center', margin: '1rem auto 3rem' }}>
-          <p style={{ color: '#6b5b47', marginBottom: '1rem', fontSize: '1.1rem' }}>
+          <p style={{ color: '#6b5b47', fontSize: '1.1rem' }}>
             {c.bottomCtaBody}
           </p>
-          <Link href="/diagnostic" className="btn btn-primary" style={{ padding: '1rem 2.5rem', fontSize: '1.1rem', flex: 'none', display: 'inline-block' }}>
-            {c.bottomCtaText}
-          </Link>
         </div>
       </div>
     </main>

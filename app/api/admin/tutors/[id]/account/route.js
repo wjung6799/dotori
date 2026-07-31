@@ -6,7 +6,7 @@ import { getAdminUser, forbidden } from '@/lib/auth-helpers';
 
 export const dynamic = 'force-dynamic';
 
-// POST /api/admin/tutors/:id/account — give a tutor profile a login.
+// POST /api/admin/tutors/:id/account: give a tutor profile a login.
 // body: { email, password? }
 //  - if a user with that email exists → promote them to role 'tutor' (password ignored)
 //  - else → create a new 'tutor' login (password required)
@@ -30,7 +30,7 @@ export async function POST(request, { params }) {
     } else {
       if (!password || password.length < 8) {
         return Response.json(
-          { error: 'No account with that email — provide a password (8+ chars) to create one.' },
+          { error: 'No account with that email. Provide a password (8+ chars) to create one.' },
           { status: 400 },
         );
       }
@@ -58,7 +58,7 @@ export async function POST(request, { params }) {
   }
 }
 
-// DELETE /api/admin/tutors/:id/account — unlink the login (optionally demote).
+// DELETE /api/admin/tutors/:id/account: unlink the login (optionally demote).
 export async function DELETE(request, { params }) {
   if (!(await getAdminUser())) return forbidden();
   try {

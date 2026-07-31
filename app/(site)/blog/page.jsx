@@ -22,7 +22,7 @@ export default async function BlogPage() {
       </p>
 
       {posts.length === 0 ? (
-        <p style={{ textAlign: 'center', color: '#9b8b77' }}>No posts yet — check back soon.</p>
+        <p style={{ textAlign: 'center', color: '#9b8b77' }}>No posts yet. Check back soon.</p>
       ) : (
         <div style={{ display: 'grid', gap: '1.5rem', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))' }}>
           {posts.map((post) => (

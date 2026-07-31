@@ -7,7 +7,7 @@ import { calcShipping } from '@/lib/shop';
 
 export const dynamic = 'force-dynamic';
 
-// POST /api/shop/create-payment-intent — validate cart, create Order + Stripe PI.
+// POST /api/shop/create-payment-intent: validate cart, create Order + Stripe PI.
 export async function POST(request) {
   try {
     const { items, guest, calculationId, taxAmount } = (await request.json()) || {};

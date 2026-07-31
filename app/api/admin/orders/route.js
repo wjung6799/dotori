@@ -4,7 +4,7 @@ import { getAdminUser, forbidden } from '@/lib/auth-helpers';
 
 export const dynamic = 'force-dynamic';
 
-// GET /api/admin/orders — optional ?status= and ?fulfillment= filters
+// GET /api/admin/orders: optional ?status= and ?fulfillment= filters
 export async function GET(request) {
   if (!(await getAdminUser())) return forbidden();
   try {

@@ -3,7 +3,7 @@ import Tutor from '@/lib/models/Tutor';
 
 export const dynamic = 'force-dynamic';
 
-// GET /api/booking/tutors — public list of active tutors.
+// GET /api/booking/tutors: public list of active tutors.
 export async function GET() {
   try {
     await dbConnect();

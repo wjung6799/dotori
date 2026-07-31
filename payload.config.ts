@@ -42,7 +42,7 @@ export default buildConfig({
       admin: { useAsTitle: 'email' },
       fields: [{ name: 'name', type: 'text' }],
     },
-    // Uploadable images/PDFs — the media library staff drop files into. Stored
+    // Uploadable images/PDFs: the media library staff drop files into. Stored
     // in Vercel Blob (see the plugin below), which works on serverless; files
     // are served from public Blob URLs.
     {
@@ -65,7 +65,7 @@ export default buildConfig({
         text('name', ''),
         text('honorific', '', 'Honorific (e.g. "(Mrs. Jung)")'),
         text('role', '', 'Role / title'),
-        { name: 'photo', type: 'upload', relationTo: 'media', label: 'Photo (upload — overrides Photo URL below)' },
+        { name: 'photo', type: 'upload', relationTo: 'media', label: 'Photo (upload; overrides Photo URL below)' },
         text('photoUrl', '', 'Photo URL (fallback path under /public, e.g. /assets/images/…)'),
         text('imgPosition', 'center', 'Photo object-position (CSS, e.g. "center 18%")'),
         text('email', ''),
@@ -152,7 +152,7 @@ export default buildConfig({
             text('title', ''),
             text('duration', '', 'Duration line (optional)'),
             text('scheduleTitle', 'Class Schedule', 'Schedule heading (optional)'),
-            area('schedule', '', 'Schedule lines — one per line, emoji ok (optional)'),
+            area('schedule', '', 'Schedule lines, one per line, emoji ok (optional)'),
             {
               name: 'features',
               type: 'array',
@@ -165,7 +165,7 @@ export default buildConfig({
               label: 'Buttons',
               fields: [
                 text('label', ''),
-                { name: 'file', type: 'upload', relationTo: 'media', label: 'Uploaded file (PDF — overrides the link below)' },
+                { name: 'file', type: 'upload', relationTo: 'media', label: 'Uploaded file (PDF; overrides the link below)' },
                 text('href', '', 'Link or file path fallback (used if no file uploaded)'),
                 { name: 'style', type: 'select', defaultValue: 'primary', options: ['primary', 'secondary'] },
                 { name: 'download', type: 'checkbox', defaultValue: false, label: 'Download file (vs open link)' },
@@ -193,23 +193,23 @@ export default buildConfig({
       label: 'Home Page',
       admin: { description: 'Copy on the landing page.' },
       fields: [
-        text('heroHeading', 'Better grades. Higher scores. Real confidence.'),
-        text('heroSubtitle', 'Personalized language & math — a lesson plan built for each student.'),
-        text('heroSubtitle2', 'Personalized tutoring in Bellevue — a lesson plan built around your child, in small groups.'),
+        area('heroHeading', 'Grow deep, not just fast.\nReal confidence.', 'Hero heading (line breaks are kept)'),
+        text('heroSubtitle', 'Personalized literacy & math, with a lesson plan built for each student.'),
+        text('heroSubtitle2', 'Personalized tutoring in Bellevue. A lesson plan built around your child, in small groups.'),
         text('heroCtaText', 'Book a Free Diagnostic Assessment'),
-        { name: 'heroImage', type: 'upload', relationTo: 'media', label: 'Hero image (optional — falls back to the built-in image)' },
-        area('seasonalBanner', 'Fall enrollment is open — placement tests, AMC, and finals are on the way.', 'Seasonal banner (update each season)'),
-        text('languageTitle', 'Language'),
-        area('languageBody', 'English reading & writing and Korean — warm, small-group instruction that grows readers, writers, and confident bilingual learners.'),
+        { name: 'heroImage', type: 'upload', relationTo: 'media', label: 'Hero image (optional; falls back to the built-in image)' },
+        area('seasonalBanner', 'Fall enrollment is open. Placement tests, AMC, and finals are on the way.', 'Seasonal banner (update each season)'),
+        text('languageTitle', 'Literacy'),
+        area('languageBody', 'English reading & writing and Korean. Warm, small-group instruction that grows readers, writers, and confident bilingual learners.'),
         text('mathTitle', 'Math & Test Prep'),
-        area('mathBody', 'School math, test prep, AMC competition math, physics, and coding — real understanding that shows up in grades and scores.'),
+        area('mathBody', 'School math, test prep, AMC competition math, physics, and coding. Real understanding that shows up in grades and scores.'),
         {
           name: 'trustItems',
           type: 'array',
           label: 'Trust band',
           fields: [text('title', ''), area('body', '')],
           defaultValue: [
-            { title: 'Small groups', body: 'Personal attention in small classes — never a crowded worksheet room.' },
+            { title: 'Small groups', body: 'Personal attention in small classes, never a crowded worksheet room.' },
             { title: 'A plan for each student', body: 'Every child follows their own curriculum with the same instructor.' },
             { title: 'Credentialed teachers', body: 'A National Board Certified educator and a UW-trained STEM instructor.' },
             { title: 'Free diagnostic first', body: 'We show you where your child stands before you commit to anything.' },
@@ -244,9 +244,9 @@ export default buildConfig({
           ],
         },
         text('coreValuesHeading', 'Our Core Values'),
-        { name: 'coreValuesImage', type: 'upload', relationTo: 'media', label: 'Core values image (optional — falls back to the built-in image)' },
+        { name: 'coreValuesImage', type: 'upload', relationTo: 'media', label: 'Core values image (optional; falls back to the built-in image)' },
         text('founderHeading', 'Meet the Founder'),
-        area('founderCtaBody', 'Discover how Dotori can help your child thrive in reading and writing. The best first step is a free diagnostic assessment — we’ll show you exactly where your child stands and build the right plan.'),
+        area('founderCtaBody', 'Discover how Dotori can help your child thrive in reading and writing. The best first step is a free diagnostic assessment. We’ll show you exactly where your child stands and build the right plan.'),
         text('ctaText', 'Book a Free Diagnostic Assessment'),
       ],
     },
@@ -264,11 +264,11 @@ export default buildConfig({
       label: 'Math Page',
       fields: [
         text('heading', 'Math & Test Prep'),
-        area('intro', 'Better grades and higher scores, built on real understanding. Personalized tutoring in small groups, every student on their own plan — with the same instructor every session.'),
+        area('intro', 'Better grades and higher scores, built on real understanding. Personalized tutoring in small groups, every student on their own plan, with the same instructor every session.'),
         text('ctaText', 'Book a Free Diagnostic Assessment'),
         text('notWorksheetHeading', 'Not a worksheet center'),
-        area('notWorksheetBody', 'We don’t hand out packets and walk away. Every student follows their own curriculum, with the same instructor, getting genuine one-on-one minutes inside a small group. The plan is built for your child — after we’ve seen exactly where they stand.'),
-        area('instructorNote', 'Instruction from Won Jung — B.S. Physics (UW), former engineer at Meta, Microsoft & Boeing, 15+ years tutoring, with a 100% record of students placed at top-30 universities.'),
+        area('notWorksheetBody', 'We don’t hand out packets and walk away. Every student follows their own curriculum, with the same instructor, getting genuine one-on-one minutes inside a small group. The plan is built for your child, after we’ve seen exactly where they stand.'),
+        area('instructorNote', 'Instruction from Won Jung: B.S. Physics (UW), former engineer at Meta, Microsoft & Boeing, 15+ years tutoring, with a 100% record of students placed at top-30 universities.'),
         {
           name: 'programs',
           type: 'array',
@@ -314,10 +314,10 @@ export default buildConfig({
           label: 'Key dates',
           fields: [text('label', ''), text('when', '')],
           defaultValue: [
-            { label: 'Placement & HiCap testing', when: 'Fall & winter district windows — we prep on the right timeline' },
+            { label: 'Placement & HiCap testing', when: 'Fall & winter district windows. We prep on the right timeline' },
             { label: 'AMC 10/12', when: 'Early November' },
             { label: 'AMC 8', when: 'January' },
-            { label: 'School finals', when: 'December & June — targeted review before each' },
+            { label: 'School finals', when: 'December & June, with targeted review before each' },
             { label: 'SAT test dates', when: 'Aug, Oct, Nov, Dec, Mar, May, Jun' },
           ],
         },
@@ -340,15 +340,15 @@ export default buildConfig({
       label: 'Diagnostic Page',
       fields: [
         text('heading', 'Book a Free Diagnostic Assessment'),
-        area('intro', 'Every Dotori student starts here. In one short session we show you exactly where your child stands and build the right plan — personalized, in small groups, each on their own path.'),
+        area('intro', 'Every Dotori student starts here. In one short session we show you exactly where your child stands and build the right plan: personalized, in small groups, each on their own path.'),
         {
           name: 'steps',
           type: 'array',
           label: 'How it works',
           fields: [text('n', ''), text('title', ''), area('body', '')],
           defaultValue: [
-            { n: '1', title: '30–45 minute assessment', body: 'Your child works through a short, friendly assessment with one of our teachers — reading and writing, or math, depending on the focus.' },
-            { n: '2', title: 'Parent debrief', body: 'We sit down with you and show exactly where your child stands today — strengths, gaps, and what’s coming next for their grade.' },
+            { n: '1', title: '30–45 minute assessment', body: 'Your child works through a short, friendly assessment with one of our teachers: reading and writing, or math, depending on the focus.' },
+            { n: '2', title: 'Parent debrief', body: 'We sit down with you and show exactly where your child stands today: strengths, gaps, and what’s coming next for their grade.' },
             { n: '3', title: 'A concrete plan', body: 'You leave with a specific plan and a target: what we’d work on, in what order, and how we’d measure progress. No obligation.' },
           ],
         },

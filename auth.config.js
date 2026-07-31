@@ -1,6 +1,6 @@
 import Google from 'next-auth/providers/google';
 
-// Edge-safe Auth.js config — shared by middleware (which runs on the edge) and
+// Edge-safe Auth.js config, shared by middleware (which runs on the edge) and
 // the full Node.js config in auth.js. It must NOT import the MongoDB adapter,
 // bcrypt, or the Credentials provider (those pull in Node-only modules).
 // Google (pure OAuth) is edge-safe, so it lives here.

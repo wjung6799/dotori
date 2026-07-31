@@ -26,7 +26,7 @@ const STATUS_FOR = {
   error: 500,
 };
 
-// POST /api/booking/book — body: { scheduleId, dateKey, studentName, recurring? }
+// POST /api/booking/book. body: { scheduleId, dateKey, studentName, recurring? }
 // When recurring is true and the slot is a weekly one, the family's slot becomes
 // a standing weekly booking: the picked week is booked now, the next few weeks
 // are filled immediately, and the book-recurring cron rolls it forward.

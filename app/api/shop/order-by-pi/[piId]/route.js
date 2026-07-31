@@ -4,7 +4,7 @@ import { publicOrderView } from '@/lib/shop';
 
 export const dynamic = 'force-dynamic';
 
-// GET /api/shop/order-by-pi/:piId — for the order-confirmation page redirect.
+// GET /api/shop/order-by-pi/:piId: for the order-confirmation page redirect.
 export async function GET(request, { params }) {
   try {
     const { piId } = await params;

@@ -1,33 +1,13 @@
-import { getPayload } from 'payload';
-import { convertLexicalToHTML } from '@payloadcms/richtext-lexical/html';
-import config from '@payload-config';
-import ProgramsClient from './ProgramsClient';
+import LiteracyClient from './LiteracyClient';
 
-// Read the editable copy from the CMS (Payload global) at request time, so a
-// staff edit in /cms shows up on refresh. The rich-text intro is converted to an
-// HTML string HERE, on the server, so no Payload/lexical code reaches the client
-// bundle. Falls back to the original hardcoded copy if the CMS is unavailable or
-// the global hasn't been filled in yet.
-export const dynamic = 'force-dynamic';
+export const metadata = {
+  title: 'English Literacy Program in Bellevue | Dotori School',
+  description:
+    'Every student starts with a free diagnostic assessment and is placed by demonstrated literacy into four levels: Sprout, Sapling, Oak, and Great Oak. Phonics, Core Literacy, Book Club, and a publishing Writer’s Workshop, in small groups in Bellevue.',
+};
 
-export default async function ProgramsPage() {
-  let data = null;
-  let introHtml = '';
-  try {
-    const payload = await getPayload({ config });
-    // depth:1 populates the PDF file uploads nested in program cards (ctas/curriculum).
-    data = await payload.findGlobal({ slug: 'programsPage', depth: 1 });
-    if (data?.intro) introHtml = convertLexicalToHTML({ data: data.intro });
-  } catch (err) {
-    console.error('Programs CMS read failed, using fallback copy:', err);
-  }
-
-  return (
-    <ProgramsClient
-      heading={data?.heading || 'English Reading & Writing'}
-      introHtml={introHtml}
-      koreanTabLabel={data?.koreanTabLabel || 'Korean'}
-      programs={data?.programs || []}
-    />
-  );
+// The English Literacy program: diagnostic-based placement, four leveled
+// courses, and the weekly schedule. Copy (EN + KO) lives in LiteracyClient.
+export default function ProgramsPage() {
+  return <LiteracyClient />;
 }

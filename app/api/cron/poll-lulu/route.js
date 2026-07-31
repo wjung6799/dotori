@@ -5,7 +5,7 @@ export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 export const maxDuration = 60;
 
-// GET /api/cron/poll-lulu — invoked hourly by Vercel Cron (see vercel.json).
+// GET /api/cron/poll-lulu: invoked hourly by Vercel Cron (see vercel.json).
 // Replaces the Express setInterval poller. Vercel sends an Authorization bearer
 // equal to CRON_SECRET; we reject anything else so the route isn't public.
 export async function GET(request) {

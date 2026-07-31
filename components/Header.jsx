@@ -5,27 +5,41 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useSession, signOut } from 'next-auth/react';
 
+// Programs dropdown: every program page lives under this one nav tab.
+const PROGRAM_LINKS = [
+  { href: '/programs', label: 'English Literacy' },
+  { href: '/math', label: 'Math & Test Prep' },
+  { href: '/korean', label: 'Korean Language' },
+  { href: '/private-lessons', label: 'Private/Semi-Private Lessons' },
+  { href: '/summer-camp', label: 'Summer Camp' },
+];
+
 const NAV_LINKS = [
   { href: '/', label: 'Home' },
-  { href: '/programs', label: 'Language' },
-  { href: '/math', label: 'Math & Test Prep' },
   { href: '/about', label: 'About' },
   { href: '/team', label: 'Our Team' },
+  { href: '/calendar', label: 'Calendar' },
+  { dropdown: true, label: 'Programs' },
   { href: '/schedule', label: 'Schedule', authOnly: true },
   { href: '/diagnostic', label: 'Book Free Diagnostic', cta: true },
 ];
 
 export default function Header() {
   const [open, setOpen] = useState(false);
+  const [programsOpen, setProgramsOpen] = useState(false);
   const pathname = usePathname();
   const { data: session, status } = useSession();
   const role = session?.user?.role;
-  const close = () => setOpen(false);
+  const close = () => {
+    setOpen(false);
+    setProgramsOpen(false);
+  };
 
   // Hide auth-only links (e.g. Schedule, the family booking page) until signed in.
   const navLinks = NAV_LINKS.filter((l) => !l.authOnly || status === 'authenticated');
+  const onProgramPage = PROGRAM_LINKS.some((l) => l.href === pathname);
 
-  // Auth links — rendered both inside the mobile dropdown and in the
+  // Auth links, rendered both inside the mobile dropdown and in the
   // right-hand desktop zone (CSS shows the right one per breakpoint).
   const authLinks =
     status === 'authenticated' ? (
@@ -110,23 +124,53 @@ export default function Header() {
 
         {/* Center: main links (auth links append here for the mobile dropdown) */}
         <ul className={`nav-links${open ? ' nav-open' : ''}`}>
-          {navLinks.map((link) => (
-            <li key={link.href}>
-              <Link
-                href={link.href}
-                className={
-                  link.cta
-                    ? `login-btn${pathname === link.href ? ' active' : ''}`
-                    : pathname === link.href
-                      ? 'active'
-                      : undefined
-                }
-                onClick={close}
+          {navLinks.map((link) =>
+            link.dropdown ? (
+              <li
+                key="programs"
+                className={`has-dropdown${programsOpen ? ' submenu-open' : ''}`}
               >
-                {link.label}
-              </Link>
-            </li>
-          ))}
+                <button
+                  type="button"
+                  className={`dropdown-toggle${onProgramPage ? ' active' : ''}`}
+                  aria-haspopup="true"
+                  aria-expanded={programsOpen}
+                  onClick={() => setProgramsOpen((v) => !v)}
+                >
+                  {link.label} <span aria-hidden="true">▾</span>
+                </button>
+                <ul className="dropdown-menu">
+                  {PROGRAM_LINKS.map((l) => (
+                    <li key={l.href}>
+                      <Link
+                        href={l.href}
+                        className={pathname === l.href ? 'active' : undefined}
+                        onClick={close}
+                      >
+                        {l.label}
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              </li>
+            ) : (
+              <li key={link.href}>
+                <Link
+                  href={link.href}
+                  className={
+                    link.cta
+                      ? `login-btn${pathname === link.href ? ' active' : ''}`
+                      : pathname === link.href
+                        ? 'active'
+                        : undefined
+                  }
+                  onClick={close}
+                >
+                  {link.label}
+                </Link>
+              </li>
+            ),
+          )}
           {authLinks}
         </ul>
 

@@ -6,7 +6,7 @@ import { deleteSeries } from '@/lib/schedule-admin';
 
 export const dynamic = 'force-dynamic';
 
-// DELETE /api/tutor/schedules/:id — delete one of the tutor's own series.
+// DELETE /api/tutor/schedules/:id: delete one of the tutor's own series.
 export async function DELETE(request, { params }) {
   const { user, tutor } = await getMyTutor();
   if (!user) return unauthorized();

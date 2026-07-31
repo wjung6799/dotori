@@ -6,7 +6,7 @@ import { getAdminUser, forbidden } from '@/lib/auth-helpers';
 
 export const dynamic = 'force-dynamic';
 
-// GET /api/admin/schedules?tutorId=... — availability + cancellation exceptions
+// GET /api/admin/schedules?tutorId=...: availability + cancellation exceptions
 export async function GET(request) {
   if (!(await getAdminUser())) return forbidden();
   try {
@@ -23,7 +23,7 @@ export async function GET(request) {
   }
 }
 
-// POST /api/admin/schedules — create a recurring (or one-off) availability slot
+// POST /api/admin/schedules: create a recurring (or one-off) availability slot
 export async function POST(request) {
   if (!(await getAdminUser())) return forbidden();
   try {

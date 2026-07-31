@@ -61,7 +61,7 @@ export default function SignupPage() {
         return;
       }
 
-      // Account created — sign them in immediately.
+      // Account created; sign them in immediately.
       const signInRes = await signIn('credentials', { email, password, redirect: false });
       setSubmitting(false);
       if (signInRes?.error) {

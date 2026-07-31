@@ -2,7 +2,7 @@ import Link from 'next/link';
 import { getGlobal, getTeam } from '@/lib/cms';
 
 // Real parent testimonials go here (e.g. pulled from the Google Business Profile).
-// Leave empty and the section stays hidden — we never ship placeholder quotes.
+// Leave empty and the section stays hidden; we never ship placeholder quotes.
 // Shape: { quote, name, detail }  e.g. { quote: '…', name: 'Grace K.', detail: '★★★★★ · Google' }
 const TESTIMONIALS = [];
 
@@ -23,7 +23,7 @@ export default async function HomePage() {
             '@type': 'EducationalOrganization',
             name: 'Dotori School',
             description:
-              'Personalized language & math tutoring in Bellevue — a lesson plan built for each student.',
+              'Personalized literacy & math tutoring in Bellevue, with a lesson plan built for each student.',
             url: 'https://dotorischool.org',
             email: 'info@dotorischool.org',
             address: {
@@ -50,7 +50,7 @@ export default async function HomePage() {
         }}
       >
         <div className="container" style={{ maxWidth: 860 }}>
-          <h1 style={{ fontSize: '3rem', fontWeight: 800, marginBottom: '1rem', lineHeight: 1.15, color: '#4a3c28' }}>
+          <h1 style={{ fontSize: '3rem', fontWeight: 800, marginBottom: '1rem', lineHeight: 1.15, color: '#4a3c28', whiteSpace: 'pre-line' }}>
             {c.heroHeading}
           </h1>
           <p style={{ fontSize: '1.35rem', marginBottom: '0.5rem', fontWeight: 600 }}>
@@ -68,24 +68,16 @@ export default async function HomePage() {
           </Link>
           <img
             src={c.heroImage?.url || '/assets/images/hero-image.png'}
-            alt="Dotori School — personalized language and math tutoring in Bellevue"
+            alt="Dotori School, personalized literacy and math tutoring in Bellevue"
             style={{ display: 'block', maxWidth: '68%', height: 'auto', borderRadius: 12, margin: '2.5rem auto 0' }}
           />
         </div>
       </section>
 
-      {/* Seasonal banner — update the copy each season */}
-      <div style={{ background: 'linear-gradient(135deg, #8b7355, #a0856b)', color: '#fff', textAlign: 'center', padding: '0.85rem 1rem', fontWeight: 600 }}>
-        {c.seasonalBanner}{' '}
-        <Link href="/diagnostic" style={{ color: '#fff', textDecoration: 'underline' }}>
-          Book your free diagnostic →
-        </Link>
-      </div>
-
       {/* Two doors */}
       <section className="container" style={{ margin: '56px auto 40px' }}>
         <div style={{ display: 'grid', gap: '2rem', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))' }}>
-          {/* Language */}
+          {/* Literacy */}
           <div style={doorCard()}>
             <div style={{ fontSize: '2rem', marginBottom: '0.5rem' }}>📖</div>
             <h2 style={{ color: '#4a3c28', marginBottom: '0.5rem' }}>{c.languageTitle}</h2>
@@ -93,7 +85,7 @@ export default async function HomePage() {
               {c.languageBody}
             </p>
             <Link href="/programs" className="btn btn-secondary" style={{ display: 'inline-block', flex: 'none', padding: '0.7rem 1.75rem' }}>
-              Explore Language →
+              Explore Literacy →
             </Link>
           </div>
           {/* Math & Test Prep */}
@@ -142,7 +134,7 @@ export default async function HomePage() {
         </p>
       </section>
 
-      {/* Testimonials — only renders once real quotes are added above */}
+      {/* Testimonials (only renders once real quotes are added above) */}
       {TESTIMONIALS.length > 0 && (
         <section className="container" style={{ maxWidth: 1000, margin: '56px auto' }}>
           <h2 style={{ textAlign: 'center', color: '#4a3c28', marginBottom: '2rem' }}>What families say</h2>
@@ -166,12 +158,9 @@ export default async function HomePage() {
       <section style={{ background: 'linear-gradient(135deg, #f8f6f3 0%, #efe7dd 100%)', padding: '56px 0', textAlign: 'center', marginTop: 40 }}>
         <div className="container" style={{ maxWidth: 720 }}>
           <h2 style={{ color: '#4a3c28', marginBottom: '0.75rem' }}>{c.closingHeading}</h2>
-          <p style={{ color: '#6b5b47', fontSize: '1.1rem', marginBottom: '1.75rem' }}>
+          <p style={{ color: '#6b5b47', fontSize: '1.1rem' }}>
             {c.closingBody}
           </p>
-          <Link href="/diagnostic" className="btn btn-primary" style={{ padding: '1rem 2.5rem', fontSize: '1.15rem', flex: 'none', display: 'inline-block' }}>
-            {c.closingCtaText}
-          </Link>
         </div>
       </section>
     </>

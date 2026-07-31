@@ -55,7 +55,7 @@ export default function DiagnosticRequest({ defaultTrack = '' }) {
         <div style={{ fontSize: '2.4rem', marginBottom: '0.5rem' }}>🎉</div>
         <h2 style={{ color: BROWN, marginBottom: '0.75rem' }}>Request received!</h2>
         <p style={{ color: '#555', fontSize: '1.05rem' }}>
-          Thanks, {form.parentName.trim().split(' ')[0] || 'there'} — we’ll reach out within one business day to
+          Thanks, {form.parentName.trim().split(' ')[0] || 'there'}! We’ll reach out within one business day to
           set up {form.studentName.trim() ? `${form.studentName.trim()}’s` : 'your child’s'} free diagnostic.
         </p>
         <p style={{ color: '#555', marginTop: '0.75rem' }}>
@@ -92,7 +92,7 @@ export default function DiagnosticRequest({ defaultTrack = '' }) {
           <select value={form.track} onChange={set('track')} style={inp()}>
             <option value="">Not sure yet</option>
             <option value="math">Math &amp; Test Prep</option>
-            <option value="language">Language (English &amp; Korean)</option>
+            <option value="language">Literacy (English &amp; Korean)</option>
             <option value="both">Both</option>
           </select>
         </Field>

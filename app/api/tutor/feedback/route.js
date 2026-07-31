@@ -6,7 +6,7 @@ import { unauthorized } from '@/lib/auth-helpers';
 
 export const dynamic = 'force-dynamic';
 
-// GET /api/tutor/feedback — recent feedback (for the tutor's review list).
+// GET /api/tutor/feedback: recent feedback (for the tutor's review list).
 export async function GET() {
   const { user } = await getMyTutor();
   if (!user) return unauthorized();
@@ -15,7 +15,7 @@ export async function GET() {
   return Response.json({ feedback });
 }
 
-// POST /api/tutor/feedback — body: { userId, studentName, text }
+// POST /api/tutor/feedback, body: { userId, studentName, text }
 export async function POST(request) {
   const { user: author, tutor } = await getMyTutor();
   if (!author) return unauthorized();

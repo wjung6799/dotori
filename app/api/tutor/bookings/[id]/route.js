@@ -9,7 +9,7 @@ import { getMyTutor, notTutor } from '@/lib/tutor-helpers';
 
 export const dynamic = 'force-dynamic';
 
-// DELETE /api/tutor/bookings/:id — the tutor cancels a session on their own
+// DELETE /api/tutor/bookings/:id: the tutor cancels a session on their own
 // schedule, or undoes one they logged after the fact ('completed'). Because the
 // tutor (not the family) is cancelling, any consumed session credit is always
 // refunded. If the session belonged to a standing weekly booking, the date is

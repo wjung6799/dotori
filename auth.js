@@ -7,7 +7,7 @@ import { ObjectId } from 'mongodb';
 import clientPromise from '@/lib/mongodb';
 import authConfig from '@/auth.config';
 
-// Full Auth.js config (Node.js runtime — used by the /api/auth/[...nextauth]
+// Full Auth.js config (Node.js runtime, used by the /api/auth/[...nextauth]
 // route handler). Extends the edge-safe base with the MongoDB adapter and the
 // email/password Credentials provider. JWT session strategy is required so the
 // Credentials provider works alongside the adapter.

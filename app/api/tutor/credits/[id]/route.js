@@ -5,7 +5,7 @@ import { getMyTutor, notTutor } from '@/lib/tutor-helpers';
 
 export const dynamic = 'force-dynamic';
 
-// DELETE /api/tutor/credits/:id — remove a session grant scoped to this tutor.
+// DELETE /api/tutor/credits/:id: remove a session grant scoped to this tutor.
 export async function DELETE(request, { params }) {
   const { user, tutor } = await getMyTutor();
   if (!user) return unauthorized();

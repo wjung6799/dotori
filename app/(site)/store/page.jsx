@@ -49,7 +49,7 @@ export default function StorePage() {
       <main className="store-wrap">
         <img src="/assets/images/logo.png" alt="Dotori School Logo" className="store-logo" />
         <h1>Dotori School Store</h1>
-        <p className="tagline">Books, workbooks &amp; merchandise — all in one place.</p>
+        <p className="tagline">Books, workbooks &amp; merchandise, all in one place.</p>
 
         <div className="store-links">
           {/* Primary: Amazon author store */}

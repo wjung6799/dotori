@@ -4,7 +4,7 @@ import { getGlobal } from '@/lib/cms';
 export const metadata = {
   title: 'Book a Free Diagnostic Assessment | Dotori School Bellevue',
   description:
-    'Book a free 30–45 minute diagnostic assessment at Dotori School in Bellevue. We show you exactly where your child stands and build a concrete plan — personalized, in small groups, no obligation.',
+    'Book a free 30–45 minute diagnostic assessment at Dotori School in Bellevue. We show you exactly where your child stands and build a concrete plan. Personalized, in small groups, no obligation.',
 };
 
 export const dynamic = 'force-dynamic';
@@ -37,8 +37,8 @@ export default async function DiagnosticPage() {
 
         <p style={{ textAlign: 'center', color: '#9b8b77', margin: '1.5rem auto 3rem', maxWidth: 560 }}>
           Prefer to talk first? Email{' '}
-          <a href="mailto:info@dotorischool.org" style={{ color: '#8b7355', fontWeight: 600 }}>info@dotorischool.org</a>{' '}
-          — Dotori School, 12721 NE Bel-Red Rd #220, Bellevue.
+          <a href="mailto:info@dotorischool.org" style={{ color: '#8b7355', fontWeight: 600 }}>info@dotorischool.org</a>.
+          Dotori School, 12721 NE Bel-Red Rd #220, Bellevue.
         </p>
       </div>
     </main>

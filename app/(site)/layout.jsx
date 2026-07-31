@@ -5,11 +5,11 @@ import Providers from '@/components/Providers';
 
 export const metadata = {
   title: {
-    default: 'Dotori School — Personalized Language & Math Tutoring in Bellevue',
+    default: 'Dotori School | Personalized Literacy & Math Tutoring in Bellevue',
     template: '%s | Dotori School',
   },
   description:
-    'Dotori School offers personalized language & math tutoring in Bellevue — a lesson plan built for each student. English reading & writing, Korean, math, test prep, AMC, physics, and coding. Book a free diagnostic assessment.',
+    'Dotori School offers personalized literacy & math tutoring in Bellevue, with a lesson plan built for each student. English reading & writing, Korean, math, test prep, AMC, physics, and coding. Book a free diagnostic assessment.',
   keywords: [
     'tutoring Bellevue', 'math tutoring Bellevue', 'test prep Bellevue', 'AMC prep Bellevue',
     'personalized tutoring', 'small group tutoring', 'Korean classes Bellevue', 'English reading writing Bellevue',

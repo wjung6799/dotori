@@ -100,18 +100,9 @@ export default async function AboutPage() {
           >
             {founder.aboutNarrative}
           </p>
-          <p style={{ color: '#555', fontSize: '1.05rem', textAlign: 'left', marginBottom: '1.25rem' }}>
+          <p style={{ color: '#555', fontSize: '1.05rem', textAlign: 'left' }}>
             {c.founderCtaBody}
           </p>
-          <div style={{ textAlign: 'center' }}>
-            <a
-              href="/diagnostic"
-              className="btn btn-primary"
-              style={{ display: 'inline-block', flex: 'none', padding: '0.8rem 2rem' }}
-            >
-              {c.ctaText}
-            </a>
-          </div>
         </div>
       </section>
     </>

@@ -2,7 +2,7 @@ import nodemailer from 'nodemailer';
 
 export const dynamic = 'force-dynamic';
 
-// POST /api/contact — contact form submission → email to info@dotorischool.org
+// POST /api/contact: contact form submission → email to info@dotorischool.org
 export async function POST(request) {
   let body;
   try {

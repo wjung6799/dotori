@@ -19,7 +19,7 @@ export async function GET(request, { params }) {
   }
 }
 
-// PUT /api/admin/orders/:id — update tracking, notes, fulfillment status
+// PUT /api/admin/orders/:id: update tracking, notes, fulfillment status
 export async function PUT(request, { params }) {
   if (!(await getAdminUser())) return forbidden();
   try {

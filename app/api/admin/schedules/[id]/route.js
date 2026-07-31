@@ -28,7 +28,7 @@ export async function PUT(request, { params }) {
   }
 }
 
-// DELETE /api/admin/schedules/:id — delete the whole series (refunds future bookings)
+// DELETE /api/admin/schedules/:id: delete the whole series (refunds future bookings)
 export async function DELETE(request, { params }) {
   if (!(await getAdminUser())) return forbidden();
   try {

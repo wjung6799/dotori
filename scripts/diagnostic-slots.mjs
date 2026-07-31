@@ -55,7 +55,7 @@ if (clear) {
 }
 
 if (!seed) {
-  console.log('\n(dry run — pass  --seed --tutor=<slug|id>  to create the 2pm/5:30pm/8pm weekday window)');
+  console.log('\n(dry run. Pass  --seed --tutor=<slug|id>  to create the 2pm/5:30pm/8pm weekday window)');
   await mongoose.disconnect();
   process.exit(0);
 }
@@ -64,7 +64,7 @@ let tutor;
 if (tutorArg) tutor = tutors.find((t) => t.slug === tutorArg || String(t._id) === tutorArg);
 else tutor = tutors.find((t) => t.active) || tutors[0];
 if (!tutor) {
-  console.error('\nNo tutor found — create a tutor in the admin first.');
+  console.error('\nNo tutor found. Create a tutor in the admin first.');
   await mongoose.disconnect();
   process.exit(1);
 }

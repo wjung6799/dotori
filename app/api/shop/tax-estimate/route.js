@@ -2,7 +2,7 @@ import { getStripe } from '@/lib/stripe';
 
 export const dynamic = 'force-dynamic';
 
-// POST /api/shop/tax-estimate — Stripe Tax calculation for the cart + address.
+// POST /api/shop/tax-estimate: Stripe Tax calculation for the cart + address.
 export async function POST(request) {
   try {
     const { items, address, shippingCost } = (await request.json()) || {};

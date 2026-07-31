@@ -12,7 +12,7 @@ import { sendBookingConfirmation, sendRecurringUpdate } from '@/lib/mailer';
 
 export const dynamic = 'force-dynamic';
 
-// GET /api/tutor/bookings — the signed-in tutor's own upcoming bookings, or
+// GET /api/tutor/bookings: the signed-in tutor's own upcoming bookings, or
 // with ?past=1 their recent past ones (newest first) so a session just logged
 // after the fact can be checked and undone.
 export async function GET(request) {
@@ -36,7 +36,7 @@ export async function GET(request) {
 
 const STATUS_FOR = { schedule_unavailable: 404, not_offered: 400, past: 400, full: 409, duplicate: 409, error: 500 };
 
-// POST /api/tutor/bookings — the tutor books a family's student into one of the
+// POST /api/tutor/bookings: the tutor books a family's student into one of the
 // tutor's OWN slots. Draws down a session credit if the family has one; books
 // anyway at zero balance (payment is settled offline). Body:
 // { userId, studentName, scheduleId, dateKey, recurring?, logPast? }.

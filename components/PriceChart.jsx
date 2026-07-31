@@ -1,7 +1,7 @@
 import { SEMI_PRIVATE_PACKAGES, PRIVATE_RATE, PRICING_FAQ } from '@/lib/pricing';
 
 // Presentational pricing chart, decoupled from any page. Not on a public route
-// today — reuse it in the family dashboard payment flow (build the interactive
+// today; reuse it in the family dashboard payment flow (build the interactive
 // "choose a plan" UI there from lib/pricing.js's numeric fields). Pure and
 // server-compatible: no client state, no CTAs baked in.
 export default function PriceChart({ showPrivate = true, showFaq = true }) {

@@ -6,7 +6,7 @@ import { cancelOccurrence } from '@/lib/schedule-admin';
 
 export const dynamic = 'force-dynamic';
 
-// POST /api/tutor/schedules/:id/cancel-instance — body: { dateKey, reason? }
+// POST /api/tutor/schedules/:id/cancel-instance, body: { dateKey, reason? }
 export async function POST(request, { params }) {
   const { user, tutor } = await getMyTutor();
   if (!user) return unauthorized();

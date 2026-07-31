@@ -697,7 +697,7 @@ export default function AdminPage() {
                           </strong>
                         </td>
                         <td>{f.email}</td>
-                        <td>{f.phone || '—'}</td>
+                        <td>{f.phone || '–'}</td>
                         <td>
                           {(f.students || []).length
                             ? (f.students || []).map((s, i) => (
@@ -707,7 +707,7 @@ export default function AdminPage() {
                                   {i < (f.students || []).length - 1 ? <br /> : null}
                                 </span>
                               ))
-                            : '—'}
+                            : '–'}
                         </td>
                         <td style={{ textAlign: 'center' }}>{f.enrollmentCount}</td>
                         <td>{new Date(f.createdAt).toLocaleDateString()}</td>
@@ -796,7 +796,7 @@ export default function AdminPage() {
                           </td>
                           <td>{e.studentName}</td>
                           <td>
-                            {c.name || '—'}
+                            {c.name || '–'}
                             <br />
                             <span style={{ color: '#aaa', fontSize: '0.78rem' }}>
                               {c.schedule || ''}
@@ -1037,7 +1037,7 @@ export default function AdminPage() {
                         </td>
                         <td>{c.category}</td>
                         <td>{quarterLabel[c.quarter] || c.quarter}</td>
-                        <td>{c.schedule || '—'}</td>
+                        <td>{c.schedule || '–'}</td>
                         <td>${c.price}</td>
                         <td>
                           {c.enrolledCount}/{c.capacity}
@@ -1267,7 +1267,7 @@ export default function AdminPage() {
                           </td>
                           <td>{r.studentName}</td>
                           <td>{quarterLabel[r.quarter] || r.quarter}</td>
-                          <td>{r.classId ? r.classId.name : '—'}</td>
+                          <td>{r.classId ? r.classId.name : '–'}</td>
                           <td style={{ fontSize: '0.82rem' }}>
                             {new Date(r.uploadedAt).toLocaleDateString()}
                           </td>
@@ -1709,7 +1709,7 @@ export default function AdminPage() {
                                 {o.trackingNumber}
                               </a>
                             ) : (
-                              '—'
+                              '–'
                             )}
                           </td>
                           <td>
@@ -1843,7 +1843,7 @@ export default function AdminPage() {
                   value={orderEdit.status}
                   onChange={(e) => setOrderEdit({ ...orderEdit, status: e.target.value })}
                 >
-                  <option value="">— no change —</option>
+                  <option value="">(no change)</option>
                   <option value="unfulfilled">Unfulfilled</option>
                   <option value="partial">In Production</option>
                   <option value="fulfilled">Fulfilled</option>

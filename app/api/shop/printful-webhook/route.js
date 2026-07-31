@@ -6,7 +6,7 @@ import { sendShippingNotification } from '@/lib/mailer';
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
-// POST /api/shop/printful-webhook — Printful package_shipped notifications.
+// POST /api/shop/printful-webhook: Printful package_shipped notifications.
 export async function POST(request) {
   try {
     const signature = request.headers.get('x-printful-signature');

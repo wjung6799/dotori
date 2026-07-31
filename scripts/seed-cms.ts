@@ -19,9 +19,9 @@ const intro = {
       {
         type: 'paragraph', format: '', indent: 0, version: 1, direction: 'ltr',
         children: [
-          plain('Dotori’s Language track is built around '),
+          plain('Dotori’s Literacy track is built around '),
           bold('English reading and writing'),
-          plain(' — strong literacy is the heart of everything we do, from early readers to confident writers. For families who also want to keep the Korean language alive, we offer '),
+          plain('. Strong literacy is the heart of everything we do, from early readers to confident writers. For families who also want to keep the Korean language alive, we offer '),
           bold('Korean classes on the side'),
           plain('. Every class is small-group, with a personalized lesson plan for each student. This copy is now managed in the CMS.'),
         ],

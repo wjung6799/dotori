@@ -11,7 +11,7 @@ export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 export const maxDuration = 60;
 
-// GET /api/cron/book-recurring — invoked daily by Vercel Cron (see vercel.json).
+// GET /api/cron/book-recurring: invoked daily by Vercel Cron (see vercel.json).
 // Rolls every active standing weekly booking forward: books newly-in-horizon
 // weeks, skips weeks that are full/not offered, and pauses a series when the
 // family runs out of sessions. Families get a heads-up email only when there's

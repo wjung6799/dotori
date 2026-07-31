@@ -6,7 +6,7 @@ import { getMyTutor, notTutor } from '@/lib/tutor-helpers';
 
 export const dynamic = 'force-dynamic';
 
-// GET /api/tutor/credits — session grants scoped to this tutor.
+// GET /api/tutor/credits: session grants scoped to this tutor.
 export async function GET() {
   const { user, tutor } = await getMyTutor();
   if (!user) return unauthorized();
@@ -20,7 +20,7 @@ export async function GET() {
   return Response.json({ credits });
 }
 
-// POST /api/tutor/credits — grant N sessions to a family, scoped to this tutor.
+// POST /api/tutor/credits: grant N sessions to a family, scoped to this tutor.
 export async function POST(request) {
   const { user, tutor } = await getMyTutor();
   if (!user) return unauthorized();

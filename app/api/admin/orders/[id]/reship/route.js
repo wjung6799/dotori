@@ -5,7 +5,7 @@ import { getAdminUser, forbidden } from '@/lib/auth-helpers';
 
 export const dynamic = 'force-dynamic';
 
-// POST /api/admin/orders/:id/reship — re-trigger Lulu fulfillment.
+// POST /api/admin/orders/:id/reship: re-trigger Lulu fulfillment.
 // (Printful re-ship is still done manually in the Printful dashboard.)
 export async function POST(request, { params }) {
   if (!(await getAdminUser())) return forbidden();

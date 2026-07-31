@@ -6,7 +6,7 @@ import { getCurrentUser, unauthorized } from '@/lib/auth-helpers';
 
 export const dynamic = 'force-dynamic';
 
-// POST /api/classes/:id/enroll — create pending enrollment + Stripe PaymentIntent.
+// POST /api/classes/:id/enroll: create pending enrollment + Stripe PaymentIntent.
 export async function POST(request, { params }) {
   const user = await getCurrentUser();
   if (!user) return unauthorized();

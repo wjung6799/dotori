@@ -307,7 +307,7 @@ function SessionsTab() {
         <label style={lbl()}>Sessions to add</label>
         <input type="number" min="1" value={sessions} onChange={(e) => setSessions(e.target.value)} style={inp()} required />
 
-        <label style={lbl()}>Tutor (optional — leave blank for any tutor)</label>
+        <label style={lbl()}>Tutor (optional; leave blank for any tutor)</label>
         <select value={tutorId} onChange={(e) => setTutorId(e.target.value)} style={inp()}>
           <option value="">Any tutor</option>
           {tutors.map((t) => <option key={t._id} value={t._id}>{t.name}</option>)}

@@ -6,7 +6,7 @@ import { getAdminUser, forbidden } from '@/lib/auth-helpers';
 
 export const dynamic = 'force-dynamic';
 
-// PUT /api/admin/enrollments/:id — update payment status, price, or notes
+// PUT /api/admin/enrollments/:id: update payment status, price, or notes
 export async function PUT(request, { params }) {
   if (!(await getAdminUser())) return forbidden();
 

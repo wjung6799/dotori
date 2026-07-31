@@ -1,7 +1,7 @@
 import bcrypt from 'bcryptjs';
 import clientPromise from '@/lib/mongodb';
 
-// POST /api/register — create an email/password user, then the client signs them
+// POST /api/register: create an email/password user, then the client signs them
 // in via the Credentials provider. (Filesystem route; takes precedence over the
 // /api/* proxy rewrite, so this is handled by Next, not the Express backend.)
 export async function POST(request) {

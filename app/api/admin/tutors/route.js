@@ -4,7 +4,7 @@ import { getAdminUser, forbidden } from '@/lib/auth-helpers';
 
 export const dynamic = 'force-dynamic';
 
-// GET /api/admin/tutors — all tutors (active + inactive)
+// GET /api/admin/tutors: all tutors (active + inactive)
 export async function GET() {
   if (!(await getAdminUser())) return forbidden();
   try {

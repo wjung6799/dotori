@@ -5,7 +5,7 @@ import { getMyTutor } from '@/lib/tutor-helpers';
 
 export const dynamic = 'force-dynamic';
 
-// GET /api/tutor/me — the signed-in tutor's profile + their schedules/exceptions.
+// GET /api/tutor/me: the signed-in tutor's profile + their schedules/exceptions.
 export async function GET() {
   if (!(await getTutorOrAdmin())) return unauthorized();
   const { tutor } = await getMyTutor();

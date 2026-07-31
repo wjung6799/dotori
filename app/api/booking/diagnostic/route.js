@@ -26,9 +26,9 @@ const STATUS_FOR = {
   error: 500,
 };
 
-const TRACK_LABEL = { math: 'Math & Test Prep', language: 'Language', both: 'Both (Language & Math)' };
+const TRACK_LABEL = { math: 'Math & Test Prep', language: 'Literacy', both: 'Both (Literacy & Math)' };
 
-// POST /api/booking/diagnostic — PUBLIC, no auth. Books a free diagnostic
+// POST /api/booking/diagnostic: PUBLIC, no auth. Books a free diagnostic
 // assessment into a diagnostic-kind slot, creating a shell family account from
 // the parent's contact details. Never touches session credits or paid slots.
 export async function POST(request) {
@@ -84,7 +84,7 @@ export async function POST(request) {
 
     const schedule = await TutorSchedule.findById(scheduleId);
     // Critical guard: only an active diagnostic-kind slot on a matching date can be
-    // booked here — so a paid scheduleId can never be claimed for free.
+    // booked here, so a paid scheduleId can never be claimed for free.
     if (!schedule || !schedule.active || schedule.kind !== 'diagnostic' || !scheduleMatchesDate(schedule, dateKey)) {
       return Response.json({ error: 'That time is no longer available.' }, { status: 404 });
     }
@@ -102,7 +102,7 @@ export async function POST(request) {
     }
 
     // Find or create a shell family account. We never mutate an EXISTING account
-    // from this unauthenticated route (the email isn't verified here) — we only
+    // from this unauthenticated route (the email isn't verified here); we only
     // populate a brand-new shell row.
     let user = await User.findOne({ email });
     if (!user) {
@@ -134,7 +134,7 @@ export async function POST(request) {
     });
     if (pending) {
       return Response.json(
-        { error: 'You already have a diagnostic scheduled — email us if you need to reschedule.' },
+        { error: 'You already have a diagnostic scheduled. Email us if you need to reschedule.' },
         { status: 409 },
       );
     }

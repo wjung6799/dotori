@@ -272,10 +272,10 @@ function CreateModal({ creating, onClose, onSubmit }) {
   const [busy, setBusy] = useState(false);
 
   const options = [
-    ['weekly', `Weekly — every ${DOW[creating.dow]}`],
+    ['weekly', `Weekly, every ${DOW[creating.dow]}`],
     ['weekday', 'Every weekday (Mon–Fri)'],
     ['daily', 'Every day'],
-    ['monthly', `Monthly — on the ${ordinal(dom)}`],
+    ['monthly', `Monthly, on the ${ordinal(dom)}`],
     ['oneoff', 'Just this date (one-off)'],
   ];
 
@@ -325,7 +325,7 @@ function CreateModal({ creating, onClose, onSubmit }) {
         >
           <input type="checkbox" checked={diagnostic} onChange={(e) => setDiagnostic(e.target.checked)} style={{ marginTop: 3 }} />
           <span style={{ fontSize: '0.82rem', color: BROWN }}>
-            <strong>Free diagnostic slot</strong> — bookable from the public /diagnostic page without an
+            <strong>Free diagnostic slot</strong>: bookable from the public /diagnostic page without an
             account, and never charges a session credit. Kept off the paid schedule.
           </span>
         </label>

@@ -8,7 +8,7 @@ import { getAdminUser, forbidden } from '@/lib/auth-helpers';
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
-// POST /api/admin/reports/upload — multipart form with a `pdf` file + fields.
+// POST /api/admin/reports/upload: multipart form with a `pdf` file + fields.
 // Stores the PDF in Vercel Blob (was multer/disk under Express).
 export async function POST(request) {
   if (!(await getAdminUser())) return forbidden();

@@ -28,7 +28,7 @@ export async function PUT(request, { params }) {
   }
 }
 
-// DELETE /api/admin/tutors/:id — also removes the tutor's availability slots.
+// DELETE /api/admin/tutors/:id: also removes the tutor's availability slots.
 export async function DELETE(request, { params }) {
   if (!(await getAdminUser())) return forbidden();
   try {

@@ -6,7 +6,7 @@ import { getAdminUser, forbidden } from '@/lib/auth-helpers';
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
-// DELETE /api/admin/reports/:id — remove the report and its Blob PDF.
+// DELETE /api/admin/reports/:id: remove the report and its Blob PDF.
 export async function DELETE(request, { params }) {
   if (!(await getAdminUser())) return forbidden();
 

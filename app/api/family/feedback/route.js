@@ -4,7 +4,7 @@ import { getCurrentUser, unauthorized } from '@/lib/auth-helpers';
 
 export const dynamic = 'force-dynamic';
 
-// GET /api/family/feedback — feedback written for the signed-in family.
+// GET /api/family/feedback: feedback written for the signed-in family.
 export async function GET() {
   const user = await getCurrentUser();
   if (!user) return unauthorized();

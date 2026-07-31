@@ -2,7 +2,7 @@ import { getAvailableSlots } from '@/lib/booking';
 
 export const dynamic = 'force-dynamic';
 
-// GET /api/booking/slots?tutorId=...&days=28 — public available slots.
+// GET /api/booking/slots?tutorId=...&days=28: public available slots.
 export async function GET(request) {
   try {
     const { searchParams } = new URL(request.url);

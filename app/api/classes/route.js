@@ -4,7 +4,7 @@ import Enrollment from '@/lib/models/Enrollment';
 
 export const dynamic = 'force-dynamic';
 
-// GET /api/classes — list active classes, optionally filter by quarter/category.
+// GET /api/classes: list active classes, optionally filter by quarter/category.
 export async function GET(request) {
   try {
     await dbConnect();

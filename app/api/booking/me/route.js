@@ -7,7 +7,7 @@ import { getCurrentUser, unauthorized } from '@/lib/auth-helpers';
 
 export const dynamic = 'force-dynamic';
 
-// GET /api/booking/me — the signed-in family's credit balance + their bookings.
+// GET /api/booking/me: the signed-in family's credit balance + their bookings.
 export async function GET() {
   const user = await getCurrentUser();
   if (!user) return unauthorized();

@@ -4,7 +4,7 @@ import { getMyTutor, notTutor } from '@/lib/tutor-helpers';
 
 export const dynamic = 'force-dynamic';
 
-// GET /api/tutor/past-slots?days=30 — occurrences of the signed-in tutor's own
+// GET /api/tutor/past-slots?days=30: occurrences of the signed-in tutor's own
 // slots over the last `days` days that still have a free seat, so the tutor can
 // log a student who attended without booking. Tutor-only: unlike open slots,
 // past ones are not public.

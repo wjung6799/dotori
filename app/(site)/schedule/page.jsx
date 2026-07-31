@@ -115,7 +115,7 @@ export default function SchedulePage() {
         setMsg({
           type: 'success',
           text: data.recurring
-            ? `Weekly session set — ${data.recurring.booked} upcoming session${data.recurring.booked === 1 ? '' : 's'} booked. We'll keep booking it each week.`
+            ? `Weekly session set: ${data.recurring.booked} upcoming session${data.recurring.booked === 1 ? '' : 's'} booked. We'll keep booking it each week.`
             : 'Session booked!',
         });
         closeModal();
@@ -204,7 +204,7 @@ export default function SchedulePage() {
             >
               {tutors.map((t) => (
                 <option key={t._id} value={t._id}>
-                  {t.name}{t.specialty ? ` — ${t.specialty}` : ''}
+                  {t.name}{t.specialty ? ` · ${t.specialty}` : ''}
                 </option>
               ))}
             </select>
@@ -237,7 +237,7 @@ export default function SchedulePage() {
                 </div>
                 <div style={{ padding: 6, display: 'flex', flexDirection: 'column', gap: 6, minHeight: 64 }}>
                   {slots === null && <div style={emptyCell()}>…</div>}
-                  {slots !== null && daySlots.length === 0 && <div style={emptyCell()}>—</div>}
+                  {slots !== null && daySlots.length === 0 && <div style={emptyCell()}>–</div>}
                   {daySlots.map((s) => (
                     <button
                       key={`${s.scheduleId}-${s.dateKey}`}
@@ -269,7 +269,7 @@ export default function SchedulePage() {
             <input value={studentName} onChange={(e) => setStudentName(e.target.value)} placeholder="Which student?" autoFocus
               style={{ width: '100%', padding: '10px 12px', borderRadius: 10, border: '1.5px solid #e6ddd2', margin: '6px 0 14px', fontSize: '1rem' }} />
 
-            {/* Repeat weekly — progressive disclosure: one-off stays one click */}
+            {/* Repeat weekly (progressive disclosure: one-off stays one click) */}
             <label style={{ display: 'flex', alignItems: 'flex-start', gap: 10, padding: '10px 12px', borderRadius: 10, border: `1.5px solid ${recurring ? ACCENT : '#e6ddd2'}`, background: recurring ? '#fff7f1' : '#fff', cursor: 'pointer', marginBottom: 14 }}>
               <input type="checkbox" checked={recurring} onChange={(e) => setRecurring(e.target.checked)} style={{ marginTop: 3 }} />
               <span>
@@ -284,8 +284,8 @@ export default function SchedulePage() {
               <div style={{ fontSize: '0.85rem', color: me.totalRemaining > 0 ? '#1e6b2e' : '#a3261a', marginBottom: 12 }}>
                 {me.totalRemaining > 0
                   ? recurring
-                    ? `You have ${me.totalRemaining} session${me.totalRemaining === 1 ? '' : 's'} — the next few weeks will be booked now, then one each week until they run out.`
-                    : `You have ${me.totalRemaining} session${me.totalRemaining === 1 ? '' : 's'} — one will be used.`
+                    ? `You have ${me.totalRemaining} session${me.totalRemaining === 1 ? '' : 's'}. The next few weeks will be booked now, then one each week until they run out.`
+                    : `You have ${me.totalRemaining} session${me.totalRemaining === 1 ? '' : 's'}; one will be used.`
                   : 'You have no sessions left to use.'}
               </div>
             )}
@@ -306,7 +306,7 @@ export default function SchedulePage() {
               <div>
                 <div style={{ fontWeight: 600, color: BROWN }}>
                   ↻ Every {DOW_SHORT[r.dayOfWeek]} at {minLabel(r.startMinute)}
-                  {r.status === 'paused' && <span style={{ marginLeft: 8, fontSize: '0.72rem', color: '#a3261a', fontWeight: 700 }}>PAUSED — out of sessions</span>}
+                  {r.status === 'paused' && <span style={{ marginLeft: 8, fontSize: '0.72rem', color: '#a3261a', fontWeight: 700 }}>PAUSED: out of sessions</span>}
                 </div>
                 <div style={{ fontSize: '0.85rem', color: '#9b8b77' }}>
                   {r.studentName} · {r.tutorId?.name || 'Tutor'}{r.subject ? ` · ${r.subject}` : ''}

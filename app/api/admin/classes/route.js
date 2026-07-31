@@ -5,7 +5,7 @@ import { getAdminUser, forbidden } from '@/lib/auth-helpers';
 
 export const dynamic = 'force-dynamic';
 
-// GET /api/admin/classes — all classes (active + inactive) with enrollment counts
+// GET /api/admin/classes: all classes (active + inactive) with enrollment counts
 export async function GET() {
   if (!(await getAdminUser())) return forbidden();
 
