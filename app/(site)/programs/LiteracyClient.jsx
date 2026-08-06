@@ -139,13 +139,13 @@ const T = {
       {
         title: 'Kinder Phonics',
         tag: '준비 과정',
-        body: '파닉스와 디코딩을 집중적으로 지도해 스스로 읽을 수 있는 토대를 만듭니다. 혼자 읽기가 가능해지면 Core Literacy로 올라갑니다.',
+        body: '파닉스와 디코딩을 집중적으로 지도해 스스로 읽을 수 있는 토대를 만듭니다. 혼자 읽기가 가능해지면 맞춤 문해력 수업으로 올라갑니다.',
         materials: '교재 · Heggerty · UFLI · 자체 제작',
         footer: '읽기 이전 단계 · 주 1회 80분',
       },
       {
-        title: 'Core Literacy',
-        tag: '핵심 문해 수업',
+        title: '맞춤 문해력 수업',
+        tag: '기본 과정',
         body: '어휘·독해·작문을 하나의 흐름으로 엮어 배우고 적용합니다. 체계적인 독해 전략과 장르별 글쓰기 훈련으로 탄탄한 문해력을 키웁니다.',
         materials: '교재 · 자체 제작 · Spectrum Reading/Writing',
         footer: '읽기 레벨별 편성 · 주 1회 80분',
@@ -167,7 +167,7 @@ const T = {
       },
     ],
     tableTitle: '단계별 편성 기준',
-    tableHead: ['단계', '참고 학년', '읽기 수준', 'Core Literacy 학습 초점', 'Book Club 대표 도서', '쓰기 목표'],
+    tableHead: ['단계', '참고 학년', '읽기 수준', '맞춤 문해력 학습 초점', 'Book Club 대표 도서', '쓰기 목표'],
     levels: [
       {
         key: 'sprout',
