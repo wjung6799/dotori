@@ -14,7 +14,7 @@ export async function GET() {
   void User;
 
   const credits = await SessionCredit.find({ tutorId: tutor._id })
-    .populate('userId', 'firstName lastName email name')
+    .populate('userId', 'firstName lastName email name students')
     .sort({ createdAt: -1 })
     .limit(200);
   return Response.json({ credits });

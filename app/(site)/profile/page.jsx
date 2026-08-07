@@ -28,6 +28,7 @@ export default function ProfilePage() {
 
   const [reports, setReports] = useState(null);
   const [feedback, setFeedback] = useState(null);
+  const [surveys, setSurveys] = useState([]); // enrollment surveys, one per student
 
   // Account form state
   const [editFirstName, setEditFirstName] = useState('');
@@ -73,6 +74,17 @@ export default function ProfilePage() {
         students: profile?.students ?? [],
         role: profile?.role ?? session.user.role ?? 'user',
       });
+
+      // Which students already have an enrollment survey submitted.
+      try {
+        const res = await fetch('/api/family/survey');
+        if (res.ok && !cancelled) {
+          const data = await res.json();
+          setSurveys(data.surveys || []);
+        }
+      } catch {
+        /* status badges just stay at "not submitted" */
+      }
     }
 
     init();
@@ -272,7 +284,12 @@ export default function ProfilePage() {
         >
           <div>
             <h1 style={{ color: '#6b5b47', margin: 0, fontSize: '1.8rem' }}>
-              {currentUser ? `Hi, ${currentUser.firstName}!` : ''}
+              {currentUser
+                ? `Hi, ${currentUser.firstName}${(() => {
+                    const kids = (currentUser.students || []).map((s) => s.name).filter(Boolean).join(', ');
+                    return kids ? ` (${kids})` : '';
+                  })()}!`
+                : ''}
             </h1>
             <p style={{ color: '#aaa', margin: '0.2rem 0 0', fontSize: '0.9rem' }}>
               {currentUser ? currentUser.email : ''}
@@ -548,6 +565,59 @@ export default function ProfilePage() {
               Save Changes
             </button>
           </form>
+
+          {/* New Student Enrollment Forms: one survey per saved student. */}
+          {(currentUser?.students || []).filter((s) => s.name).length > 0 ? (
+            <div style={{ borderTop: '1px solid #eee', marginTop: '2rem', paddingTop: '1.5rem' }}>
+              <h2 style={{ color: '#6b5b47', fontSize: '1.15rem', margin: '0 0 0.4rem' }}>
+                New Student Enrollment Form (신규 학생 등록 신청서)
+              </h2>
+              <p style={{ color: '#9b8b77', fontSize: '0.88rem', margin: '0 0 1rem' }}>
+                Please fill this out once for each student. (학생마다 한 번씩 작성해 주세요.)
+              </p>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem', maxWidth: 480 }}>
+                {(currentUser.students || []).filter((s) => s.name).map((s) => {
+                  const submitted = surveys.some((sv) => sv.studentName === s.name);
+                  return (
+                    <div
+                      key={s.name}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        gap: '0.75rem',
+                        background: '#faf7f3',
+                        borderRadius: 10,
+                        padding: '0.7rem 1rem',
+                      }}
+                    >
+                      <span style={{ color: '#4a3c28', fontWeight: 600, fontSize: '0.95rem' }}>
+                        {s.name}
+                        <span style={{ marginLeft: 8, fontSize: '0.8rem', fontWeight: 700, color: submitted ? '#1e7a40' : '#a3261a' }}>
+                          {submitted ? 'Submitted ✓ (제출 완료)' : 'Not submitted (미제출)'}
+                        </span>
+                      </span>
+                      <a
+                        href={`/profile/enrollment-survey?student=${encodeURIComponent(s.name)}`}
+                        style={{
+                          background: submitted ? '#f5f0eb' : '#e8a87c',
+                          color: submitted ? '#8b7355' : '#fff',
+                          fontWeight: 700,
+                          borderRadius: 8,
+                          padding: '0.45rem 1rem',
+                          fontSize: '0.85rem',
+                          textDecoration: 'none',
+                          whiteSpace: 'nowrap',
+                        }}
+                      >
+                        {submitted ? 'Edit (수정)' : 'Fill out (작성하기)'}
+                      </a>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          ) : null}
         </div>
 
         {/* REPORTS TAB */}

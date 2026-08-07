@@ -17,7 +17,7 @@ export async function GET(request) {
     const filter = {};
     if (searchParams.get('userId')) filter.userId = searchParams.get('userId');
     const credits = await SessionCredit.find(filter)
-      .populate('userId', 'firstName lastName email name')
+      .populate('userId', 'firstName lastName email name students')
       .populate('tutorId', 'name')
       .sort({ createdAt: -1 })
       .limit(200);

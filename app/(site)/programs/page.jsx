@@ -3,7 +3,7 @@ import LiteracyClient from './LiteracyClient';
 export const metadata = {
   title: 'English Literacy Program in Bellevue | Dotori School',
   description:
-    'Every student starts with a free diagnostic assessment and is placed by demonstrated literacy into four levels: Sprout, Sapling, Oak, and Great Oak. Phonics, Core Literacy, Book Club, and a publishing Writer’s Workshop, in small groups in Bellevue.',
+    'Every student starts with a free diagnostic assessment and is placed by demonstrated literacy into four levels: Acorn, Sprout, Sapling, and Oak. Phonics, Core Literacy, Book Club, and a publishing Writer’s Workshop, in small groups in Bellevue.',
 };
 
 // The English Literacy program: diagnostic-based placement, four leveled

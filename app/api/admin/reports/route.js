@@ -15,7 +15,7 @@ export async function GET() {
     void User;
     void Class;
     const reports = await Report.find()
-      .populate('userId', 'firstName lastName email name')
+      .populate('userId', 'firstName lastName email name students')
       .populate('classId', 'name')
       .sort({ uploadedAt: -1 });
     return Response.json({ reports });

@@ -20,7 +20,7 @@ export async function GET(request) {
     if (searchParams.get('status')) filter.paymentStatus = searchParams.get('status');
 
     const enrollments = await Enrollment.find(filter)
-      .populate('userId', 'firstName lastName email phone name')
+      .populate('userId', 'firstName lastName email phone name students')
       .populate('classId', 'name schedule price')
       .sort({ enrolledAt: -1 });
     return Response.json({ enrollments });

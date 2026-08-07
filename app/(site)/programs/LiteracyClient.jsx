@@ -7,11 +7,13 @@ import Link from 'next/link';
 // English/Korean toggle. All copy lives in the T object below (en/ko mirror
 // each other) so the two languages stay in sync.
 
+// Level colors follow the level icons: acorn orange, then greens deepening
+// into oak brown as students grow.
 const LEVEL_COLORS = {
-  sprout: '#d9a83c',
-  sapling: '#9cb356',
-  oak: '#b3622e',
-  greatOak: '#8a352a',
+  acorn: '#E89B3C',
+  sprout: '#8FAF6A',
+  sapling: '#55743F',
+  oak: '#5F4630',
   korean: '#7d9bc1',
   phonics: '#c98a3d',
   workshop: '#a58ec4',
@@ -20,11 +22,84 @@ const LEVEL_COLORS = {
 
 // Cell backgrounds for the placement table's level column.
 const LEVEL_CELL = {
-  sprout: { background: '#d9a83c', color: '#4a3c28' },
-  sapling: { background: '#9cb356', color: '#3d4a1f' },
-  oak: { background: '#b3622e', color: '#fff' },
-  greatOak: { background: '#8a352a', color: '#fff' },
+  acorn: { background: '#E89B3C', color: '#4a3c28' },
+  sprout: { background: '#8FAF6A', color: '#3d4a1f' },
+  sapling: { background: '#55743F', color: '#fff' },
+  oak: { background: '#5F4630', color: '#fff' },
 };
+
+/* ── Level icons (acorn growing into an oak) ── */
+const AcornIcon = ({ size = 18 }) => (
+  <svg viewBox="0 0 64 64" width={size} height={size} aria-hidden="true">
+    <g transform="translate(13.40,9.75) scale(1.550)">
+      <path d="M12 2.6 C12 1 12.7 0.4 13.2 0.2" stroke="#5F4630" strokeWidth="1.7" fill="none" strokeLinecap="round" />
+      <path d="M0.8 8.2 C0.8 4.4 5.8 1.9 12 1.9 C18.2 1.9 23.2 4.4 23.2 8.2 C23.2 9.9 22 10.8 20.4 10.8 L3.6 10.8 C2 10.8 0.8 9.9 0.8 8.2 Z" fill="#7A5C3E" />
+      <path d="M3 11.4 L21 11.4 C21 22.4 17.4 29.4 12 29.4 C6.6 29.4 3 22.4 3 11.4 Z" fill="#E89B3C" />
+      <path d="M7.6 14.6 C6.8 19 7.1 23.2 8.6 26.4" stroke="#F7C784" strokeWidth="1.7" fill="none" strokeLinecap="round" opacity="0.8" />
+    </g>
+  </svg>
+);
+
+const SproutIcon = ({ size = 18 }) => (
+  <svg viewBox="0 0 64 64" width={size} height={size} aria-hidden="true">
+    <path d="M32 44 C32 34 32 26 32 17" stroke="#55743F" strokeWidth="3" fill="none" strokeLinecap="round" />
+    <g transform="translate(31,25) rotate(202)">
+      <path d="M0 0 C5.1 -6.4 12.24 -6.4 17 0 C12.24 6.4 5.1 6.4 0 0 Z" fill="#8FAF6A" />
+    </g>
+    <g transform="translate(33,19) rotate(-22)">
+      <path d="M0 0 C5.7 -7.0 13.68 -7.0 19 0 C13.68 7.0 5.7 7.0 0 0 Z" fill="#55743F" />
+    </g>
+    <g transform="translate(19.40,31.25) scale(1.050)">
+      <path d="M12 2.6 C12 1 12.7 0.4 13.2 0.2" stroke="#5F4630" strokeWidth="1.7" fill="none" strokeLinecap="round" />
+      <path d="M0.8 8.2 C0.8 4.4 5.8 1.9 12 1.9 C18.2 1.9 23.2 4.4 23.2 8.2 C23.2 9.9 22 10.8 20.4 10.8 L3.6 10.8 C2 10.8 0.8 9.9 0.8 8.2 Z" fill="#7A5C3E" />
+      <path d="M3 11.4 L21 11.4 C21 22.4 17.4 29.4 12 29.4 C6.6 29.4 3 22.4 3 11.4 Z" fill="#E89B3C" />
+      <path d="M7.6 14.6 C6.8 19 7.1 23.2 8.6 26.4" stroke="#F7C784" strokeWidth="1.7" fill="none" strokeLinecap="round" opacity="0.8" />
+    </g>
+  </svg>
+);
+
+const SaplingIcon = ({ size = 18 }) => (
+  <svg viewBox="0 0 64 64" width={size} height={size} aria-hidden="true">
+    <path d="M30.6 57 L30.6 30 L33.4 30 L33.4 57 Z" fill="#7A5C3E" />
+    <path d="M32 40 L23.5 33.5" stroke="#7A5C3E" strokeWidth="2.4" strokeLinecap="round" />
+    <path d="M32 36 L40.5 30" stroke="#7A5C3E" strokeWidth="2.4" strokeLinecap="round" />
+    <circle cx="22.5" cy="28" r="8.4" fill="#55743F" />
+    <circle cx="41.5" cy="28" r="8.4" fill="#55743F" />
+    <circle cx="32" cy="15.5" r="8.0" fill="#55743F" />
+    <circle cx="32" cy="22" r="10.8" fill="#8FAF6A" />
+    <circle cx="24.5" cy="24" r="7.6" fill="#8FAF6A" />
+    <circle cx="39.5" cy="24" r="7.6" fill="#8FAF6A" />
+  </svg>
+);
+
+const OakIcon = ({ size = 18 }) => (
+  <svg viewBox="0 0 64 64" width={size} height={size} aria-hidden="true">
+    <path d="M27.2 58 C28.6 50 29.2 43 29.2 33 L34.8 33 C34.8 43 35.4 50 36.8 58 Z" fill="#7A5C3E" />
+    <path d="M32 40 L21 32" stroke="#7A5C3E" strokeWidth="3" strokeLinecap="round" />
+    <path d="M32 37 L43.5 30" stroke="#7A5C3E" strokeWidth="3" strokeLinecap="round" />
+    <circle cx="16.5" cy="27" r="9.4" fill="#55743F" />
+    <circle cx="47.5" cy="27" r="9.4" fill="#55743F" />
+    <circle cx="32" cy="12.5" r="9.6" fill="#55743F" />
+    <circle cx="22" cy="32" r="9.0" fill="#55743F" />
+    <circle cx="42" cy="32" r="9.0" fill="#55743F" />
+    <circle cx="24" cy="22" r="11.0" fill="#8FAF6A" />
+    <circle cx="40" cy="22" r="11.0" fill="#8FAF6A" />
+    <circle cx="32" cy="27" r="12.2" fill="#8FAF6A" />
+    <circle cx="32" cy="16" r="8.6" fill="#8FAF6A" />
+    <g transform="translate(15.70,32.50) scale(0.400)">
+      <path d="M12 2.6 C12 1 12.7 0.4 13.2 0.2" stroke="#5F4630" strokeWidth="1.7" fill="none" strokeLinecap="round" />
+      <path d="M0.8 8.2 C0.8 4.4 5.8 1.9 12 1.9 C18.2 1.9 23.2 4.4 23.2 8.2 C23.2 9.9 22 10.8 20.4 10.8 L3.6 10.8 C2 10.8 0.8 9.9 0.8 8.2 Z" fill="#7A5C3E" />
+      <path d="M3 11.4 L21 11.4 C21 22.4 17.4 29.4 12 29.4 C6.6 29.4 3 22.4 3 11.4 Z" fill="#E89B3C" />
+    </g>
+    <g transform="translate(38.70,33.50) scale(0.400)">
+      <path d="M12 2.6 C12 1 12.7 0.4 13.2 0.2" stroke="#5F4630" strokeWidth="1.7" fill="none" strokeLinecap="round" />
+      <path d="M0.8 8.2 C0.8 4.4 5.8 1.9 12 1.9 C18.2 1.9 23.2 4.4 23.2 8.2 C23.2 9.9 22 10.8 20.4 10.8 L3.6 10.8 C2 10.8 0.8 9.9 0.8 8.2 Z" fill="#7A5C3E" />
+      <path d="M3 11.4 L21 11.4 C21 22.4 17.4 29.4 12 29.4 C6.6 29.4 3 22.4 3 11.4 Z" fill="#E89B3C" />
+    </g>
+  </svg>
+);
+
+const LEVEL_ICONS = { acorn: AcornIcon, sprout: SproutIcon, sapling: SaplingIcon, oak: OakIcon };
 
 const T = {
   en: {
@@ -34,7 +109,7 @@ const T = {
       link: 'complimentary diagnostic assessment',
       after:
         ' of reading and writing. Placement is based on demonstrated literacy rather than grade, and each student is assigned to one of four levels: ',
-      levels: 'Sprout · Sapling · Oak · Great Oak',
+      levels: 'Acorn · Sprout · Sapling · Oak',
       after2: '. Students who are not yet reading independently build decoding skills in ',
       phonics: 'Kinder Phonics',
       after3: ' before moving into the leveled program.',
@@ -66,7 +141,7 @@ const T = {
         tag: 'Publishing Project',
         body: 'Over three terms (36 weeks), students complete a book and publish it as a formal title with an ISBN, credited as a co-author.',
         materials: '',
-        note: 'Oak level and above only',
+        note: 'Sapling level and above only',
         footer: '3-term course · 110 min / week',
       },
     ],
@@ -74,8 +149,8 @@ const T = {
     tableHead: ['Level', 'Grade', 'Reading level', 'Core Literacy focus', 'Book Club anchor titles', 'Writing goal'],
     levels: [
       {
-        key: 'sprout',
-        name: 'Sprout',
+        key: 'acorn',
+        name: 'Acorn',
         grade: 'K–1',
         reading: '100–600L · F&P I–M',
         focus: 'Fluency, main idea & detail, sequence & basic cause–effect',
@@ -83,8 +158,8 @@ const T = {
         writing: 'Full sentences to a paragraph',
       },
       {
-        key: 'sapling',
-        name: 'Sapling',
+        key: 'sprout',
+        name: 'Sprout',
         grade: '2–3',
         reading: '500–900L · F&P N–S',
         focus: 'Inference, text structure, finding evidence, morphology',
@@ -92,8 +167,8 @@ const T = {
         writing: 'Multi-paragraph, citing evidence',
       },
       {
-        key: 'oak',
-        name: 'Oak',
+        key: 'sapling',
+        name: 'Sapling',
         grade: '4–5',
         reading: '800–1150L · F&P T–Y',
         focus: 'Theme, argument, tone, comparing texts',
@@ -101,8 +176,8 @@ const T = {
         writing: 'Thesis essay, addressing counterpoints',
       },
       {
-        key: 'greatOak',
-        name: 'Great Oak',
+        key: 'oak',
+        name: 'Oak',
         grade: '6–8',
         reading: '1050L+ · F&P Z–Z+',
         focus: 'Evaluating evidence, rhetorical analysis, synthesis',
@@ -113,10 +188,10 @@ const T = {
     scheduleTitle: 'Weekly Schedule',
     legendTitle: 'Levels',
     legend: [
-      { key: 'sprout', label: 'Sprout · K–1' },
-      { key: 'sapling', label: 'Sapling · Grades 2–3' },
-      { key: 'oak', label: 'Oak · Grades 4–5' },
-      { key: 'greatOak', label: 'Great Oak · Grades 6–8' },
+      { key: 'acorn', label: 'Acorn · K–1' },
+      { key: 'sprout', label: 'Sprout · Grades 2–3' },
+      { key: 'sapling', label: 'Sapling · Grades 4–5' },
+      { key: 'oak', label: 'Oak · Grades 6–8' },
     ],
     days: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'],
     koreanClass: 'Korean Phonics (Hangeul) Lev.3',
@@ -130,7 +205,7 @@ const T = {
       link: '무료 진단평가',
       after:
         '로 시작합니다. 반은 학년이 아니라 실제 읽기·쓰기 실력을 기준으로 정하며, 진단 결과에 따라 네 단계(',
-      levels: 'Sprout · Sapling · Oak · Great Oak',
+      levels: 'Acorn · Sprout · Sapling · Oak',
       after2: ') 중 한 곳에 배정됩니다. 아직 스스로 읽기 어려운 학생은 ',
       phonics: '킨더 파닉스',
       after3: '에서 기초 해독(decoding) 능력을 다진 뒤 정규 과정으로 올라갑니다.',
@@ -162,7 +237,7 @@ const T = {
         tag: '출판 프로젝트',
         body: '3학기(36주)에 걸쳐 책을 완성해 ISBN이 부여된 정식 도서로 출판합니다. 학생이 공동저자로 이름을 올립니다.',
         materials: '',
-        note: 'Oak 단계 이상만 수강 가능',
+        note: 'Sapling 단계 이상만 수강 가능',
         footer: '3학기 과정 · 주 1회 110분',
       },
     ],
@@ -170,8 +245,8 @@ const T = {
     tableHead: ['단계', '참고 학년', '읽기 수준', '맞춤 문해력 학습 초점', '북클럽 대표 도서', '쓰기 목표'],
     levels: [
       {
-        key: 'sprout',
-        name: 'Sprout',
+        key: 'acorn',
+        name: 'Acorn',
         grade: 'K–1',
         reading: '100–600L · F&P I–M',
         focus: '유창성, 중심생각과 세부, 순서·기초 인과',
@@ -179,8 +254,8 @@ const T = {
         writing: '완전한 문장에서 한 문단으로',
       },
       {
-        key: 'sapling',
-        name: 'Sapling',
+        key: 'sprout',
+        name: 'Sprout',
         grade: '2–3',
         reading: '500–900L · F&P N–S',
         focus: '추론, 텍스트 구조, 근거 찾기, 형태소',
@@ -188,8 +263,8 @@ const T = {
         writing: '다문단 구성, 근거 인용',
       },
       {
-        key: 'oak',
-        name: 'Oak',
+        key: 'sapling',
+        name: 'Sapling',
         grade: '4–5',
         reading: '800–1150L · F&P T–Y',
         focus: '주제, 논증, 어조, 텍스트 간 비교',
@@ -197,8 +272,8 @@ const T = {
         writing: '논지 에세이, 반론 인식',
       },
       {
-        key: 'greatOak',
-        name: 'Great Oak',
+        key: 'oak',
+        name: 'Oak',
         grade: '6–8',
         reading: '1050L+ · F&P Z–Z+',
         focus: '근거 평가, 수사 분석, 여러 자료 종합',
@@ -209,10 +284,10 @@ const T = {
     scheduleTitle: '주간 시간표',
     legendTitle: '단계 안내',
     legend: [
-      { key: 'sprout', label: 'Sprout 새싹 · K–1학년' },
-      { key: 'sapling', label: 'Sapling 묘목 · 2–3학년' },
-      { key: 'oak', label: 'Oak 참나무 · 4–5학년' },
-      { key: 'greatOak', label: 'Great Oak 큰 참나무 · 6–8학년' },
+      { key: 'acorn', label: 'Acorn 도토리 · K–1학년' },
+      { key: 'sprout', label: 'Sprout 새싹 · 2–3학년' },
+      { key: 'sapling', label: 'Sapling 묘목 · 4–5학년' },
+      { key: 'oak', label: 'Oak 참나무 · 6–8학년' },
     ],
     days: ['월', '화', '수', '목', '금', '토'],
     koreanClass: 'Korean Phonics (한글) Lev.3',
@@ -226,13 +301,13 @@ const T = {
 // (t.tutorNote). Index 0 = Monday.
 const WEEK = [
   [
-    { title: 'Core Literacy', level: 'Sprout', grade: 'k1', time: '4:30–5:50', lv: 'sprout' },
-    { title: 'Book Club', level: 'Oak', grade: 'g45', time: '6:00–7:20', lv: 'oak' },
+    { title: 'Core Literacy', level: 'Acorn', grade: 'k1', time: '4:30–5:50', lv: 'acorn' },
+    { title: 'Book Club', level: 'Sapling', grade: 'g45', time: '6:00–7:20', lv: 'sapling' },
     { title: '1:1 Private', tutor: true, time: '7:30–8:30', lv: 'neutral' },
   ],
   [
-    { title: 'Core Literacy', level: 'Sapling', grade: 'g23', time: '4:30–5:50', lv: 'sapling' },
-    { title: 'Core Literacy', level: 'Oak', grade: 'g45', time: '6:00–7:20', lv: 'oak' },
+    { title: 'Core Literacy', level: 'Sprout', grade: 'g23', time: '4:30–5:50', lv: 'sprout' },
+    { title: 'Core Literacy', level: 'Sapling', grade: 'g45', time: '6:00–7:20', lv: 'sapling' },
     { title: '1:1 Private', tutor: true, time: '7:30–8:30', lv: 'neutral' },
   ],
   [
@@ -242,13 +317,13 @@ const WEEK = [
     { title: '1:1 Private', tutor: true, time: '7:30–8:30', lv: 'neutral' },
   ],
   [
-    { title: 'Book Club', level: 'Sapling', grade: 'g23', time: '4:30–5:50', lv: 'sapling' },
-    { title: 'Core Literacy', level: 'Great Oak', grade: 'g68', time: '6:00–7:20', lv: 'greatOak' },
+    { title: 'Book Club', level: 'Sprout', grade: 'g23', time: '4:30–5:50', lv: 'sprout' },
+    { title: 'Core Literacy', level: 'Oak', grade: 'g68', time: '6:00–7:20', lv: 'oak' },
     { title: '1:1 Private', tutor: true, time: '7:30–8:30', lv: 'neutral' },
   ],
   [
-    { title: 'Book Club', level: 'Sprout', grade: 'k1', time: '4:30–5:50', lv: 'sprout' },
-    { title: 'Book Club', level: 'Great Oak', grade: 'g68', time: '6:00–7:20', lv: 'greatOak' },
+    { title: 'Book Club', level: 'Acorn', grade: 'k1', time: '4:30–5:50', lv: 'acorn' },
+    { title: 'Book Club', level: 'Oak', grade: 'g68', time: '6:00–7:20', lv: 'oak' },
     { title: '1:1 Private', tutor: true, time: '7:30–8:30', lv: 'neutral' },
   ],
   [
@@ -394,12 +469,15 @@ export default function LiteracyClient() {
           <h2 className="lit-section-title">{t.scheduleTitle}</h2>
           <div className="lit-legend">
             <strong>{t.legendTitle}</strong>
-            {t.legend.map((l) => (
-              <span key={l.key}>
-                <span className="lit-swatch" style={{ background: LEVEL_COLORS[l.key] }} />
-                {l.label}
-              </span>
-            ))}
+            {t.legend.map((l) => {
+              const Icon = LEVEL_ICONS[l.key];
+              return (
+                <span key={l.key} style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}>
+                  <Icon size={20} />
+                  {l.label}
+                </span>
+              );
+            })}
           </div>
           <div className="lit-week-wrap">
             <div className="lit-week">

@@ -26,7 +26,7 @@ export async function PUT(request, { params }) {
     void User;
     void Class;
     const enrollment = await Enrollment.findByIdAndUpdate(id, update, { new: true })
-      .populate('userId', 'firstName lastName email name')
+      .populate('userId', 'firstName lastName email name students')
       .populate('classId', 'name');
     return Response.json({ ok: true, enrollment });
   } catch (err) {

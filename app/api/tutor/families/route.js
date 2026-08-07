@@ -9,7 +9,7 @@ export async function GET() {
   if (!(await getTutorOrAdmin())) return unauthorized();
   await dbConnect();
   const families = await User.find({ role: 'family' })
-    .select('firstName lastName email name')
+    .select('firstName lastName email name students')
     .sort({ firstName: 1, name: 1 })
     .limit(1000);
   return Response.json({ families });

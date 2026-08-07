@@ -28,7 +28,7 @@ export async function GET(request) {
       ? { tutorId: tutor._id, status: { $in: ['scheduled', 'completed'] }, startAt: { $lt: now } }
       : { tutorId: tutor._id, status: 'scheduled', startAt: { $gte: now } },
   )
-    .populate('userId', 'firstName lastName email name')
+    .populate('userId', 'firstName lastName email name students')
     .sort({ startAt: past ? -1 : 1 })
     .limit(past ? 100 : 500);
   return Response.json({ bookings });

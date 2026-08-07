@@ -275,7 +275,9 @@ function SessionsTab() {
   }, []);
 
   function famName(f) {
-    return [f.firstName, f.lastName].filter(Boolean).join(' ') || f.name || f.email;
+    const base = [f.firstName, f.lastName].filter(Boolean).join(' ') || f.name || f.email;
+    const kids = (f.students || []).map((s) => s.name).filter(Boolean).join(', ');
+    return kids ? `${base} (${kids})` : base;
   }
 
   async function grant(e) {
@@ -343,7 +345,9 @@ function BookingsTab() {
   }, []);
   function famName(u) {
     if (!u) return 'Family';
-    return [u.firstName, u.lastName].filter(Boolean).join(' ') || u.name || u.email;
+    const base = [u.firstName, u.lastName].filter(Boolean).join(' ') || u.name || u.email;
+    const kids = (u.students || []).map((s) => s.name).filter(Boolean).join(', ');
+    return kids ? `${base} (${kids})` : base;
   }
   return (
     <Card>

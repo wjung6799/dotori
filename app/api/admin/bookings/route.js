@@ -20,7 +20,7 @@ export async function GET(request) {
     if (searchParams.get('upcoming')) filter.startAt = { $gte: new Date() };
 
     const bookings = await Booking.find(filter)
-      .populate('userId', 'firstName lastName email name')
+      .populate('userId', 'firstName lastName email name students')
       .populate('tutorId', 'name')
       .sort({ startAt: -1 })
       .limit(500);

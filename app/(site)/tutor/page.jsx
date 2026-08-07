@@ -8,8 +8,13 @@ import AvailabilityCalendar from '@/components/AvailabilityCalendar';
 const BROWN = '#6b5b47';
 const ACCENT = '#e8a87c';
 
-const famName = (f) =>
-  f ? [f.firstName, f.lastName].filter(Boolean).join(' ') || f.name || f.email : 'Family';
+// Family display name, always with the student name(s) attached: "Parent (Student)".
+const famName = (f) => {
+  if (!f) return 'Family';
+  const base = [f.firstName, f.lastName].filter(Boolean).join(' ') || f.name || f.email;
+  const kids = (f.students || []).map((s) => s.name).filter(Boolean).join(', ');
+  return kids ? `${base} (${kids})` : base;
+};
 
 export default function TutorDashboard() {
   const { status } = useSession();
