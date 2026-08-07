@@ -29,6 +29,7 @@ export default function ProfilePage() {
   const [reports, setReports] = useState(null);
   const [feedback, setFeedback] = useState(null);
   const [surveys, setSurveys] = useState([]); // enrollment surveys, one per student
+  const [familyEnrollments, setFamilyEnrollments] = useState([]); // class enrollments per student
 
   // Account form state
   const [editFirstName, setEditFirstName] = useState('');
@@ -84,6 +85,17 @@ export default function ProfilePage() {
         }
       } catch {
         /* status badges just stay at "not submitted" */
+      }
+
+      // Class enrollments (shown per student in the account tab).
+      try {
+        const res = await fetch('/api/family/enrollments');
+        if (res.ok && !cancelled) {
+          const data = await res.json();
+          setFamilyEnrollments(data.enrollments || []);
+        }
+      } catch {
+        /* section just stays hidden */
       }
     }
 
@@ -615,6 +627,50 @@ export default function ProfilePage() {
                     </div>
                   );
                 })}
+              </div>
+            </div>
+          ) : null}
+
+          {/* Class enrollments per student (recorded by the school). */}
+          {familyEnrollments.filter((en) => en.paymentStatus !== 'refunded').length > 0 ? (
+            <div style={{ borderTop: '1px solid #eee', marginTop: '2rem', paddingTop: '1.5rem' }}>
+              <h2 style={{ color: '#6b5b47', fontSize: '1.15rem', margin: '0 0 1rem' }}>
+                Enrolled Classes (수강 중인 수업)
+              </h2>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem', maxWidth: 520 }}>
+                {familyEnrollments
+                  .filter((en) => en.paymentStatus !== 'refunded')
+                  .map((en) => (
+                    <div
+                      key={en._id}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        gap: '0.75rem',
+                        background: '#faf7f3',
+                        borderRadius: 10,
+                        padding: '0.7rem 1rem',
+                      }}
+                    >
+                      <span style={{ color: '#4a3c28', fontSize: '0.95rem' }}>
+                        <strong>{en.studentName}</strong> · {en.classId?.name || 'Class'}
+                        {en.classId?.schedule ? (
+                          <span style={{ color: '#9b8b77' }}> · {en.classId.schedule}</span>
+                        ) : null}
+                      </span>
+                      <span
+                        style={{
+                          fontSize: '0.78rem',
+                          fontWeight: 700,
+                          color: en.paymentStatus === 'paid' ? '#1e7a40' : '#b3622e',
+                          whiteSpace: 'nowrap',
+                        }}
+                      >
+                        {en.paymentStatus === 'paid' ? 'Enrolled ✓' : 'Payment pending'}
+                      </span>
+                    </div>
+                  ))}
               </div>
             </div>
           ) : null}

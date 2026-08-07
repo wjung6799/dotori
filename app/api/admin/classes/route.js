@@ -34,7 +34,7 @@ export async function POST(request) {
 
   try {
     const body = await request.json();
-    const { name, category, quarter, schedule, description, price, capacity } = body || {};
+    const { name, category, quarter, schedule, description, price, capacity, scheduleKey } = body || {};
     if (!name || !category || !quarter || price === undefined) {
       return Response.json(
         { error: 'Name, category, quarter, and price are required.' },
@@ -50,6 +50,7 @@ export async function POST(request) {
       description,
       price: Number(price),
       capacity: capacity || 20,
+      scheduleKey: scheduleKey || '',
     });
     return Response.json({ ok: true, class: cls });
   } catch (err) {

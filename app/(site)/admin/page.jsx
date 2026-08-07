@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
+import { LITERACY_SLOTS } from '@/lib/literacySlots';
 
 const quarterLabel = {
   'fall-2025': 'Fall 2025',
@@ -98,6 +99,7 @@ export default function AdminPage() {
     capacity: '20',
     schedule: '',
     description: '',
+    scheduleKey: '',
   });
   const [classFormMsg, setClassFormMsg] = useState(null); // { type, text }
 
@@ -299,6 +301,7 @@ export default function AdminPage() {
         capacity: classForm.capacity,
         schedule: classForm.schedule,
         description: classForm.description,
+        scheduleKey: classForm.scheduleKey,
       }),
     });
     const data = await res.json();
@@ -312,6 +315,7 @@ export default function AdminPage() {
         capacity: '20',
         schedule: '',
         description: '',
+        scheduleKey: '',
       });
       loadAdminClasses();
       setTimeout(() => setClassFormMsg(null), 3000);
@@ -721,6 +725,7 @@ export default function AdminPage() {
 
           {/* ENROLLMENTS */}
           <div className="tab-panel" style={{ display: tab === 'enrollments' ? 'block' : 'none' }}>
+            <AddEnrollmentForm onAdded={loadEnrollments} />
             <div style={{ display: 'flex', gap: '0.8rem', marginBottom: '1rem', flexWrap: 'wrap' }}>
               <select
                 value={enrollQuarter}
@@ -738,6 +743,7 @@ export default function AdminPage() {
                 <option value="winter-2026">Winter 2026</option>
                 <option value="spring-2026">Spring 2026</option>
                 <option value="summer-2026">Summer 2026</option>
+                <option value="fall-2026">Fall 2026</option>
               </select>
               <select
                 value={enrollStatus}
@@ -942,6 +948,7 @@ export default function AdminPage() {
                     <option value="winter-2026">Winter 2026</option>
                     <option value="spring-2026">Spring 2026</option>
                     <option value="summer-2026">Summer 2026</option>
+                    <option value="fall-2026">Fall 2026</option>
                   </select>
                 </div>
                 <div>
@@ -966,6 +973,19 @@ export default function AdminPage() {
                     value={classForm.capacity}
                     onChange={(e) => setClassForm({ ...classForm, capacity: e.target.value })}
                   />
+                </div>
+                <div style={{ gridColumn: '1/-1' }}>
+                  <label className="flabel">Literacy schedule slot (shows live seats on the Programs page)</label>
+                  <select
+                    className="finput"
+                    value={classForm.scheduleKey}
+                    onChange={(e) => setClassForm({ ...classForm, scheduleKey: e.target.value })}
+                  >
+                    <option value="">Not on the literacy schedule</option>
+                    {LITERACY_SLOTS.map((s) => (
+                      <option key={s.key} value={s.key}>{s.label}</option>
+                    ))}
+                  </select>
                 </div>
                 <div style={{ gridColumn: '1/-1' }}>
                   <label className="flabel">Schedule</label>
@@ -2016,5 +2036,125 @@ export default function AdminPage() {
         </div>
       )}
     </>
+  );
+}
+
+/* ── Manual enrollment: admin registers a student into a class directly
+      (offline/Zelle payments). Feeds the live seat counts on /programs. ── */
+function AddEnrollmentForm({ onAdded }) {
+  const [families, setFamilies] = useState([]);
+  const [classes, setClasses] = useState([]);
+  const [userId, setUserId] = useState('');
+  const [studentName, setStudentName] = useState('');
+  const [classId, setClassId] = useState('');
+  const [status, setStatus] = useState('paid');
+  const [msg, setMsg] = useState(null); // { ok, text }
+
+  useEffect(() => {
+    fetch('/api/admin/families').then((r) => r.json()).then((d) => setFamilies(d.families || []));
+    fetch('/api/admin/classes').then((r) => r.json()).then((d) => setClasses((d.classes || []).filter((c) => c.active)));
+  }, []);
+
+  const family = families.find((f) => f._id === userId);
+  const students = (family?.students || []).map((s) => s.name).filter(Boolean);
+
+  function famLabel(f) {
+    const base = [f.firstName, f.lastName].filter(Boolean).join(' ') || f.name || f.email;
+    const kids = (f.students || []).map((s) => s.name).filter(Boolean).join(', ');
+    return kids ? `${base} (${kids})` : base;
+  }
+
+  async function submit(e) {
+    e.preventDefault();
+    setMsg(null);
+    const res = await fetch('/api/admin/enrollments', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ userId, studentName, classId, paymentStatus: status }),
+    });
+    const d = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      setMsg({ ok: false, text: d.error || 'Failed to enroll.' });
+      return;
+    }
+    setMsg({ ok: true, text: 'Enrolled.' });
+    setStudentName('');
+    setClassId('');
+    onAdded?.();
+    // Refresh classes so the per-class counts in the picker stay current.
+    fetch('/api/admin/classes').then((r) => r.json()).then((d2) => setClasses((d2.classes || []).filter((c) => c.active)));
+  }
+
+  return (
+    <form
+      onSubmit={submit}
+      style={{
+        display: 'flex',
+        flexWrap: 'wrap',
+        gap: '0.6rem',
+        alignItems: 'flex-end',
+        background: '#faf7f3',
+        borderRadius: 10,
+        padding: '0.9rem 1rem',
+        marginBottom: '1.2rem',
+      }}
+    >
+      <div style={{ minWidth: 220 }}>
+        <label className="flabel">Family</label>
+        <select
+          className="finput"
+          value={userId}
+          onChange={(e) => { setUserId(e.target.value); setStudentName(''); }}
+          required
+        >
+          <option value="">Select a family…</option>
+          {families.map((f) => (
+            <option key={f._id} value={f._id}>{famLabel(f)} ({f.email})</option>
+          ))}
+        </select>
+      </div>
+      <div style={{ minWidth: 150 }}>
+        <label className="flabel">Student</label>
+        {students.length > 0 ? (
+          <select className="finput" value={studentName} onChange={(e) => setStudentName(e.target.value)} required>
+            <option value="">Select…</option>
+            {students.map((s) => <option key={s} value={s}>{s}</option>)}
+          </select>
+        ) : (
+          <input className="finput" value={studentName} onChange={(e) => setStudentName(e.target.value)} placeholder="Student name" required />
+        )}
+      </div>
+      <div style={{ minWidth: 240 }}>
+        <label className="flabel">Class</label>
+        <select className="finput" value={classId} onChange={(e) => setClassId(e.target.value)} required>
+          <option value="">Select a class…</option>
+          {classes.map((c) => (
+            <option key={c._id} value={c._id}>
+              {c.name} · {c.quarter} · {c.enrolledCount ?? 0}/{c.capacity}
+            </option>
+          ))}
+        </select>
+      </div>
+      <div>
+        <label className="flabel">Status</label>
+        <select className="finput" value={status} onChange={(e) => setStatus(e.target.value)}>
+          <option value="paid">Paid</option>
+          <option value="pending">Pending</option>
+        </select>
+      </div>
+      <button
+        type="submit"
+        disabled={!userId || !studentName || !classId}
+        style={{
+          background: '#e8a87c', color: '#fff', border: 'none', borderRadius: 8,
+          padding: '0.65rem 1.4rem', fontWeight: 700, cursor: 'pointer',
+        }}
+      >
+        Enroll
+      </button>
+      {msg ? (
+        <span style={{ color: msg.ok ? '#1e7a40' : '#a3261a', fontWeight: 600, fontSize: '0.88rem' }}>{msg.text}</span>
+      ) : null}
+    </form>
   );
 }

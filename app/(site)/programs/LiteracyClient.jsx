@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
 
 // English Literacy page: diagnostic-based placement into four levels, with an
@@ -197,6 +197,8 @@ const T = {
     koreanClass: 'Korean Phonics (Hangeul) Lev.3',
     grades: { k1: 'K–1', g23: 'Gr. 2–3', g45: 'Gr. 4–5', g68: 'Gr. 6–8' },
     tutorNote: 'w/ Mrs. Jung',
+    seatsLabel: 'enrolled',
+    seatsFull: 'Full',
   },
   ko: {
     heading: 'English Literacy',
@@ -293,6 +295,8 @@ const T = {
     koreanClass: 'Korean Phonics (한글) Lev.3',
     grades: { k1: 'K–1', g23: '2–3학년', g45: '4–5학년', g68: '6–8학년' },
     tutorNote: 'Mrs. Jung 담당',
+    seatsLabel: '등록',
+    seatsFull: '마감',
   },
 };
 
@@ -301,29 +305,29 @@ const T = {
 // (t.tutorNote). Index 0 = Monday.
 const WEEK = [
   [
-    { title: 'Core Literacy', level: 'Acorn', grade: 'k1', time: '4:30–5:50', lv: 'acorn' },
-    { title: 'Book Club', level: 'Sapling', grade: 'g45', time: '6:00–7:20', lv: 'sapling' },
+    { title: 'Core Literacy', level: 'Acorn', grade: 'k1', time: '4:30–5:50', lv: 'acorn', classKey: 'mon-core-acorn' },
+    { title: 'Book Club', level: 'Sapling', grade: 'g45', time: '6:00–7:20', lv: 'sapling', classKey: 'mon-book-sapling' },
     { title: '1:1 Private', tutor: true, time: '7:30–8:30', lv: 'neutral' },
   ],
   [
-    { title: 'Core Literacy', level: 'Sprout', grade: 'g23', time: '4:30–5:50', lv: 'sprout' },
-    { title: 'Core Literacy', level: 'Sapling', grade: 'g45', time: '6:00–7:20', lv: 'sapling' },
+    { title: 'Core Literacy', level: 'Sprout', grade: 'g23', time: '4:30–5:50', lv: 'sprout', classKey: 'tue-core-sprout' },
+    { title: 'Core Literacy', level: 'Sapling', grade: 'g45', time: '6:00–7:20', lv: 'sapling', classKey: 'tue-core-sapling' },
     { title: '1:1 Private', tutor: true, time: '7:30–8:30', lv: 'neutral' },
   ],
   [
-    { korean: true, grade: 'k1', time: '2:30–3:50', lv: 'korean' },
-    { title: 'Kinder Phonics', time: '4:00–5:20', lv: 'phonics' },
-    { title: "Writer's Workshop", time: '5:30–7:20', lv: 'workshop' },
+    { korean: true, grade: 'k1', time: '2:30–3:50', lv: 'korean', classKey: 'wed-korean-lev3' },
+    { title: 'Kinder Phonics', time: '4:00–5:20', lv: 'phonics', classKey: 'wed-kinder-phonics' },
+    { title: "Writer's Workshop", time: '5:30–7:20', lv: 'workshop', classKey: 'wed-writers-workshop' },
     { title: '1:1 Private', tutor: true, time: '7:30–8:30', lv: 'neutral' },
   ],
   [
-    { title: 'Book Club', level: 'Sprout', grade: 'g23', time: '4:30–5:50', lv: 'sprout' },
-    { title: 'Core Literacy', level: 'Oak', grade: 'g68', time: '6:00–7:20', lv: 'oak' },
+    { title: 'Book Club', level: 'Sprout', grade: 'g23', time: '4:30–5:50', lv: 'sprout', classKey: 'thu-book-sprout' },
+    { title: 'Core Literacy', level: 'Oak', grade: 'g68', time: '6:00–7:20', lv: 'oak', classKey: 'thu-core-oak' },
     { title: '1:1 Private', tutor: true, time: '7:30–8:30', lv: 'neutral' },
   ],
   [
-    { title: 'Book Club', level: 'Acorn', grade: 'k1', time: '4:30–5:50', lv: 'acorn' },
-    { title: 'Book Club', level: 'Oak', grade: 'g68', time: '6:00–7:20', lv: 'oak' },
+    { title: 'Book Club', level: 'Acorn', grade: 'k1', time: '4:30–5:50', lv: 'acorn', classKey: 'fri-book-acorn' },
+    { title: 'Book Club', level: 'Oak', grade: 'g68', time: '6:00–7:20', lv: 'oak', classKey: 'fri-book-oak' },
     { title: '1:1 Private', tutor: true, time: '7:30–8:30', lv: 'neutral' },
   ],
   [
@@ -338,7 +342,17 @@ const WEEK = [
 
 export default function LiteracyClient() {
   const [lang, setLang] = useState('en');
+  // Live enrolled/capacity per schedule slot, from Class docs linked by
+  // scheduleKey (updates automatically as enrollments are added).
+  const [seats, setSeats] = useState({});
   const t = T[lang];
+
+  useEffect(() => {
+    fetch('/api/classes/literacy-seats')
+      .then((r) => r.json())
+      .then((d) => setSeats(d.seats || {}))
+      .catch(() => {});
+  }, []);
 
   return (
     <>
@@ -393,6 +407,7 @@ export default function LiteracyClient() {
     .lit-class .lit-c-grade { color: #a08430; font-size: 0.72rem; font-weight: 700; white-space: nowrap; }
     .lit-class .lit-c-note { color: #a08430; font-size: 0.74rem; font-weight: 600; margin-top: 0.05rem; }
     .lit-class .lit-c-time { color: #6b5b47; font-size: 0.78rem; margin-top: 0.2rem; }
+    .lit-class .lit-c-seats { color: #1e7a40; font-size: 0.74rem; font-weight: 700; margin-top: 0.25rem; }
 `,
         }}
       />
@@ -506,6 +521,16 @@ export default function LiteracyClient() {
                     ) : (
                       <div className="lit-c-time">{c.time}</div>
                     )}
+                    {c.classKey && seats[c.classKey] ? (
+                      <div
+                        className="lit-c-seats"
+                        style={seats[c.classKey].enrolled >= seats[c.classKey].capacity ? { color: '#a3261a' } : undefined}
+                      >
+                        {seats[c.classKey].enrolled >= seats[c.classKey].capacity
+                          ? t.seatsFull
+                          : `${seats[c.classKey].enrolled}/${seats[c.classKey].capacity} ${t.seatsLabel}`}
+                      </div>
+                    ) : null}
                   </div>
                 )),
               )}

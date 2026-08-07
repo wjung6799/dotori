@@ -11,7 +11,7 @@ export async function PUT(request, { params }) {
   try {
     const { id } = await params;
     const body = await request.json();
-    const { name, category, quarter, schedule, description, price, capacity, active } = body || {};
+    const { name, category, quarter, schedule, description, price, capacity, active, scheduleKey } = body || {};
     const update = {};
     if (name !== undefined) update.name = name;
     if (category !== undefined) update.category = category;
@@ -21,6 +21,7 @@ export async function PUT(request, { params }) {
     if (price !== undefined) update.price = Number(price);
     if (capacity !== undefined) update.capacity = Number(capacity);
     if (active !== undefined) update.active = active;
+    if (scheduleKey !== undefined) update.scheduleKey = scheduleKey;
 
     await dbConnect();
     const cls = await Class.findByIdAndUpdate(id, update, { new: true });
