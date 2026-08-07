@@ -132,12 +132,12 @@ const T = {
         '로 시작합니다. 반은 학년이 아니라 실제 읽기·쓰기 실력을 기준으로 정하며, 진단 결과에 따라 네 단계(',
       levels: 'Sprout · Sapling · Oak · Great Oak',
       after2: ') 중 한 곳에 배정됩니다. 아직 스스로 읽기 어려운 학생은 ',
-      phonics: 'Kinder Phonics',
+      phonics: '킨더 파닉스',
       after3: '에서 기초 해독(decoding) 능력을 다진 뒤 정규 과정으로 올라갑니다.',
     },
     cards: [
       {
-        title: 'Kinder Phonics',
+        title: '킨더 파닉스',
         tag: '준비 과정',
         body: '파닉스와 디코딩을 집중적으로 지도해 스스로 읽을 수 있는 토대를 만듭니다. 혼자 읽기가 가능해지면 맞춤 문해력 수업으로 올라갑니다.',
         materials: '교재 · Heggerty · UFLI · 자체 제작',
@@ -151,14 +151,14 @@ const T = {
         footer: '읽기 레벨별 편성 · 주 1회 80분',
       },
       {
-        title: 'Book Club',
+        title: '북클럽',
         tag: '완독·토론 수업',
         body: '한 권의 책을 함께 읽으며 문맥 속 어휘, 문학적 사고, 글쓰기를 통합적으로 훈련합니다. 학생마다 역할을 맡아 책임감과 리더십을 기르고, 자기 생각을 조리 있게 표현하는 연습을 합니다.',
         materials: '교재 · 북클럽 전용 자체 제작',
         footer: '읽기 레벨별 편성 · 주 1회 80분',
       },
       {
-        title: "Writer's Workshop",
+        title: '출판 워크샵',
         tag: '출판 프로젝트',
         body: '3학기(36주)에 걸쳐 자신의 책을 완성해 ISBN이 부여된 정식 도서로 출판합니다. 학생이 저자로 이름을 올립니다.',
         materials: '',
@@ -167,7 +167,7 @@ const T = {
       },
     ],
     tableTitle: '단계별 편성 기준',
-    tableHead: ['단계', '참고 학년', '읽기 수준', '맞춤 문해력 학습 초점', 'Book Club 대표 도서', '쓰기 목표'],
+    tableHead: ['단계', '참고 학년', '읽기 수준', '맞춤 문해력 학습 초점', '북클럽 대표 도서', '쓰기 목표'],
     levels: [
       {
         key: 'sprout',
@@ -227,12 +227,12 @@ const T = {
 const WEEK = [
   [
     { title: 'Core Literacy', level: 'Sprout', grade: 'k1', time: '4:30–5:50', lv: 'sprout' },
-    { title: 'Core Literacy', level: 'Oak', grade: 'g45', time: '6:00–7:20', lv: 'oak' },
+    { title: 'Core Literacy', level: 'Great Oak', grade: 'g68', time: '6:00–7:20', lv: 'greatOak' },
     { title: '1:1 Private', tutor: true, time: '7:30–8:30', lv: 'neutral' },
   ],
   [
     { title: 'Core Literacy', level: 'Sapling', grade: 'g23', time: '4:30–5:50', lv: 'sapling' },
-    { title: 'Core Literacy', level: 'Great Oak', grade: 'g68', time: '6:00–7:20', lv: 'greatOak' },
+    { title: 'Core Literacy', level: 'Oak', grade: 'g45', time: '6:00–7:20', lv: 'oak' },
     { title: '1:1 Private', tutor: true, time: '7:30–8:30', lv: 'neutral' },
   ],
   [
