@@ -227,7 +227,7 @@ const T = {
 const WEEK = [
   [
     { title: 'Core Literacy', level: 'Sprout', grade: 'k1', time: '4:30–5:50', lv: 'sprout' },
-    { title: 'Core Literacy', level: 'Great Oak', grade: 'g68', time: '6:00–7:20', lv: 'greatOak' },
+    { title: 'Book Club', level: 'Oak', grade: 'g45', time: '6:00–7:20', lv: 'oak' },
     { title: '1:1 Private', tutor: true, time: '7:30–8:30', lv: 'neutral' },
   ],
   [
@@ -243,7 +243,7 @@ const WEEK = [
   ],
   [
     { title: 'Book Club', level: 'Sapling', grade: 'g23', time: '4:30–5:50', lv: 'sapling' },
-    { title: 'Book Club', level: 'Oak', grade: 'g45', time: '6:00–7:20', lv: 'oak' },
+    { title: 'Core Literacy', level: 'Great Oak', grade: 'g68', time: '6:00–7:20', lv: 'greatOak' },
     { title: '1:1 Private', tutor: true, time: '7:30–8:30', lv: 'neutral' },
   ],
   [
