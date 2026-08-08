@@ -26,10 +26,10 @@ const T = {
     ],
     fitTitle: 'A good fit for:',
     fit: [
-      'School coursework and homework help',
-      'Focused support where a student needs it most',
+      'School coursework help',
       'Writing projects',
-      'Students who can’t join regular Dotori classes because of schedule conflicts',
+      'Personalized lessons at each student’s level',
+      'Test preparation (SSAT, ISEE, Gifted programs, etc.)',
     ],
     wl: {
       title: 'Join the 1:1 Waitlist',
@@ -64,10 +64,10 @@ const T = {
     ],
     fitTitle: '이런 경우에 잘 맞아요:',
     fit: [
-      '학교 과정·숙제 도움',
-      '집중이 필요한 부분 서포트',
-      '글쓰기 프로젝트',
-      '스케줄이 맞지 않아 도토리 정규 수업을 듣기 어려운 학생',
+      '교과 도움',
+      '라이팅 프로젝트',
+      '수준별 맞춤 수업',
+      '시험 준비 (SSAT · ISEE · Gifted 프로그램 등)',
     ],
     wl: {
       title: '1:1 수업 대기자 등록',
