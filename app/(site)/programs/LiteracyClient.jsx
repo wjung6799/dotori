@@ -332,7 +332,7 @@ const WEEK = [
   ],
   [
     {
-      title: 'Semi-Private',
+      title: '1:1 or Semi-Private Lessons',
       tutor: true,
       times: ['9:00–10:30', '10:30–12:00', '1:00–2:30', '2:30–4:00', '4:00–5:30'],
       lv: 'neutral',

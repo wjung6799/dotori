@@ -21,15 +21,15 @@ const T = {
       {
         title: 'Semi-Private',
         tag: 'One teacher · two students',
-        body: 'A small pairing that keeps the teacher close enough to directly support what each student needs. Sessions run 90 minutes as standard.',
-        fitTitle: 'A good fit for:',
-        fit: [
-          'School coursework and homework help',
-          'Focused support where a student needs it most',
-          'Writing projects',
-          'Students who can’t join regular Dotori classes because of schedule conflicts',
-        ],
+        body: 'A small pairing that keeps the teacher close enough to directly support what each student needs.',
       },
+    ],
+    fitTitle: 'A good fit for:',
+    fit: [
+      'School coursework and homework help',
+      'Focused support where a student needs it most',
+      'Writing projects',
+      'Students who can’t join regular Dotori classes because of schedule conflicts',
     ],
   },
   ko: {
@@ -45,15 +45,15 @@ const T = {
       {
         title: 'Semi-Private',
         tag: '교사 1 : 학생 2',
-        body: '교사가 두 학생 곁에서 각자 필요한 부분을 직접적으로 도울 수 있는 소규모 수업입니다. 기본 1시간 30분으로 진행됩니다.',
-        fitTitle: '이런 경우에 잘 맞아요:',
-        fit: [
-          '학교 과정·숙제 도움',
-          '집중이 필요한 부분 서포트',
-          '글쓰기 프로젝트',
-          '스케줄이 맞지 않아 도토리 정규 수업을 듣기 어려운 학생',
-        ],
+        body: '교사가 두 학생 곁에서 각자 필요한 부분을 직접적으로 도울 수 있는 소규모 수업입니다.',
       },
+    ],
+    fitTitle: '이런 경우에 잘 맞아요:',
+    fit: [
+      '학교 과정·숙제 도움',
+      '집중이 필요한 부분 서포트',
+      '글쓰기 프로젝트',
+      '스케줄이 맞지 않아 도토리 정규 수업을 듣기 어려운 학생',
     ],
   },
 };
@@ -86,8 +86,13 @@ export default function PrivateLessonsClient() {
     .pl-card .pl-tag { color: #b3622e; font-size: 0.78rem; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase; margin-bottom: 0.8rem; }
     .pl-card p { color: #6b5b47; font-size: 0.95rem; line-height: 1.6; margin: 0; }
     .pl-card .pl-note { color: #b3622e; font-weight: 700; font-size: 0.88rem; margin-top: 0.8rem; }
-    .pl-card .pl-fit-title { color: #4a3c28; font-weight: 700; font-size: 0.9rem; margin: 1rem 0 0.4rem; }
-    .pl-card ul { margin: 0; padding-left: 1.2rem; color: #6b5b47; font-size: 0.92rem; line-height: 1.7; }
+
+    .pl-fit {
+        background: #fbf6e9; border: 1px solid #ecd9a8; border-radius: 12px;
+        padding: 1.4rem 1.75rem; margin: 0 0 3rem;
+    }
+    .pl-fit h3 { color: #4a3c28; font-size: 1.05rem; margin: 0 0 0.7rem; }
+    .pl-fit ul { margin: 0; padding-left: 1.2rem; color: #6b5b47; line-height: 1.7; }
 `,
         }}
       />
@@ -117,18 +122,18 @@ export default function PrivateLessonsClient() {
                 <div className="pl-tag">{c.tag}</div>
                 <p>{c.body}</p>
                 {c.note ? <div className="pl-note">{c.note}</div> : null}
-                {c.fit ? (
-                  <>
-                    <div className="pl-fit-title">{c.fitTitle}</div>
-                    <ul>
-                      {c.fit.map((f) => (
-                        <li key={f.slice(0, 20)}>{f}</li>
-                      ))}
-                    </ul>
-                  </>
-                ) : null}
               </div>
             ))}
+          </div>
+
+          {/* Applies to both 1:1 and Semi-Private. */}
+          <div className="pl-fit">
+            <h3>{t.fitTitle}</h3>
+            <ul>
+              {t.fit.map((f) => (
+                <li key={f.slice(0, 20)}>{f}</li>
+              ))}
+            </ul>
           </div>
         </div>
       </main>
