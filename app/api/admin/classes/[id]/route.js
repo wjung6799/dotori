@@ -22,6 +22,9 @@ export async function PUT(request, { params }) {
     if (capacity !== undefined) update.capacity = Number(capacity);
     if (active !== undefined) update.active = active;
     if (scheduleKey !== undefined) update.scheduleKey = scheduleKey;
+    if (body?.manualEnrolled !== undefined) {
+      update.manualEnrolled = body.manualEnrolled === null ? null : Math.max(0, Number(body.manualEnrolled) || 0);
+    }
 
     await dbConnect();
     const cls = await Class.findByIdAndUpdate(id, update, { new: true });

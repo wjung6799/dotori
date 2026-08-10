@@ -11,7 +11,7 @@ export async function GET() {
   try {
     await dbConnect();
     const classes = await Class.find({ active: true, scheduleKey: { $nin: ['', null] } })
-      .select('scheduleKey capacity');
+      .select('scheduleKey capacity manualEnrolled');
     if (classes.length === 0) return Response.json({ seats: {} });
 
     const counts = await Enrollment.aggregate([
@@ -22,7 +22,9 @@ export async function GET() {
 
     const seats = {};
     for (const c of classes) {
-      seats[c.scheduleKey] = { enrolled: byId[c._id.toString()] || 0, capacity: c.capacity };
+      // An admin-entered count (manualEnrolled) overrides the automatic tally.
+      const enrolled = c.manualEnrolled != null ? c.manualEnrolled : byId[c._id.toString()] || 0;
+      seats[c.scheduleKey] = { enrolled, capacity: c.capacity };
     }
     return Response.json({ seats });
   } catch (err) {

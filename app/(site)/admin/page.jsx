@@ -642,6 +642,7 @@ export default function AdminPage() {
             {[
               ['families', 'Families'],
               ['enrollments', 'Enrollments'],
+              ['seats', 'Seat Counts'],
               ['classes', 'Classes'],
               ['reports', 'Reports'],
               ['products', 'Products'],
@@ -724,6 +725,11 @@ export default function AdminPage() {
           </div>
 
           {/* ENROLLMENTS */}
+          {/* SEAT COUNTS (literacy schedule) */}
+          <div className="tab-panel" style={{ display: tab === 'seats' ? 'block' : 'none' }}>
+            {tab === 'seats' ? <SeatCountsTab /> : null}
+          </div>
+
           <div className="tab-panel" style={{ display: tab === 'enrollments' ? 'block' : 'none' }}>
             <AddEnrollmentForm onAdded={loadEnrollments} />
             <div style={{ display: 'flex', gap: '0.8rem', marginBottom: '1rem', flexWrap: 'wrap' }}>
@@ -2156,5 +2162,142 @@ function AddEnrollmentForm({ onAdded }) {
         <span style={{ color: msg.ok ? '#1e7a40' : '#a3261a', fontWeight: 600, fontSize: '0.88rem' }}>{msg.text}</span>
       ) : null}
     </form>
+  );
+}
+
+/* ── Seat counts for the literacy weekly schedule. Pick a class, type the
+      enrolled count, and the public /programs schedule updates live. A manual
+      count overrides the automatic enrollment tally; clearing it goes back
+      to automatic. ── */
+function SeatCountsTab() {
+  const [classes, setClasses] = useState(null);
+  const [classId, setClassId] = useState('');
+  const [count, setCount] = useState('');
+  const [msg, setMsg] = useState(null);
+
+  const slotLabel = (key) => LITERACY_SLOTS.find((s) => s.key === key)?.label || key;
+
+  const load = () =>
+    fetch('/api/admin/classes')
+      .then((r) => r.json())
+      .then((d) => setClasses((d.classes || []).filter((c) => c.active && c.scheduleKey)))
+      .catch(() => setClasses([]));
+
+  useEffect(() => { load(); }, []);
+
+  const selected = (classes || []).find((c) => c._id === classId);
+  const displayed = (c) => (c.manualEnrolled != null ? c.manualEnrolled : c.enrolledCount ?? 0);
+
+  function pick(id) {
+    setClassId(id);
+    setMsg(null);
+    const c = (classes || []).find((x) => x._id === id);
+    setCount(c ? String(displayed(c)) : '');
+  }
+
+  async function save(value) {
+    setMsg(null);
+    const res = await fetch(`/api/admin/classes/${classId}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ manualEnrolled: value }),
+    });
+    if (!res.ok) {
+      const d = await res.json().catch(() => ({}));
+      setMsg({ ok: false, text: d.error || 'Failed to save.' });
+      return;
+    }
+    setMsg({ ok: true, text: value === null ? 'Back to automatic count.' : 'Saved. The schedule shows it immediately.' });
+    load();
+  }
+
+  return (
+    <div>
+      <p style={{ color: '#9b8b77', fontSize: '0.9rem', margin: '0 0 1rem' }}>
+        Set the enrolled count shown on the Programs page schedule. A manual number overrides the
+        automatic enrollment tally; &quot;Use automatic&quot; switches back.
+      </p>
+
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.6rem', alignItems: 'flex-end', background: '#faf7f3', borderRadius: 10, padding: '0.9rem 1rem', marginBottom: '1.2rem' }}>
+        <div style={{ minWidth: 320 }}>
+          <label className="flabel">Class</label>
+          <select className="finput" value={classId} onChange={(e) => pick(e.target.value)}>
+            <option value="">Select a class…</option>
+            {(classes || []).map((c) => (
+              <option key={c._id} value={c._id}>{slotLabel(c.scheduleKey)}</option>
+            ))}
+          </select>
+        </div>
+        <div style={{ width: 130 }}>
+          <label className="flabel">Enrolled count</label>
+          <input
+            type="number"
+            min="0"
+            className="finput"
+            value={count}
+            onChange={(e) => setCount(e.target.value)}
+            disabled={!classId}
+          />
+        </div>
+        <button
+          type="button"
+          disabled={!classId || count === ''}
+          onClick={() => save(Math.max(0, Number(count) || 0))}
+          style={{ background: '#e8a87c', color: '#fff', border: 'none', borderRadius: 8, padding: '0.65rem 1.4rem', fontWeight: 700, cursor: 'pointer' }}
+        >
+          Save
+        </button>
+        <button
+          type="button"
+          disabled={!classId || !selected || selected.manualEnrolled == null}
+          onClick={() => save(null)}
+          style={{ background: '#f5f0eb', color: '#8b7355', border: 'none', borderRadius: 8, padding: '0.65rem 1.2rem', fontWeight: 700, cursor: 'pointer' }}
+        >
+          Use automatic
+        </button>
+        {selected ? (
+          <span style={{ color: '#9b8b77', fontSize: '0.85rem' }}>
+            Capacity {selected.capacity} · auto tally {selected.enrolledCount ?? 0}
+          </span>
+        ) : null}
+        {msg ? (
+          <span style={{ color: msg.ok ? '#1e7a40' : '#a3261a', fontWeight: 600, fontSize: '0.88rem' }}>{msg.text}</span>
+        ) : null}
+      </div>
+
+      {classes === null ? (
+        <p style={{ color: '#aaa' }}>Loading…</p>
+      ) : (
+        <div style={{ overflowX: 'auto' }}>
+          <table style={{ width: '100%', minWidth: 560, borderCollapse: 'collapse', fontSize: '0.9rem' }}>
+            <thead>
+              <tr>
+                {['Class (schedule slot)', 'Shown on schedule', 'Capacity', 'Source'].map((h) => (
+                  <th key={h} style={{ background: '#5d4a35', color: '#fff', textAlign: 'left', padding: '0.6rem 0.8rem', fontWeight: 600 }}>{h}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {classes.map((c) => {
+                const n = displayed(c);
+                const full = n >= c.capacity;
+                return (
+                  <tr key={c._id}>
+                    <td style={{ padding: '0.6rem 0.8rem', borderBottom: '1px solid #f0e9df', color: '#4a3c28', fontWeight: 600 }}>{slotLabel(c.scheduleKey)}</td>
+                    <td style={{ padding: '0.6rem 0.8rem', borderBottom: '1px solid #f0e9df', color: full ? '#a3261a' : '#1e7a40', fontWeight: 700 }}>
+                      {n}/{c.capacity}{full ? ' · Full' : ''}
+                    </td>
+                    <td style={{ padding: '0.6rem 0.8rem', borderBottom: '1px solid #f0e9df', color: '#6b5b47' }}>{c.capacity}</td>
+                    <td style={{ padding: '0.6rem 0.8rem', borderBottom: '1px solid #f0e9df', color: '#9b8b77' }}>
+                      {c.manualEnrolled != null ? 'Manual' : 'Automatic'}
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </div>
   );
 }

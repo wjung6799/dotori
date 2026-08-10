@@ -196,7 +196,7 @@ const T = {
     koreanClass: 'Korean Phonics (Hangeul) Lev.3',
     grades: { k1: 'K–1', g23: 'Gr. 2–3', g45: 'Gr. 4–5', g68: 'Gr. 6–8' },
     tutorNote: 'w/ Mrs. Jung',
-    seatsLabel: 'enrolled',
+    seatsLeft: (n) => `${n} spot${n === 1 ? '' : 's'} left`,
     seatsFull: 'Full',
   },
   ko: {
@@ -294,7 +294,7 @@ const T = {
     koreanClass: 'Korean Phonics (한글) Lev.3',
     grades: { k1: 'K–1', g23: '2–3학년', g45: '4–5학년', g68: '6–8학년' },
     tutorNote: 'Mrs. Jung 담당',
-    seatsLabel: '등록',
+    seatsLeft: (n) => `${n}자리 남음`,
     seatsFull: '마감',
   },
 };
@@ -525,7 +525,7 @@ export default function LiteracyClient() {
                       >
                         {seats[c.classKey].enrolled >= seats[c.classKey].capacity
                           ? t.seatsFull
-                          : `${seats[c.classKey].enrolled}/${seats[c.classKey].capacity} ${t.seatsLabel}`}
+                          : t.seatsLeft(seats[c.classKey].capacity - seats[c.classKey].enrolled)}
                       </div>
                     ) : null}
                   </div>
