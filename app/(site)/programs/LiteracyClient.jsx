@@ -1,7 +1,6 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import Link from 'next/link';
 
 // English Literacy page: diagnostic-based placement into four levels, with an
 // English/Korean toggle. All copy lives in the T object below (en/ko mirror
@@ -106,7 +105,7 @@ const T = {
     heading: 'English Literacy',
     introParts: {
       before: 'Every new student begins with a ',
-      link: 'complimentary diagnostic assessment',
+      link: 'placement assessment',
       after:
         ' of reading and writing. Placement is based on demonstrated literacy rather than grade, and each student is assigned to one of four levels: ',
       levels: 'Acorn · Sprout · Sapling · Oak',
@@ -204,9 +203,9 @@ const T = {
     heading: 'English Literacy',
     introParts: {
       before: '도토리스쿨의 모든 신규 학생은 ',
-      link: '무료 진단평가',
+      link: '배치 평가',
       after:
-        '로 시작합니다. 반은 학년이 아니라 실제 읽기·쓰기 실력을 기준으로 정하며, 진단 결과에 따라 네 단계(',
+        '로 시작합니다. 반은 학년이 아니라 실제 읽기·쓰기 실력을 기준으로 정하며, 평가 결과에 따라 네 단계(',
       levels: 'Acorn · Sprout · Sapling · Oak',
       after2: ') 중 한 곳에 배정됩니다. 아직 스스로 읽기 어려운 학생은 ',
       phonics: '킨더 파닉스',
@@ -429,9 +428,7 @@ export default function LiteracyClient() {
 
             <p style={{ textAlign: 'left', lineHeight: 1.7 }}>
               {t.introParts.before}
-              <Link href="/diagnostic" style={{ color: '#8b7355', fontWeight: 700 }}>
-                {t.introParts.link}
-              </Link>
+              <strong>{t.introParts.link}</strong>
               {t.introParts.after}
               <strong>{t.introParts.levels}</strong>
               {t.introParts.after2}

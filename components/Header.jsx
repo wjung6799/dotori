@@ -21,7 +21,7 @@ const NAV_LINKS = [
   { href: '/calendar', label: 'Calendar' },
   { dropdown: true, label: 'Programs' },
   { href: '/schedule', label: 'Schedule', authOnly: true },
-  { href: '/diagnostic', label: 'Book Free Diagnostic', cta: true },
+  { href: '/contact', label: 'Contact Us', cta: true },
 ];
 
 export default function Header() {

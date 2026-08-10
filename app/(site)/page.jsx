@@ -60,7 +60,7 @@ export default async function HomePage() {
             {c.heroSubtitle2}
           </p>
           <Link
-            href="/diagnostic"
+            href="/contact"
             className="btn btn-primary"
             style={{ padding: '1rem 2.5rem', fontSize: '1.15rem', flex: 'none', display: 'inline-block' }}
           >

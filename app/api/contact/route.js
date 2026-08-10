@@ -1,8 +1,12 @@
 import nodemailer from 'nodemailer';
+import { rateLimit, clientIp } from '@/lib/rate-limit';
 
 export const dynamic = 'force-dynamic';
 
-// POST /api/contact: contact form submission → email to info@dotorischool.org
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+// POST /api/contact: contact form submission → email to info@dotorischool.org.
+// Fields: studentName, grade, parentName, email, phone, note (optional).
 export async function POST(request) {
   let body;
   try {
@@ -11,15 +15,24 @@ export async function POST(request) {
     return Response.json({ error: 'Invalid request body.' }, { status: 400 });
   }
 
-  const { parentFirstName, parentLastName, email, phone, message, newsletter, students } =
-    body || {};
+  // Honeypot: bots fill it; pretend success.
+  if (body?.website) return Response.json({ ok: true });
 
-  if (!parentFirstName || !parentLastName || !email || !phone) {
-    return Response.json({ error: 'All required fields must be filled out.' }, { status: 400 });
+  const ip = clientIp(request);
+  if (!rateLimit(`contact:ip:${ip}`, { max: 6, windowMs: 60 * 60 * 1000 }).ok) {
+    return Response.json({ error: 'Too many requests. Please try again in a little while.' }, { status: 429 });
   }
-  if (!students || students.length === 0 || !students[0]) {
-    return Response.json({ error: 'At least one student name is required.' }, { status: 400 });
+
+  const fields = {};
+  for (const k of ['studentName', 'grade', 'parentName', 'email', 'phone']) {
+    const v = body?.[k]?.toString().trim();
+    if (!v) return Response.json({ error: 'All required fields must be filled out.' }, { status: 400 });
+    fields[k] = v.slice(0, 200);
   }
+  if (!EMAIL_RE.test(fields.email)) {
+    return Response.json({ error: 'Please enter a valid email address.' }, { status: 400 });
+  }
+  const note = (body?.note || '').toString().trim().slice(0, 3000);
 
   try {
     const transporter = nodemailer.createTransport({
@@ -29,34 +42,32 @@ export async function POST(request) {
       auth: { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS },
     });
 
-    const fullName = `${parentFirstName} ${parentLastName}`;
-    const studentsText =
-      students && students.length > 0
-        ? `<p><strong>Students:</strong> ${students.join(', ')}</p>`
-        : '';
-    const newsletterText = newsletter
-      ? '<p><strong>Newsletter:</strong> Yes, would like to receive updates</p>'
-      : '';
-
     await transporter.sendMail({
-      from: `"${fullName}" <${email}>`,
+      from: `"${fields.parentName}" <${process.env.SMTP_USER}>`,
+      replyTo: fields.email,
       to: 'info@dotorischool.org',
-      subject: `Contact Form Submission from ${fullName}`,
-      text: `Name: ${fullName}\nEmail: ${email}\nPhone: ${phone || 'Not provided'}\nMessage: ${message || 'No message'}\nStudents: ${students ? students.join(', ') : 'None'}\nNewsletter: ${newsletter ? 'Yes' : 'No'}`,
+      subject: `Contact Form: ${fields.parentName} (student: ${fields.studentName})`,
+      text: [
+        `Student: ${fields.studentName} (Grade ${fields.grade})`,
+        `Parent: ${fields.parentName}`,
+        `Email: ${fields.email}`,
+        `Phone: ${fields.phone}`,
+        `Note: ${note || 'No note'}`,
+      ].join('\n'),
       html: `
         <h2>New Contact Form Submission</h2>
-        <p><strong>Parent Name:</strong> ${fullName}</p>
-        <p><strong>Email:</strong> ${email}</p>
-        <p><strong>Phone:</strong> ${phone || 'Not provided'}</p>
-        ${studentsText}
-        <p><strong>Message:</strong><br>${message || 'No message provided'}</p>
-        ${newsletterText}
+        <p><strong>Student:</strong> ${fields.studentName} (Grade ${fields.grade})</p>
+        <p><strong>Parent:</strong> ${fields.parentName}</p>
+        <p><strong>Email:</strong> ${fields.email}</p>
+        <p><strong>Phone:</strong> ${fields.phone}</p>
+        <p><strong>Note:</strong></p>
+        <p>${note ? note.replace(/</g, '&lt;').replace(/\n/g, '<br/>') : 'No note'}</p>
       `,
     });
 
-    return Response.json({ success: true });
+    return Response.json({ ok: true });
   } catch (err) {
-    console.error('Error sending email:', err);
-    return Response.json({ error: 'Failed to send email.' }, { status: 500 });
+    console.error('Contact form error:', err);
+    return Response.json({ error: 'Failed to send your message. Please email info@dotorischool.org.' }, { status: 500 });
   }
 }

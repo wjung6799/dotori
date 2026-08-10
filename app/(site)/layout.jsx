@@ -9,7 +9,7 @@ export const metadata = {
     template: '%s | Dotori School',
   },
   description:
-    'Dotori School offers personalized literacy & math tutoring in Bellevue, with a lesson plan built for each student. English reading & writing, Korean, math, test prep, AMC, physics, and coding. Book a free diagnostic assessment.',
+    'Dotori School offers personalized literacy & math tutoring in Bellevue, with a lesson plan built for each student. English reading & writing, Korean, math, test prep, AMC, physics, and coding. Get in touch to find the right class for your child.',
   keywords: [
     'tutoring Bellevue', 'math tutoring Bellevue', 'test prep Bellevue', 'AMC prep Bellevue',
     'personalized tutoring', 'small group tutoring', 'Korean classes Bellevue', 'English reading writing Bellevue',
