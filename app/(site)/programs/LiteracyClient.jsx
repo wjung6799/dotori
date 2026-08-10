@@ -110,12 +110,12 @@ const T = {
         ' of reading and writing. Placement is based on demonstrated literacy rather than grade, and each student is assigned to one of four levels: ',
       levels: 'Acorn · Sprout · Sapling · Oak',
       after2: '. Students who are not yet reading independently build decoding skills in ',
-      phonics: 'Kinder Phonics',
+      phonics: 'K–1 Phonics',
       after3: ' before moving into the leveled program.',
     },
     cards: [
       {
-        title: 'Kinder Phonics',
+        title: 'K–1 Phonics',
         tag: 'On-Ramp',
         body: 'Focused instruction in phonics and decoding that builds the foundation for independent reading. Students move into Core Literacy once they can read on their own.',
         materials: 'Materials · Heggerty, UFLI, in-house',
@@ -208,12 +208,12 @@ const T = {
         '로 시작합니다. 반은 학년이 아니라 실제 읽기·쓰기 실력을 기준으로 정하며, 평가 결과에 따라 네 단계(',
       levels: 'Acorn · Sprout · Sapling · Oak',
       after2: ') 중 한 곳에 배정됩니다. 아직 스스로 읽기 어려운 학생은 ',
-      phonics: '킨더 파닉스',
+      phonics: 'K–1 Phonics',
       after3: '에서 기초 해독(decoding) 능력을 다진 뒤 정규 과정으로 올라갑니다.',
     },
     cards: [
       {
-        title: '킨더 파닉스',
+        title: 'K–1 Phonics',
         tag: '준비 과정',
         body: '파닉스와 디코딩을 집중적으로 지도해 스스로 읽을 수 있는 토대를 만듭니다. 혼자 읽기가 가능해지면 맞춤 문해력 수업으로 올라갑니다.',
         materials: '교재 · Heggerty · UFLI · 자체 제작',
@@ -315,7 +315,7 @@ const WEEK = [
   ],
   [
     { korean: true, grade: 'k1', time: '2:30–3:50', lv: 'korean', classKey: 'wed-korean-lev3' },
-    { title: 'Kinder Phonics', time: '4:00–5:20', lv: 'phonics', classKey: 'wed-kinder-phonics' },
+    { title: 'K–1 Phonics', time: '4:00–5:20', lv: 'phonics', classKey: 'wed-kinder-phonics' },
     { title: "Writer's Workshop", time: '5:30–7:20', lv: 'workshop', classKey: 'wed-writers-workshop' },
     { title: '1:1 Private', tutor: true, time: '7:30–8:30', lv: 'neutral' },
   ],
