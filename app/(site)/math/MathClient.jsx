@@ -47,7 +47,7 @@ const T = {
         tag: 'High school & AP',
         duration: 'Conceptual through AP Physics',
         features: [
-          'Taught by a UW physics graduate and 15+ year tutor',
+          'Taught by a UW physics graduate and 15+ year instructor',
           'Concept-first, then the problem-solving that earns the grade',
           'Honors and AP Physics support',
           'Great pairing with upper-level math',

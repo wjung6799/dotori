@@ -54,7 +54,10 @@ export async function POST(request) {
   const parentName = body?.parentName?.toString().trim().slice(0, 120);
   const email = body?.email?.toString().trim().toLowerCase().slice(0, 200);
   const phone = (body?.phone?.toString().trim() || '').slice(0, 40);
+  const grade = (body?.grade?.toString().trim() || '').slice(0, 40);
   const trackLabel = TRACK_LABEL[body?.track] || '';
+  // The placement-test page books through this same route; label accordingly.
+  const purposeLabel = body?.purpose === 'placement' ? 'Placement Test' : 'Free Diagnostic Assessment';
 
   if (!scheduleId || !dateKey || !studentName || !parentName || !email) {
     return Response.json(
@@ -154,8 +157,9 @@ export async function POST(request) {
 
     // Stamp the booking with contact + track so the tutor/admin see it in context.
     try {
-      res.booking.subject = schedule.subject || 'Free Diagnostic Assessment';
+      res.booking.subject = schedule.subject || purposeLabel;
       res.booking.notes = [
+        grade && `Grade: ${grade}`,
         trackLabel && `Track: ${trackLabel}`,
         `Parent: ${parentName}`,
         `Email: ${email}`,
@@ -182,7 +186,7 @@ export async function POST(request) {
         studentName,
         tutorName: tutor?.name || 'our team',
         whenLabel: label,
-        subject: 'Free Diagnostic Assessment',
+        subject: schedule.subject || purposeLabel,
         siteUrl,
       });
       emailed = true;

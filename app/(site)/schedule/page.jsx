@@ -158,7 +158,7 @@ export default function SchedulePage() {
     <section className="container" style={{ maxWidth: 1000, margin: '48px auto', padding: '0 1rem' }}>
       <h1 style={{ textAlign: 'center', color: BROWN, marginBottom: '0.5rem' }}>Schedule a Session</h1>
       <p style={{ textAlign: 'center', color: '#9b8b77', marginBottom: '1.5rem' }}>
-        Pick a tutor and an open time. Each booking uses one of your sessions.
+        Pick an instructor and an open time. Each booking uses one of your sessions.
       </p>
 
       {!loggedIn && (
@@ -193,10 +193,10 @@ export default function SchedulePage() {
       {/* Tutor picker */}
       <div style={{ margin: '4px 0 16px' }}>
         {tutors.length === 0 ? (
-          <span style={{ color: '#9b8b77' }}>No tutors available yet.</span>
+          <span style={{ color: '#9b8b77' }}>No instructors available yet.</span>
         ) : (
           <label style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
-            <span style={{ color: BROWN, fontWeight: 600 }}>Tutor</span>
+            <span style={{ color: BROWN, fontWeight: 600 }}>Instructor</span>
             <select
               value={tutorId}
               onChange={(e) => { setTutorId(e.target.value); setWeekOffset(0); }}

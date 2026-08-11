@@ -54,7 +54,7 @@ export default function Header() {
             }
             onClick={close}
           >
-            {role === 'admin' ? 'Admin' : role === 'tutor' ? 'Tutor' : 'My Account'}
+            {role === 'admin' ? 'Admin' : role === 'tutor' ? 'Instructor' : 'My Account'}
           </Link>
         </li>
         <li className="auth-item">

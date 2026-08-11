@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import Link from 'next/link';
 
 // Contact form: student name/grade, parent name, email, phone, and a short
 // note. Submissions email the school via /api/contact.
@@ -60,6 +61,25 @@ export default function ContactForm({ heading }) {
         <div className="page-header">
           <h1>{heading}</h1>
         </div>
+
+        {/* New literacy students book their placement test directly. */}
+        <Link
+          href="/placement-test"
+          style={{
+            display: 'block',
+            background: '#fbf6e9',
+            border: '1px solid #ecd9a8',
+            borderRadius: 12,
+            padding: '1rem 1.4rem',
+            marginBottom: '1.5rem',
+            color: '#4a3c28',
+            fontWeight: 700,
+            textDecoration: 'none',
+            textAlign: 'center',
+          }}
+        >
+          🌰 New literacy student? Book a Placement Test →
+        </Link>
 
         {done ? (
           <div style={{ background: '#fff', borderRadius: 14, padding: '2.5rem', textAlign: 'center', boxShadow: '0 8px 20px rgba(139,115,85,0.08)', marginBottom: '3rem' }}>

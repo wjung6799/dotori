@@ -29,7 +29,7 @@ export default function AdminBookingPage() {
 
       <div style={{ display: 'flex', gap: 6, borderBottom: '1px solid #eee', marginBottom: 20, flexWrap: 'wrap' }}>
         {[
-          ['tutors', 'Tutors'],
+          ['tutors', 'Instructors'],
           ['availability', 'Availability'],
           ['sessions', 'Add Sessions'],
           ['bookings', 'Bookings'],
@@ -103,15 +103,15 @@ function TutorsTab() {
   return (
     <Card>
       <form onSubmit={add} style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 18 }}>
-        <input placeholder="Tutor name" value={name} onChange={(e) => setName(e.target.value)} style={inp()} required />
+        <input placeholder="Instructor name" value={name} onChange={(e) => setName(e.target.value)} style={inp()} required />
         <input placeholder="Specialty (optional)" value={specialty} onChange={(e) => setSpecialty(e.target.value)} style={inp()} />
-        <button style={btn()}>Add tutor</button>
+        <button style={btn()}>Add instructor</button>
       </form>
       {msg && <p style={{ color: '#a3261a' }}>{msg}</p>}
       {tutors.map((t) => (
         <TutorRow key={t._id} tutor={t} onChanged={load} onToggle={() => toggle(t)} onRemove={() => remove(t)} />
       ))}
-      {tutors.length === 0 && <Empty>No tutors yet. Add one above.</Empty>}
+      {tutors.length === 0 && <Empty>No instructors yet. Add one above.</Empty>}
     </Card>
   );
 }
@@ -145,7 +145,7 @@ function TutorRow({ tutor, onChanged, onToggle, onRemove }) {
     });
     const d = await res.json();
     if (!res.ok) setMsg(d.error || 'Failed.');
-    else { setMsg(d.created ? 'Login created.' : 'Existing user promoted to tutor.'); setEmail(''); setPassword(''); onChanged(); }
+    else { setMsg(d.created ? 'Login created.' : 'Existing user promoted to instructor.'); setEmail(''); setPassword(''); onChanged(); }
   }
   async function unlink() {
     if (!confirm('Unlink this login and demote them to a family account?')) return;
@@ -182,7 +182,7 @@ function TutorRow({ tutor, onChanged, onToggle, onRemove }) {
       )}
       {open && (
         <form onSubmit={link} style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center', marginTop: 10, background: '#faf8f5', padding: 10, borderRadius: 10 }}>
-          <input type="email" placeholder="tutor email" value={email} onChange={(e) => setEmail(e.target.value)} style={inp()} required />
+          <input type="email" placeholder="instructor email" value={email} onChange={(e) => setEmail(e.target.value)} style={inp()} required />
           <input type="password" placeholder="password (only if new account)" value={password} onChange={(e) => setPassword(e.target.value)} style={inp()} />
           <button style={btn()}>{linked ? 'Re-link' : 'Give login'}</button>
           {linked && <button type="button" onClick={unlink} style={danger()}>Unlink</button>}
@@ -240,7 +240,7 @@ function AvailabilityTab() {
 
   return (
     <Card>
-      <label style={{ color: BROWN, fontWeight: 600 }}>Tutor:&nbsp;</label>
+      <label style={{ color: BROWN, fontWeight: 600 }}>Instructor:&nbsp;</label>
       <select value={tutorId} onChange={(e) => setTutorId(e.target.value)} style={{ ...inp(), marginBottom: 16 }}>
         {tutors.map((t) => <option key={t._id} value={t._id}>{t.name}</option>)}
       </select>
@@ -252,7 +252,7 @@ function AvailabilityTab() {
           onCancelInstance={cancelInstance}
           onDeleteSeries={deleteSeries}
         />
-      ) : <Empty>Add a tutor first.</Empty>}
+      ) : <Empty>Add an instructor first.</Empty>}
     </Card>
   );
 }
@@ -309,9 +309,9 @@ function SessionsTab() {
         <label style={lbl()}>Sessions to add</label>
         <input type="number" min="1" value={sessions} onChange={(e) => setSessions(e.target.value)} style={inp()} required />
 
-        <label style={lbl()}>Tutor (optional; leave blank for any tutor)</label>
+        <label style={lbl()}>Instructor (optional; leave blank for any instructor)</label>
         <select value={tutorId} onChange={(e) => setTutorId(e.target.value)} style={inp()}>
-          <option value="">Any tutor</option>
+          <option value="">Any instructor</option>
           {tutors.map((t) => <option key={t._id} value={t._id}>{t.name}</option>)}
         </select>
 
@@ -327,7 +327,7 @@ function SessionsTab() {
         <Row key={g._id}>
           <div style={{ color: BROWN, fontSize: '0.9rem' }}>
             <strong>{g.userId ? (famName(g.userId)) : 'Family'}</strong> · {g.remainingSessions}/{g.totalSessions} left
-            {g.tutorId ? ` · ${g.tutorId.name}` : ' · any tutor'}
+            {g.tutorId ? ` · ${g.tutorId.name}` : ' · any instructor'}
             {g.note ? <span style={{ color: '#9b8b77' }}> · {g.note}</span> : null}
           </div>
         </Row>

@@ -237,7 +237,7 @@ export default function ProfilePage() {
       return (
         <div style={{ textAlign: 'center', padding: '3rem 1rem', color: '#aaa' }}>
           <div style={{ fontSize: '2.5rem', marginBottom: '0.5rem' }}>💬</div>
-          <p>No feedback yet. Notes from your tutor will appear here.</p>
+          <p>No feedback yet. Notes from your instructor will appear here.</p>
         </div>
       );
     }

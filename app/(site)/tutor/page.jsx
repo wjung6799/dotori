@@ -32,8 +32,8 @@ export default function TutorDashboard() {
   if (data && data.tutor === null)
     return (
       <Pad>
-        Your account isn&apos;t linked to a tutor profile yet. Ask an admin to link you on the
-        Booking Admin → Tutors tab.
+        Your account isn&apos;t linked to an instructor profile yet. Ask an admin to link you on the
+        Booking Admin → Instructors tab.
       </Pad>
     );
 
@@ -60,7 +60,7 @@ export default function TutorDashboard() {
   return (
     <section style={{ maxWidth: 1000, margin: '40px auto', padding: '0 1rem' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
-        <h1 style={{ color: BROWN, margin: 0 }}>Tutor Dashboard</h1>
+        <h1 style={{ color: BROWN, margin: 0 }}>Instructor Dashboard</h1>
       </div>
       <p style={{ color: '#9b8b77', marginTop: 0 }}>
         {data?.tutor ? `Signed in as ${data.tutor.name}` : ''}
