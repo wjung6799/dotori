@@ -356,9 +356,17 @@ function BookingsTab() {
         <Row key={b._id}>
           <div style={{ color: BROWN, fontSize: '0.9rem' }}>
             <strong>{new Date(b.startAt).toLocaleString('en-US', { weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}</strong>
-            {' · '}{b.studentName} · {b.tutorId?.name || 'Tutor'}
+            {' · '}{b.studentName} · {b.tutorId?.name || 'Instructor'}
             {' · '}<span style={{ color: '#9b8b77' }}>{famName(b.userId)}</span>
+            {b.kind === 'diagnostic' ? (
+              <span style={{ marginLeft: 8, background: '#fbf6e9', border: '1px solid #ecd9a8', color: '#8b7355', fontSize: '0.72rem', fontWeight: 700, borderRadius: 25, padding: '0.15rem 0.6rem', whiteSpace: 'nowrap' }}>
+                {b.subject || 'Placement Test'}
+              </span>
+            ) : null}
             {b.status !== 'scheduled' ? <span style={{ color: '#b5654a' }}> · {b.status}</span> : null}
+            {b.kind === 'diagnostic' && b.notes ? (
+              <div style={{ color: '#9b8b77', fontSize: '0.8rem', marginTop: 3 }}>{b.notes}</div>
+            ) : null}
           </div>
         </Row>
       ))}
