@@ -1280,7 +1280,7 @@ export default function AdminPage() {
                         <tr key={r._id}>
                           <td>
                             <a
-                              href={`/${r.pdfPath}`}
+                              href={r.pdfPath?.startsWith('http') ? r.pdfPath : `/${r.pdfPath}`}
                               target="_blank"
                               rel="noreferrer"
                               style={{ color: '#e8a87c', fontWeight: 600 }}

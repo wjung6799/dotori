@@ -33,6 +33,7 @@ export default function AdminBookingPage() {
           ['availability', 'Availability'],
           ['sessions', 'Add Sessions'],
           ['bookings', 'Bookings'],
+          ['placements', 'Placement Tests'],
         ].map(([k, label]) => (
           <button
             key={k}
@@ -56,6 +57,7 @@ export default function AdminBookingPage() {
       {tab === 'availability' && <AvailabilityTab />}
       {tab === 'sessions' && <SessionsTab />}
       {tab === 'bookings' && <BookingsTab />}
+      {tab === 'placements' && <PlacementTab />}
     </section>
   );
 }
@@ -340,37 +342,44 @@ function SessionsTab() {
 /* ─────────────────────── Bookings ─────────────────────── */
 function BookingsTab() {
   const [bookings, setBookings] = useState([]);
-  useEffect(() => {
+  const load = useCallback(() => {
     fetch('/api/admin/bookings?upcoming=1').then((r) => r.json()).then((d) => setBookings(d.bookings || []));
   }, []);
+  useEffect(() => { load(); }, [load]);
+
+  async function cancelBooking(b) {
+    const label = b.kind === 'diagnostic' ? (b.subject || 'Placement Test') : 'session';
+    if (!confirm(`Cancel this ${label} for ${b.studentName}? The time reopens on the schedule. The family is not emailed automatically, so please contact them separately.`)) return;
+    const res = await fetch(`/api/admin/bookings/${b._id}`, { method: 'DELETE' });
+    const d = await res.json().catch(() => ({}));
+    if (!res.ok) alert(d.error || 'Failed to cancel.');
+    load();
+  }
   function famName(u) {
     if (!u) return 'Family';
     const base = [u.firstName, u.lastName].filter(Boolean).join(' ') || u.name || u.email;
     const kids = (u.students || []).map((s) => s.name).filter(Boolean).join(', ');
     return kids ? `${base} (${kids})` : base;
   }
+  // Placement tests live in their own tab; this list is regular sessions only.
+  const sessions = bookings.filter((b) => b.kind !== 'diagnostic');
   return (
     <Card>
       <h3 style={{ color: BROWN, marginTop: 0 }}>Upcoming bookings</h3>
-      {bookings.map((b) => (
+      {sessions.map((b) => (
         <Row key={b._id}>
           <div style={{ color: BROWN, fontSize: '0.9rem' }}>
             <strong>{new Date(b.startAt).toLocaleString('en-US', { weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}</strong>
             {' · '}{b.studentName} · {b.tutorId?.name || 'Instructor'}
             {' · '}<span style={{ color: '#9b8b77' }}>{famName(b.userId)}</span>
-            {b.kind === 'diagnostic' ? (
-              <span style={{ marginLeft: 8, background: '#fbf6e9', border: '1px solid #ecd9a8', color: '#8b7355', fontSize: '0.72rem', fontWeight: 700, borderRadius: 25, padding: '0.15rem 0.6rem', whiteSpace: 'nowrap' }}>
-                {b.subject || 'Placement Test'}
-              </span>
-            ) : null}
             {b.status !== 'scheduled' ? <span style={{ color: '#b5654a' }}> · {b.status}</span> : null}
-            {b.kind === 'diagnostic' && b.notes ? (
-              <div style={{ color: '#9b8b77', fontSize: '0.8rem', marginTop: 3 }}>{b.notes}</div>
-            ) : null}
           </div>
+          {b.status === 'scheduled' ? (
+            <button onClick={() => cancelBooking(b)} style={danger()}>Cancel</button>
+          ) : null}
         </Row>
       ))}
-      {bookings.length === 0 && <Empty>No upcoming bookings.</Empty>}
+      {sessions.length === 0 && <Empty>No upcoming bookings.</Empty>}
     </Card>
   );
 }
@@ -393,3 +402,71 @@ const lbl = () => ({ color: BROWN, fontWeight: 600, fontSize: '0.88rem' });
 const btn = () => ({ padding: '9px 18px', borderRadius: 9, border: 'none', background: ACCENT, color: '#fff', fontWeight: 700, cursor: 'pointer' });
 const ghost = () => ({ padding: '6px 12px', borderRadius: 8, border: '1.5px solid #e6ddd2', background: '#fff', color: BROWN, cursor: 'pointer', fontSize: '0.85rem' });
 const danger = () => ({ padding: '6px 12px', borderRadius: 8, border: '1.5px solid #e0b4a0', background: '#fff', color: '#b5654a', cursor: 'pointer', fontSize: '0.85rem' });
+
+/* ─────────────────────── Placement Tests ───────────────────────
+   Upcoming placement-test (diagnostic) bookings, with the family's contact
+   details parsed out of the booking notes, and a Cancel that reopens the slot. */
+function PlacementTab() {
+  const [bookings, setBookings] = useState(null);
+  const load = useCallback(() => {
+    fetch('/api/admin/bookings?upcoming=1')
+      .then((r) => r.json())
+      .then((d) => setBookings((d.bookings || []).filter((b) => b.kind === 'diagnostic')));
+  }, []);
+  useEffect(() => { load(); }, [load]);
+
+  async function cancelBooking(b) {
+    if (!confirm(`Cancel ${b.studentName}'s ${b.subject || 'Placement Test'}? The time reopens on the public schedule. The family is not emailed automatically, so please contact them separately.`)) return;
+    const res = await fetch(`/api/admin/bookings/${b._id}`, { method: 'DELETE' });
+    const d = await res.json().catch(() => ({}));
+    if (!res.ok) alert(d.error || 'Failed to cancel.');
+    load();
+  }
+
+  // "Grade: 4 · Track: Literacy · Parent: … · Email: … · Phone: …" → {Grade, Parent, …}
+  function parseNotes(notes) {
+    const out = {};
+    for (const part of (notes || '').split(' · ')) {
+      const i = part.indexOf(': ');
+      if (i > 0) out[part.slice(0, i)] = part.slice(i + 2);
+    }
+    return out;
+  }
+
+  return (
+    <Card>
+      <h3 style={{ color: BROWN, marginTop: 0 }}>
+        Upcoming placement tests{bookings ? ` (${bookings.filter((b) => b.status === 'scheduled').length})` : ''}
+      </h3>
+      {bookings === null ? (
+        <Empty>Loading…</Empty>
+      ) : (
+        <>
+          {bookings.map((b) => {
+            const n = parseNotes(b.notes);
+            return (
+              <Row key={b._id}>
+                <div style={{ color: BROWN, fontSize: '0.9rem' }}>
+                  <strong>{new Date(b.startAt).toLocaleString('en-US', { weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}</strong>
+                  {' · '}<strong>{b.studentName}</strong>
+                  {n.Grade ? <span style={{ color: '#9b8b77' }}> · Grade {n.Grade}</span> : null}
+                  {' · '}{b.tutorId?.name || 'Instructor'}
+                  {b.status !== 'scheduled' ? <span style={{ color: '#b5654a' }}> · {b.status}</span> : null}
+                  <div style={{ color: '#9b8b77', fontSize: '0.82rem', marginTop: 3 }}>
+                    {[n.Parent && `Parent: ${n.Parent}`, n.Email, n.Phone, n.Track && `Track: ${n.Track}`]
+                      .filter(Boolean)
+                      .join(' · ')}
+                  </div>
+                </div>
+                {b.status === 'scheduled' ? (
+                  <button onClick={() => cancelBooking(b)} style={danger()}>Cancel</button>
+                ) : null}
+              </Row>
+            );
+          })}
+          {bookings.length === 0 && <Empty>No upcoming placement tests.</Empty>}
+        </>
+      )}
+    </Card>
+  );
+}
