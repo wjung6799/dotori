@@ -349,10 +349,11 @@ function BookingsTab() {
 
   async function cancelBooking(b) {
     const label = b.kind === 'diagnostic' ? (b.subject || 'Placement Test') : 'session';
-    if (!confirm(`Cancel this ${label} for ${b.studentName}? The time reopens on the schedule. The family is not emailed automatically, so please contact them separately.`)) return;
+    if (!confirm(`Cancel this ${label} for ${b.studentName}? The time reopens on the schedule, and the family will get a cancellation email automatically.`)) return;
     const res = await fetch(`/api/admin/bookings/${b._id}`, { method: 'DELETE' });
     const d = await res.json().catch(() => ({}));
     if (!res.ok) alert(d.error || 'Failed to cancel.');
+    else if (!d.emailed) alert('Cancelled, but the email could not be sent. Please contact the family directly.');
     load();
   }
   function famName(u) {
@@ -416,10 +417,11 @@ function PlacementTab() {
   useEffect(() => { load(); }, [load]);
 
   async function cancelBooking(b) {
-    if (!confirm(`Cancel ${b.studentName}'s ${b.subject || 'Placement Test'}? The time reopens on the public schedule. The family is not emailed automatically, so please contact them separately.`)) return;
+    if (!confirm(`Cancel ${b.studentName}'s ${b.subject || 'Placement Test'}? The time reopens on the public schedule, and the family will get a cancellation email automatically.`)) return;
     const res = await fetch(`/api/admin/bookings/${b._id}`, { method: 'DELETE' });
     const d = await res.json().catch(() => ({}));
     if (!res.ok) alert(d.error || 'Failed to cancel.');
+    else if (!d.emailed) alert('Cancelled, but the email could not be sent. Please contact the family directly.');
     load();
   }
 

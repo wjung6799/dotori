@@ -3,7 +3,11 @@ import dbConnect from '@/lib/db';
 import Booking from '@/lib/models/Booking';
 import SessionCredit from '@/lib/models/SessionCredit';
 import RecurringBooking from '@/lib/models/RecurringBooking';
+import User from '@/lib/models/User';
+import Tutor from '@/lib/models/Tutor';
 import { SITE_TIMEZONE } from '@/lib/slots';
+import { whenLabel } from '@/lib/recurring';
+import { sendBookingCancellation } from '@/lib/mailer';
 import { getAdminUser, forbidden } from '@/lib/auth-helpers';
 
 export const dynamic = 'force-dynamic';
@@ -41,9 +45,33 @@ export async function DELETE(request, { params }) {
       });
     }
 
+    // Email the family about the cancellation (best-effort; the cancel stands
+    // even if mail fails, and the UI tells the admin to reach out manually).
+    let emailed = false;
+    try {
+      const family = await User.findById(booking.userId).select('email firstName name');
+      if (family?.email) {
+        const tutor = await Tutor.findById(booking.tutorId).select('name').catch(() => null);
+        const siteUrl = process.env.SITE_URL || 'https://dotorischool.org';
+        await sendBookingCancellation({
+          to: family.email,
+          parentName: family.firstName || family.name || '',
+          studentName: booking.studentName,
+          tutorName: tutor?.name || 'our team',
+          whenLabel: whenLabel(booking.startAt, booking.endAt),
+          subject: booking.subject || '',
+          rebookUrl: booking.kind === 'diagnostic' ? `${siteUrl}/placement-test` : `${siteUrl}/schedule`,
+        });
+        emailed = true;
+      }
+    } catch (mailErr) {
+      console.error('Cancellation email failed:', mailErr);
+    }
+
     return Response.json({
       ok: true,
       refunded,
+      emailed,
       message: refunded ? "Booking cancelled and the family's session credit was refunded." : 'Booking cancelled.',
     });
   } catch (err) {
