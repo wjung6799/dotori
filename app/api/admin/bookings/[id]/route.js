@@ -54,7 +54,6 @@ export async function DELETE(request, { params }) {
         const tutor = await Tutor.findById(booking.tutorId).select('name').catch(() => null);
         await sendBookingCancellation({
           to: family.email,
-          parentName: [family.firstName, family.lastName].filter(Boolean).join(' ') || family.name || '',
           studentName: booking.studentName,
           tutorName: tutor?.name || 'our team',
           whenLabel: whenLabel(booking.startAt, booking.endAt),
