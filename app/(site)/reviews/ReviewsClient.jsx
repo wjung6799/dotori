@@ -22,6 +22,7 @@ const T = {
     empty: 'No reviews for this program yet. Be the first to write one below!',
     formTitle: 'Write a Review',
     formIntro: 'Your review will appear once it has been approved.',
+    formNote: 'You can write in English or Korean. (한국어로 작성하셔도 됩니다.)',
     name: 'Your Name (shown with the review)',
     namePh: 'e.g. Grace K.',
     program: 'Program',
@@ -43,6 +44,7 @@ const T = {
     empty: '아직 이 프로그램의 후기가 없습니다. 아래에서 첫 후기를 남겨 주세요!',
     formTitle: '후기 작성하기',
     formIntro: '작성하신 후기는 승인 후 게시됩니다.',
+    formNote: '한국어와 영어 모두 편하게 작성하실 수 있습니다.',
     name: '이름 (후기와 함께 표시됩니다)',
     namePh: '예: Grace K.',
     program: '프로그램',
@@ -213,7 +215,8 @@ export default function ReviewsClient() {
           {/* Submit form */}
           <div className="rv-form" id="write">
             <h2>{t.formTitle}</h2>
-            <p className="rv-form-intro">{t.formIntro}</p>
+            <p className="rv-form-intro" style={{ marginBottom: '0.2rem' }}>{t.formIntro}</p>
+            <p className="rv-form-intro" style={{ fontSize: '0.82rem' }}>{t.formNote}</p>
             {done ? (
               <p style={{ color: '#1e7a40', fontWeight: 700, margin: 0 }}>{t.done}</p>
             ) : (
