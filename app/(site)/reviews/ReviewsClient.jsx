@@ -21,7 +21,7 @@ const T = {
     ],
     empty: 'No reviews for this program yet. Be the first to write one below!',
     formTitle: 'Write a Review',
-    formIntro: 'Your review will appear once it has been approved.',
+    formIntro: 'Thank you for sharing your experience. Every review helps make Dotori School better.',
     formNote: 'You can write in English or Korean. (한국어로 작성하셔도 됩니다.)',
     name: 'Your Name (shown with the review)',
     namePh: 'e.g. Grace K.',
@@ -30,7 +30,7 @@ const T = {
     review: 'Your Review',
     submit: 'Submit Review',
     submitting: 'Submitting…',
-    done: 'Thank you! Your review has been submitted and will appear once approved.',
+    done: 'Thank you! Your review means a lot to us and will be up on the page soon.',
   },
   ko: {
     heading: '학부모 후기',
@@ -43,7 +43,7 @@ const T = {
     ],
     empty: '아직 이 프로그램의 후기가 없습니다. 아래에서 첫 후기를 남겨 주세요!',
     formTitle: '후기 작성하기',
-    formIntro: '작성하신 후기는 승인 후 게시됩니다.',
+    formIntro: '후기를 남겨 주셔서 감사합니다. 남겨 주신 이야기가 도토리스쿨을 더 나은 곳으로 만듭니다.',
     formNote: '한국어와 영어 모두 편하게 작성하실 수 있습니다.',
     name: '이름 (후기와 함께 표시됩니다)',
     namePh: '예: Grace K.',
@@ -52,7 +52,7 @@ const T = {
     review: '후기 내용',
     submit: '후기 제출',
     submitting: '제출 중…',
-    done: '감사합니다! 후기가 제출되었으며 승인 후 게시됩니다.',
+    done: '감사합니다! 남겨 주신 소중한 후기는 곧 페이지에 게시됩니다.',
   },
 };
 
