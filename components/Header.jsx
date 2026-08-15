@@ -20,6 +20,7 @@ const NAV_LINKS = [
   { href: '/team', label: 'Our Team' },
   { href: '/calendar', label: 'Calendar' },
   { dropdown: true, label: 'Programs' },
+  { href: '/reviews', label: 'Reviews' },
   { href: '/schedule', label: 'Schedule', authOnly: true },
   { href: '/contact', label: 'Contact Us', cta: true },
 ];

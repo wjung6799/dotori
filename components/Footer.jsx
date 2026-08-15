@@ -16,6 +16,7 @@ export default function Footer() {
             ['/korean', 'Korean Language'],
             ['/private-lessons', 'Private/Semi-Private Lessons'],
             ['/summer-camp', 'Summer Camp'],
+            ['/reviews', 'Reviews'],
             ['/team', 'Our Team'],
             ['/calendar', 'Calendar'],
             ['/contact', 'Contact'],
