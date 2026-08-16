@@ -14,9 +14,9 @@ const T = {
     heading: 'Parent Reviews',
     intro: 'What Dotori families say about our programs.',
     tabs: [
+      ['math', 'Math & Test Prep'],
       ['literacy', 'English Literacy'],
       ['korean', 'Korean'],
-      ['math', 'Math & Test Prep'],
       ['summer', 'Summer Camp'],
     ],
     empty: 'No reviews for this program yet. Be the first to write one below!',
@@ -36,9 +36,9 @@ const T = {
     heading: '학부모 후기',
     intro: '도토리스쿨 가족들이 전하는 프로그램 이야기입니다.',
     tabs: [
+      ['math', '수학 프로그램'],
       ['literacy', '리터러시 프로그램'],
       ['korean', '한국어 프로그램'],
-      ['math', '수학 프로그램'],
       ['summer', '써머캠프'],
     ],
     empty: '아직 이 프로그램의 후기가 없습니다. 아래에서 첫 후기를 남겨 주세요!',
@@ -65,11 +65,11 @@ const Stars = ({ n }) => (
 
 export default function ReviewsClient() {
   const [lang, setLang] = useState('en');
-  const [program, setProgram] = useState('literacy');
+  const [program, setProgram] = useState('math');
   const [reviews, setReviews] = useState(null); // all approved, filtered client-side
   const t = T[lang];
 
-  const [form, setForm] = useState({ parentName: '', program: 'literacy', rating: 5, text: '', website: '' });
+  const [form, setForm] = useState({ parentName: '', program: 'math', rating: 5, text: '', website: '' });
   const [saving, setSaving] = useState(false);
   const [done, setDone] = useState(false);
   const [msg, setMsg] = useState(null);
