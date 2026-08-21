@@ -556,8 +556,14 @@ main {
         border-top: 1px solid #f0ede8;
         display: none;
         z-index: 1000;
+        /* Cap to the visible viewport and scroll if the menu is taller, so no
+           item hides off-screen. dvh tracks the real height on mobile Safari
+           (100vh there includes the address bar); vh is the fallback. */
         max-height: calc(100vh - 56px);
+        max-height: calc(100dvh - 56px);
         overflow-y: auto;
+        -webkit-overflow-scrolling: touch;
+        overscroll-behavior: contain;
         padding: 0.25rem 0;
     }
 
