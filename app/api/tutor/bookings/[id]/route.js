@@ -33,9 +33,11 @@ export async function DELETE(request, { params }) {
     booking.status = 'cancelled';
     await booking.save();
 
+    // Refund every credit the booking consumed (2 for a private session).
+    const creditIds = booking.creditIds?.length ? booking.creditIds : booking.creditId ? [booking.creditId] : [];
     let refunded = false;
-    if (booking.creditId) {
-      await SessionCredit.findByIdAndUpdate(booking.creditId, { $inc: { remainingSessions: 1 } });
+    if (creditIds.length) {
+      await Promise.all(creditIds.map((id) => SessionCredit.findByIdAndUpdate(id, { $inc: { remainingSessions: 1 } })));
       refunded = true;
     }
 

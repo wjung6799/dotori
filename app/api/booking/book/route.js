@@ -21,6 +21,7 @@ const STATUS_FOR = {
   not_offered: 400,
   past: 400,
   full: 409,
+  occupied: 409,
   duplicate: 409,
   no_credit: 402,
   error: 500,
@@ -35,7 +36,7 @@ export async function POST(request) {
   if (!user) return unauthorized();
 
   try {
-    const { scheduleId, dateKey, studentName, recurring } = (await request.json()) || {};
+    const { scheduleId, dateKey, studentName, recurring, isPrivate } = (await request.json()) || {};
     if (!scheduleId || !dateKey || !studentName || !studentName.trim()) {
       return Response.json(
         { error: 'scheduleId, dateKey and studentName are required.' },
@@ -55,6 +56,7 @@ export async function POST(request) {
     }
 
     const name = studentName.trim();
+    const wantsPrivate = Boolean(isPrivate);
 
     // Book the picked slot using the shared core (capacity, credit, rollback).
     const first = await attemptBooking({
@@ -62,6 +64,7 @@ export async function POST(request) {
       studentName: name,
       schedule,
       dateKey,
+      isPrivate: wantsPrivate,
     });
     if (!first.ok) {
       return Response.json({ error: first.error }, { status: STATUS_FOR[first.code] || 500 });
@@ -74,9 +77,10 @@ export async function POST(request) {
     const tutor = await Tutor.findById(schedule.tutorId).select('name userId').catch(() => null);
     const siteUrl = process.env.SITE_URL || '';
 
-    // A standing weekly booking only makes sense for weekly slots.
+    // A standing weekly booking only makes sense for weekly slots. A private
+    // session is always a one-off (it consumes 2 credits for that single slot).
     const effRecurrence = schedule.recurrence || (schedule.specificDate ? 'oneoff' : 'weekly');
-    const wantsRecurring = Boolean(recurring) && effRecurrence === 'weekly';
+    const wantsRecurring = Boolean(recurring) && !wantsPrivate && effRecurrence === 'weekly';
 
     if (!wantsRecurring) {
       // ---- Single booking: behaviour unchanged. ----
@@ -113,7 +117,7 @@ export async function POST(request) {
       } catch (mailErr) {
         console.error('Tutor booking email failed:', mailErr);
       }
-      return Response.json({ ok: true, booking });
+      return Response.json({ ok: true, booking, isPrivate: wantsPrivate, creditsUsed: first.creditsUsed });
     }
 
     // ---- Standing weekly booking. ----

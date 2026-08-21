@@ -43,12 +43,14 @@ export default function SchedulePage() {
   const [picked, setPicked] = useState(null); // slot being confirmed
   const [studentName, setStudentName] = useState('');
   const [recurring, setRecurring] = useState(false); // repeat weekly toggle
+  const [privateSession, setPrivateSession] = useState(false); // whole-slot private booking
   const [msg, setMsg] = useState(null);
   const [busy, setBusy] = useState(false);
 
   function closeModal() {
     setPicked(null);
     setRecurring(false);
+    setPrivateSession(false);
   }
 
   useEffect(() => {
@@ -107,7 +109,7 @@ export default function SchedulePage() {
       const res = await fetch('/api/booking/book', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ scheduleId: picked.scheduleId, dateKey: picked.dateKey, studentName: studentName.trim(), recurring }),
+        body: JSON.stringify({ scheduleId: picked.scheduleId, dateKey: picked.dateKey, studentName: studentName.trim(), recurring, isPrivate: privateSession }),
       });
       const data = await res.json();
       if (!res.ok) setMsg({ type: 'error', text: data.error || 'Could not book.' });
@@ -116,7 +118,9 @@ export default function SchedulePage() {
           type: 'success',
           text: data.recurring
             ? `Weekly session set: ${data.recurring.booked} upcoming session${data.recurring.booked === 1 ? '' : 's'} booked. We'll keep booking it each week.`
-            : 'Session booked!',
+            : data.isPrivate
+              ? 'Private session booked! 2 sessions were used.'
+              : 'Session booked!',
         });
         closeModal();
         loadMe();
@@ -270,8 +274,8 @@ export default function SchedulePage() {
               style={{ width: '100%', padding: '10px 12px', borderRadius: 10, border: '1.5px solid #e6ddd2', margin: '6px 0 14px', fontSize: '1rem' }} />
 
             {/* Repeat weekly (progressive disclosure: one-off stays one click) */}
-            <label style={{ display: 'flex', alignItems: 'flex-start', gap: 10, padding: '10px 12px', borderRadius: 10, border: `1.5px solid ${recurring ? ACCENT : '#e6ddd2'}`, background: recurring ? '#fff7f1' : '#fff', cursor: 'pointer', marginBottom: 14 }}>
-              <input type="checkbox" checked={recurring} onChange={(e) => setRecurring(e.target.checked)} style={{ marginTop: 3 }} />
+            <label style={{ display: 'flex', alignItems: 'flex-start', gap: 10, padding: '10px 12px', borderRadius: 10, border: `1.5px solid ${recurring ? ACCENT : '#e6ddd2'}`, background: recurring ? '#fff7f1' : '#fff', cursor: 'pointer', marginBottom: 10 }}>
+              <input type="checkbox" checked={recurring} onChange={(e) => { setRecurring(e.target.checked); if (e.target.checked) setPrivateSession(false); }} style={{ marginTop: 3 }} />
               <span>
                 <span style={{ fontWeight: 700, color: BROWN }}>Repeat this weekly</span>
                 <span style={{ display: 'block', fontSize: '0.8rem', color: '#9b8b77' }}>
@@ -280,18 +284,31 @@ export default function SchedulePage() {
               </span>
             </label>
 
+            {/* Private session: books the whole slot exclusively, uses 2 sessions. */}
+            <label style={{ display: 'flex', alignItems: 'flex-start', gap: 10, padding: '10px 12px', borderRadius: 10, border: `1.5px solid ${privateSession ? ACCENT : '#e6ddd2'}`, background: privateSession ? '#fff7f1' : '#fff', cursor: 'pointer', marginBottom: 14 }}>
+              <input type="checkbox" checked={privateSession} onChange={(e) => { setPrivateSession(e.target.checked); if (e.target.checked) setRecurring(false); }} style={{ marginTop: 3 }} />
+              <span>
+                <span style={{ fontWeight: 700, color: BROWN }}>Make this a private session</span>
+                <span style={{ display: 'block', fontSize: '0.8rem', color: '#9b8b77' }}>
+                  Reserves this time just for your student. Uses <strong>2 sessions</strong>. Only available if no one else has booked it yet.
+                </span>
+              </span>
+            </label>
+
             {me && (
               <div style={{ fontSize: '0.85rem', color: me.totalRemaining > 0 ? '#1e6b2e' : '#a3261a', marginBottom: 12 }}>
                 {me.totalRemaining > 0
-                  ? recurring
-                    ? `You have ${me.totalRemaining} session${me.totalRemaining === 1 ? '' : 's'}. The next few weeks will be booked now, then one each week until they run out.`
-                    : `You have ${me.totalRemaining} session${me.totalRemaining === 1 ? '' : 's'}; one will be used.`
+                  ? privateSession
+                    ? `You have ${me.totalRemaining} session${me.totalRemaining === 1 ? '' : 's'}; a private session uses 2.${me.totalRemaining < 2 ? ' You need at least 2.' : ''}`
+                    : recurring
+                      ? `You have ${me.totalRemaining} session${me.totalRemaining === 1 ? '' : 's'}. The next few weeks will be booked now, then one each week until they run out.`
+                      : `You have ${me.totalRemaining} session${me.totalRemaining === 1 ? '' : 's'}; one will be used.`
                   : 'You have no sessions left to use.'}
               </div>
             )}
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
               <button onClick={closeModal} style={ghost()} disabled={busy}>Cancel</button>
-              <button onClick={confirmBooking} style={btn()} disabled={busy}>{busy ? 'Booking…' : recurring ? 'Book weekly' : 'Confirm'}</button>
+              <button onClick={confirmBooking} style={btn()} disabled={busy}>{busy ? 'Booking…' : recurring ? 'Book weekly' : privateSession ? 'Book private' : 'Confirm'}</button>
             </div>
           </div>
         </div>
@@ -329,6 +346,7 @@ export default function SchedulePage() {
                 <div style={{ fontWeight: 600, color: BROWN }}>
                   {fmtBookingTime(b.startAt)}
                   {b.recurringId && <span title="Part of a weekly booking" style={{ marginLeft: 8, fontSize: '0.72rem', color: ACCENT, fontWeight: 700 }}>↻ weekly</span>}
+                  {b.isPrivate && <span title="Private session (whole slot, 2 sessions)" style={{ marginLeft: 8, fontSize: '0.72rem', color: ACCENT, fontWeight: 700 }}>★ private</span>}
                 </div>
                 <div style={{ fontSize: '0.85rem', color: '#9b8b77' }}>
                   {b.studentName} · {b.tutorId?.name || 'Tutor'}{b.subject ? ` · ${b.subject}` : ''}

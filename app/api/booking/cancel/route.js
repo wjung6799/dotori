@@ -12,14 +12,15 @@ export const dynamic = 'force-dynamic';
 // least 12 hours before the session starts.
 const REFUND_CUTOFF_MS = 12 * 60 * 60 * 1000;
 
-function refundIfDue(booking) {
+// Refund every credit the booking consumed (2 for a private session, 1 for a
+// normal one). Falls back to the legacy single creditId for old bookings.
+async function refundIfDue(booking) {
   const refundable = booking.startAt.getTime() - Date.now() >= REFUND_CUTOFF_MS;
-  if (refundable && booking.creditId) {
-    return SessionCredit.findByIdAndUpdate(booking.creditId, {
-      $inc: { remainingSessions: 1 },
-    }).then(() => true);
-  }
-  return Promise.resolve(false);
+  if (!refundable) return false;
+  const ids = booking.creditIds?.length ? booking.creditIds : booking.creditId ? [booking.creditId] : [];
+  if (!ids.length) return false;
+  await Promise.all(ids.map((id) => SessionCredit.findByIdAndUpdate(id, { $inc: { remainingSessions: 1 } })));
+  return true;
 }
 
 // POST /api/booking/cancel
