@@ -106,6 +106,14 @@ function SurveyForm() {
   async function submit(e) {
     e.preventDefault();
     setMsg(null);
+    // Home Language is a checkbox group, and a checkbox group has no native
+    // "at least one" validation the way a radio group does. Without this guard
+    // the form happily posts homeLanguage: [] and the server bounces it with a
+    // raw field name. Every other required field is covered by `required`.
+    if (form.homeLanguage.length === 0) {
+      setMsg('Please choose at least one home language. (가정에서 사용하는 언어를 하나 이상 선택해 주세요.)');
+      return;
+    }
     setSaving(true);
     const res = await fetch('/api/family/survey', {
       method: 'POST',
@@ -165,6 +173,20 @@ function SurveyForm() {
         </section>
       </>
     );
+  }
+
+  // Changing school type hides the follow-up questions, so clear their answers
+  // too — otherwise a family that switches from Public School to Homeschool
+  // still submits the district and school name they picked first.
+  function setSchoolType(v) {
+    setForm((f) => ({
+      ...f,
+      schoolType: v,
+      schoolTypeOther: v === 'Other' ? f.schoolTypeOther : '',
+      schoolDistrict: v === 'Public School' ? f.schoolDistrict : '',
+      schoolDistrictOther: v === 'Public School' ? f.schoolDistrictOther : '',
+      schoolName: v === 'Public School' || v === 'Private School' ? f.schoolName : '',
+    }));
   }
 
   const showDistrict = form.schoolType === 'Public School';
@@ -251,12 +273,12 @@ function SurveyForm() {
             <div className="flabel">Current School Type (현재 재학 중인 학교 유형){req}</div>
             {['Public School', 'Private School', 'Homeschool'].map((v) => (
               <label key={v} style={choiceRow}>
-                <input type="radio" name="schoolType" style={box} checked={form.schoolType === v} onChange={() => set('schoolType', v)} required />
+                <input type="radio" name="schoolType" style={box} checked={form.schoolType === v} onChange={() => setSchoolType(v)} required />
                 {v}
               </label>
             ))}
             <label style={choiceRow}>
-              <input type="radio" name="schoolType" style={box} checked={form.schoolType === 'Other'} onChange={() => set('schoolType', 'Other')} />
+              <input type="radio" name="schoolType" style={box} checked={form.schoolType === 'Other'} onChange={() => setSchoolType('Other')} />
               Other (기타):
               <input
                 style={otherInput}
