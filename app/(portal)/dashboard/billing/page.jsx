@@ -386,8 +386,9 @@ export default function BillingPage() {
                   </p>
                 ) : null}
 
-                {/* One online method, so there is nothing to choose between —
-                    just the total, itemised so the fee is never a surprise. */}
+                {/* Only worth showing when a fee moves the number: with no
+                    adjustment it just repeats the Subtotal row above. */}
+                {quote.adjustmentCents ? (
                 <div
                   style={{
                     background: 'var(--surface-2)',
@@ -422,6 +423,7 @@ export default function BillingPage() {
                     </span>
                   </div>
                 </div>
+                ) : null}
 
                 {/* Paying monthly is now ONE invoice with the card kept on file,
                     not a stack of separate bills: the family authorizes once,

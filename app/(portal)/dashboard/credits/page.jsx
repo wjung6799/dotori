@@ -189,7 +189,9 @@ export default function CreditsPage() {
                   balance once the payment clears.
                 </p>
 
-                {/* Itemised, so the fee is never a surprise at the confirm step. */}
+                {/* Only worth showing when a fee moves the number; the package
+                    card above already states the price. */}
+                {selectedFee ? (
                 <div
                   style={{
                     background: 'var(--surface-2)',
@@ -225,6 +227,7 @@ export default function CreditsPage() {
                     </span>
                   </div>
                 </div>
+                ) : null}
 
                 {payable ? (
                   <PayPanel

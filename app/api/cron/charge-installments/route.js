@@ -1,7 +1,7 @@
 import dbConnect from '@/lib/db';
 import Invoice from '@/lib/models/Invoice';
 import User from '@/lib/models/User';
-import { installmentSchedule } from '@/lib/invoicing';
+import { nextInstallmentAmount } from '@/lib/invoicing';
 import { getStripe } from '@/lib/stripe';
 import { sendInstallmentCharged, sendInstallmentFailed } from '@/lib/mailer';
 
@@ -58,11 +58,23 @@ export async function GET(request) {
     // the invoice flows into whatever has not been charged yet.
     const schedule = installmentSchedule(invoice, n);
     const step = schedule[already];
+    if (amountCents < 50) {
+      // Nothing meaningful left to take — the balance is covered, so close the
+      // plan rather than attempting a charge Stripe would reject anyway.
+      invoice.plan.status = 'complete';
+      invoice.plan.nextChargeAt = null;
+      invoice.status = 'paid';
+      invoice.paidAt = invoice.paidAt || new Date();
+      await invoice.save();
+      result.skipped += 1;
+      continue;
+    }
+
     const user = await User.findById(invoice.userId).select('email firstName lastName name');
 
     try {
       await stripe.paymentIntents.create({
-        amount: step.amountCents,
+        amount: amountCents,
         currency: 'usd',
         customer: invoice.plan.stripeCustomerId || undefined,
         payment_method: invoice.plan.stripePaymentMethodId,
@@ -81,7 +93,7 @@ export async function GET(request) {
           method: 'card',
           installments: String(n),
           installmentNumber: String(already + 1),
-          feeCents: String(step.feeCents),
+          feeCents: '0',
         },
       });
 
@@ -92,7 +104,7 @@ export async function GET(request) {
             to: user.email,
             parentName: [user.firstName, user.lastName].filter(Boolean).join(' ') || user.name || 'there',
             invoiceNumber: invoice.number,
-            amountCents: step.amountCents,
+            amountCents,
             paymentNumber: already + 1,
             paymentCount: n,
             cardLast4: invoice.plan.cardLast4,
@@ -124,7 +136,7 @@ export async function GET(request) {
             to: user.email,
             parentName: [user.firstName, user.lastName].filter(Boolean).join(' ') || user.name || 'there',
             invoiceNumber: invoice.number,
-            amountCents: step.amountCents,
+            amountCents,
             paymentNumber: already + 1,
             paymentCount: n,
             reason: message,

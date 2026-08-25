@@ -1,7 +1,12 @@
 'use client';
 
 import { Fragment, useCallback, useEffect, useMemo, useState } from 'react';
-import { defaultOnlineFeeCents } from '@/lib/pricing';
+import { defaultOnlineFeeCents, PAYMENT_ADJUSTMENT } from '@/lib/pricing';
+
+// While fees are switched off there is nothing to set and nothing to show, so
+// the field and the column note stay out of the way rather than sitting there
+// at $0 inviting someone to fill them in.
+const FEES_ON = PAYMENT_ADJUSTMENT.mode !== 'none';
 import ClassRoster from './ClassRoster';
 
 const QUARTERS = [
@@ -330,6 +335,7 @@ export default function CatalogEditor({ literacySlots }) {
                 />
                 <p className="hint">$0 means no online payment.</p>
               </div>
+{FEES_ON ? (
               <div className="field">
                 <label htmlFor="cl-fee">Online card fee ($)</label>
                 <input
@@ -346,6 +352,7 @@ export default function CatalogEditor({ literacySlots }) {
                   Families who pay by Zelle or check are never charged it.
                 </p>
               </div>
+              ) : null}
               <div className="field">
                 <label htmlFor="cl-early">Early-bird ($)</label>
                 <input
@@ -496,9 +503,11 @@ export default function CatalogEditor({ literacySlots }) {
                             {c.earlyBirdPrice ? (
                               <div className="muted small">early {money(c.earlyBirdPrice)}</div>
                             ) : null}
-                            <div className="muted small">
-                              +{money((c.onlineFeeCents ?? defaultOnlineFeeCents(Math.round(c.price * 100))) / 100)} card fee
-                            </div>
+                            {FEES_ON ? (
+                              <div className="muted small">
+                                +{money((c.onlineFeeCents ?? defaultOnlineFeeCents(Math.round(c.price * 100))) / 100)} card fee
+                              </div>
+                            ) : null}
                           </>
                         ) : (
                           <span className="pill warn">No price</span>
