@@ -50,7 +50,9 @@ export default function CreditsPage() {
   const selected = packs.find((p) => p.id === selectedId) || null;
   // Stripe rejects anything under 50 cents, so a mispriced pack must never get a
   // pay button — send the family to a human instead of a guaranteed failure.
-  const payable = selected && selected.amountCents >= 50;
+  const selectedFee = selected?.onlineFeeCents || 0;
+  const selectedTotal = (selected?.amountCents || 0) + selectedFee;
+  const payable = selected && selectedTotal >= 50;
 
   const packName = (packId) => packs.find((p) => p.id === packId)?.name || '';
 
@@ -180,19 +182,57 @@ export default function CreditsPage() {
             {selected ? (
               <div style={{ marginTop: '1.25rem' }}>
                 <p className="strong" style={{ margin: '0 0 0.15rem' }}>
-                  {selected.name} — {formatUsd(selected.amountCents)}
+                  {selected.name}
                 </p>
-                <p className="muted small" style={{ margin: '0 0 0.6rem' }}>
+                <p className="muted small" style={{ margin: '0 0 0.7rem' }}>
                   {selected.sessions} session{selected.sessions === 1 ? '' : 's'} added to your
                   balance once the payment clears.
                 </p>
 
+                {/* Itemised, so the fee is never a surprise at the confirm step. */}
+                <div
+                  style={{
+                    background: 'var(--surface-2)',
+                    border: '1px solid var(--line-soft)',
+                    borderRadius: 'var(--radius-sm)',
+                    padding: '0.85rem 1.05rem',
+                    marginBottom: '0.9rem',
+                  }}
+                >
+                  <div className="row" style={{ background: 'none', border: 0, padding: 0 }}>
+                    <span className="main muted small">{selected.name}</span>
+                    <span className="small">{formatUsd(selected.amountCents)}</span>
+                  </div>
+                  {selectedFee ? (
+                    <div className="row" style={{ background: 'none', border: 0, padding: '0.2rem 0 0' }}>
+                      <span className="main muted small">Online payment fee</span>
+                      <span className="small">{formatUsd(selectedFee)}</span>
+                    </div>
+                  ) : null}
+                  <div
+                    className="row"
+                    style={{
+                      background: 'none',
+                      border: 0,
+                      borderTop: '1px solid var(--line)',
+                      marginTop: '0.45rem',
+                      padding: '0.45rem 0 0',
+                    }}
+                  >
+                    <span className="main strong">Total by card</span>
+                    <span className="strong" style={{ fontSize: '1.15rem' }}>
+                      {formatUsd(selectedTotal)}
+                    </span>
+                  </div>
+                </div>
+
                 {payable ? (
                   <PayPanel
-                    amountCents={selected.amountCents}
+                    amountCents={selectedTotal}
+                    methods={['card']}
                     createIntent={createIntent}
                     returnUrl="/dashboard/credits?paid=1"
-                    label={'Pay ' + formatUsd(selected.amountCents)}
+                    label={'Pay ' + formatUsd(selectedTotal)}
                   />
                 ) : (
                   <div className="notice info" style={{ marginBottom: 0 }}>

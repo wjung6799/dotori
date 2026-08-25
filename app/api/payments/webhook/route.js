@@ -150,7 +150,8 @@ async function handleCreditPurchase(pi) {
       grantedBy: 'stripe',
       stripePaymentIntentId: pi.id,
       packId: pack.id,
-      amountPaidCents: pi.amount_received ?? pack.amountCents,
+      amountPaidCents: pi.amount_received ?? pack.amountCents + (pack.onlineFeeCents || 0),
+      onlineFeeCents: Number(pi.metadata.onlineFeeCents || pack.onlineFeeCents || 0),
     });
     console.log(`Granted ${pack.sessions} credits for intent ${pi.id}`);
   } catch (err) {

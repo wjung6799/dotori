@@ -26,6 +26,7 @@ export async function GET() {
       grantedBy: g.grantedBy,
       packId: g.packId,
       amountPaidCents: g.amountPaidCents,
+      onlineFeeCents: g.onlineFeeCents || 0,
       paid: Boolean(g.stripePaymentIntentId),
       createdAt: g.createdAt,
     })),
@@ -55,8 +56,11 @@ export async function POST(request) {
 
   try {
     const stripe = getStripe();
+    // Packs carry the same online card fee as a class seat — see CREDIT_PACKS.
+    const totalCents = pack.amountCents + (pack.onlineFeeCents || 0);
+
     const paymentIntent = await stripe.paymentIntents.create({
-      amount: pack.amountCents,
+      amount: totalCents,
       currency: 'usd',
       // Must match what PayPanel builds its Element with. An Element pinned to
       // card cannot be confirmed against an intent left on automatic payment
@@ -68,6 +72,7 @@ export async function POST(request) {
         userId: user._id.toString(),
         packId: pack.id,
         sessions: String(pack.sessions),
+        onlineFeeCents: String(pack.onlineFeeCents || 0),
       },
       description: `Dotori School — ${pack.name} (${pack.sessions} session${pack.sessions === 1 ? '' : 's'})`,
       receipt_email: user.email || undefined,
@@ -75,8 +80,14 @@ export async function POST(request) {
 
     return Response.json({
       clientSecret: paymentIntent.client_secret,
-      amountCents: pack.amountCents,
-      pack: { id: pack.id, name: pack.name, sessions: pack.sessions },
+      amountCents: totalCents,
+      pack: {
+        id: pack.id,
+        name: pack.name,
+        sessions: pack.sessions,
+        priceCents: pack.amountCents,
+        onlineFeeCents: pack.onlineFeeCents || 0,
+      },
     });
   } catch (err) {
     console.error('Credit purchase error:', err);
