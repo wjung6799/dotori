@@ -1,6 +1,8 @@
+import mongoose from 'mongoose';
 import dbConnect from '@/lib/db';
 import Invoice from '@/lib/models/Invoice';
 import User from '@/lib/models/User';
+import { createInvoice } from '@/lib/invoicing';
 import { getAdminUser, forbidden } from '@/lib/auth-helpers';
 
 export const dynamic = 'force-dynamic';
@@ -85,4 +87,85 @@ export async function GET(request) {
       collectedCents: agg?.collectedCents || 0,
     },
   });
+}
+
+// POST /api/admin/invoices: raise a bill by hand.
+//
+// Class seats invoice themselves, but plenty does not: a make-up session,
+// materials, a deposit, a late fee, a term settled outside the catalog. Without
+// this the office's only way to bill for those is to fake a class.
+export async function POST(request) {
+  const admin = await getAdminUser();
+  if (!admin) return forbidden();
+
+  let body;
+  try {
+    body = await request.json();
+  } catch {
+    return Response.json({ error: 'Invalid request.' }, { status: 400 });
+  }
+
+  await dbConnect();
+
+  // Address the family by id or by email — the office thinks in email addresses.
+  let family = null;
+  if (body?.userId && mongoose.isValidObjectId(body.userId)) {
+    family = await User.findById(body.userId).select('_id email firstName lastName name students');
+  } else if (body?.email) {
+    family = await User.findOne({ email: body.email.toString().trim().toLowerCase() })
+      .select('_id email firstName lastName name students');
+  }
+  if (!family) {
+    return Response.json({ error: 'No family found for that email.' }, { status: 404 });
+  }
+
+  const items = Array.isArray(body?.items) ? body.items : [];
+  if (items.length === 0) {
+    return Response.json({ error: 'Add at least one line item.' }, { status: 400 });
+  }
+
+  const dueInDays = Number.isFinite(Number(body?.dueInDays)) ? Math.max(0, Math.round(Number(body.dueInDays))) : 14;
+
+  try {
+    const invoice = await createInvoice({
+      userId: family._id,
+      studentName: (body?.studentName || '').toString().trim(),
+      items: items.map((i) => ({
+        description: i.description,
+        detail: i.detail,
+        // The form collects dollars because that is what a human types.
+        amountCents: Math.round(Number(i.amount) * 100),
+        kind: i.kind || 'other',
+      })),
+      onlineFeeCents:
+        body?.onlineFee === undefined || body?.onlineFee === '' || body?.onlineFee === null
+          ? null
+          : Math.round(Number(body.onlineFee) * 100),
+      dueInDays,
+      summary: (body?.summary || '').toString().trim(),
+      issuedBy: [admin.firstName, admin.lastName].filter(Boolean).join(' ') || admin.name || admin.email,
+      notes: (body?.notes || '').toString().trim().slice(0, 500),
+    });
+
+    if (!invoice) {
+      return Response.json({ error: 'Every line came to $0 — nothing to bill.' }, { status: 400 });
+    }
+
+    return Response.json(
+      {
+        ok: true,
+        invoice: {
+          id: String(invoice._id),
+          number: invoice.number,
+          subtotalCents: invoice.subtotalCents,
+          onlineFeeCents: invoice.onlineFeeCents,
+        },
+        emailedTo: family.email,
+      },
+      { status: 201 },
+    );
+  } catch (err) {
+    console.error('Ad-hoc invoice creation failed:', err);
+    return Response.json({ error: 'Could not raise the invoice.' }, { status: 500 });
+  }
 }

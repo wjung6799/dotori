@@ -15,17 +15,13 @@ export async function GET() {
   await dbConnect();
   const invoices = await Invoice.find({ userId: user._id }).sort({ issuedAt: -1 }).lean();
 
-  // Unpaid first, then newest — except within a payment plan, where the family
-  // should see payment 1 before payment 3 however recently each was minted.
+  // Anything the family can act on first, then newest. A monthly plan is one
+  // invoice now, so there is no in-plan ordering left to preserve.
   const rank = { open: 0, processing: 1, paid: 2, void: 3 };
-  invoices.sort((a, b) => {
-    const byStatus = (rank[a.status] ?? 9) - (rank[b.status] ?? 9);
-    if (byStatus) return byStatus;
-    if (a.planId && a.planId === b.planId) {
-      return (a.installmentNumber || 0) - (b.installmentNumber || 0);
-    }
-    return new Date(b.issuedAt) - new Date(a.issuedAt);
-  });
+  invoices.sort(
+    (a, b) =>
+      (rank[a.status] ?? 9) - (rank[b.status] ?? 9) || new Date(b.issuedAt) - new Date(a.issuedAt),
+  );
 
   const serialized = invoices.map(serializeInvoice);
   const outstandingCents = serialized

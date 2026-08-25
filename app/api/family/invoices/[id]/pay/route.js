@@ -1,7 +1,8 @@
 import mongoose from 'mongoose';
 import dbConnect from '@/lib/db';
 import Invoice from '@/lib/models/Invoice';
-import { invoiceTotals, isPayable, STRIPE_MIN_CENTS } from '@/lib/invoicing';
+import User from '@/lib/models/User';
+import { invoiceTotals, isPayable, STRIPE_MIN_CENTS, installmentSchedule, MAX_INSTALLMENTS } from '@/lib/invoicing';
 import { ONLINE_METHODS } from '@/lib/pricing';
 import { getStripe } from '@/lib/stripe';
 import { getCurrentUser, unauthorized } from '@/lib/auth-helpers';
@@ -16,10 +17,14 @@ const METHODS = {
   ach: { types: ['us_bank_account'], label: 'bank transfer' },
 };
 
-// POST /api/family/invoices/:id/pay  body { method: 'card' | 'ach' }
+// POST /api/family/invoices/:id/pay  body { method: 'card', installments?: 2|3 }
 // Creates the PaymentIntent for one invoice and hands back its client secret.
 // The invoice is NOT settled here — only the webhook may do that, so a family
 // that abandons the sheet leaves nothing marked paid.
+//
+// With `installments`, this charges only the first of them and asks Stripe to
+// keep the card on file; the rest are taken off-session by
+// /api/cron/charge-installments. One invoice, one authorisation, no chasing.
 export async function POST(request, { params }) {
   const user = await getCurrentUser();
   if (!user) return unauthorized();
@@ -70,25 +75,62 @@ export async function POST(request, { params }) {
   }
 
   // Recomputed server-side from the stored subtotal — never from anything the
-  // client sent, so the displayed discount cannot be forged into a real one.
+  // client sent, so a fee cannot be talked down by the browser.
   const totals = invoiceTotals(invoice, method);
+
+  // A plan can only be chosen while nothing has been charged yet.
+  const wanted = Number(body?.installments);
+  const installments =
+    Number.isFinite(wanted) && wanted >= 2 && wanted <= MAX_INSTALLMENTS ? Math.round(wanted) : null;
+  if (installments && invoice.plan?.installments) {
+    return Response.json({ error: 'This invoice is already on a payment plan.' }, { status: 409 });
+  }
+
+  const schedule = installments ? installmentSchedule(invoice, installments) : null;
+  const chargeCents = schedule ? schedule[0].amountCents : totals.totalCents;
+
+  if (chargeCents < STRIPE_MIN_CENTS) {
+    return Response.json(
+      { error: 'Each payment would be below the minimum we can charge. Please pay in full.' },
+      { status: 400 },
+    );
+  }
 
   try {
     const stripe = getStripe();
+
+    // Later instalments are taken without the family present, which needs a
+    // Customer to hang the saved card on.
+    let customerId = invoice.plan?.stripeCustomerId || null;
+    if (installments && !customerId) {
+      const customer = await stripe.customers.create({
+        email: user.email || undefined,
+        name: [user.firstName, user.lastName].filter(Boolean).join(' ') || user.name || undefined,
+        metadata: { userId: String(user._id) },
+      });
+      customerId = customer.id;
+    }
+
     const paymentIntent = await stripe.paymentIntents.create({
-      amount: totals.totalCents,
+      amount: chargeCents,
       currency: 'usd',
       payment_method_types: METHODS[method].types,
-      description: `Dotori School invoice ${invoice.number}`,
+      description: installments
+        ? `Dotori School invoice ${invoice.number} — payment 1 of ${installments}`
+        : `Dotori School invoice ${invoice.number}`,
       receipt_email: user.email || undefined,
+      ...(installments
+        ? { customer: customerId, setup_future_usage: 'off_session' }
+        : {}),
       metadata: {
         source: 'invoice',
         invoiceId: String(invoice._id),
         invoiceNumber: invoice.number,
         userId: String(user._id),
         method,
-        adjustmentCents: String(totals.adjustmentCents),
-        adjustmentLabel: totals.adjustmentLabel,
+        installments: installments ? String(installments) : '',
+        installmentNumber: installments ? '1' : '',
+        feeCents: String(schedule ? schedule[0].feeCents : totals.adjustmentCents),
       },
     });
 
@@ -99,12 +141,28 @@ export async function POST(request, { params }) {
     invoice.adjustmentCents = totals.adjustmentCents;
     invoice.adjustmentLabel = totals.adjustmentLabel;
     invoice.lastPaymentError = '';
+    if (installments) {
+      // Recorded now so a family who closes the tab mid-payment still sees the
+      // plan they chose; the webhook is what actually starts charging it.
+      invoice.plan = {
+        ...(invoice.plan?.toObject?.() ?? invoice.plan ?? {}),
+        installments,
+        chargedCount: 0,
+        stripeCustomerId: customerId,
+        status: 'active',
+        lastError: '',
+        failedAttempts: 0,
+      };
+    }
     await invoice.save();
 
     return Response.json({
       clientSecret: paymentIntent.client_secret,
       totals,
       method,
+      installments,
+      chargeCents,
+      schedule,
     });
   } catch (err) {
     console.error('Invoice payment intent error:', err);

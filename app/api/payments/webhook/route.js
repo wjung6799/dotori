@@ -3,6 +3,7 @@ import Enrollment from '@/lib/models/Enrollment';
 import Order from '@/lib/models/Order';
 import SessionCredit from '@/lib/models/SessionCredit';
 import Invoice from '@/lib/models/Invoice';
+import { nextChargeDate } from '@/lib/invoicing';
 import { findPack } from '@/lib/pricing';
 import { getStripe } from '@/lib/stripe';
 import { sendOrderConfirmation } from '@/lib/mailer';
@@ -38,7 +39,7 @@ export async function POST(request) {
       } else if (source === 'credits') {
         await handleCreditPurchase(pi);
       } else if (source === 'invoice') {
-        await settleInvoice(pi);
+        await settleInvoice(pi, stripe);
       } else {
         await Enrollment.findOneAndUpdate(
           { stripePaymentIntentId: pi.id },
@@ -63,15 +64,23 @@ export async function POST(request) {
       // which is exactly why nothing is marked paid before this point.
       if (source === 'invoice') {
         await dbConnect();
-        await Invoice.findOneAndUpdate(
-          { stripePaymentIntentId: pi.id, status: { $ne: 'paid' } },
-          {
-            status: 'open',
-            lastPaymentError:
-              pi.last_payment_error?.message || 'The payment did not go through. Please try again.',
-          },
-        );
-        console.log(`Invoice payment failed for intent ${pi.id}`);
+        const message =
+          pi.last_payment_error?.message || 'The payment did not go through. Please try again.';
+        const inv = await Invoice.findById(pi.metadata.invoiceId);
+        if (inv && inv.status !== 'paid') {
+          inv.lastPaymentError = message;
+          if (inv.plan?.status === 'active' && (inv.plan.chargedCount || 0) > 0) {
+            // A plan that has already taken money must not fall back to "open" —
+            // that would invite the family to pay the whole thing again.
+            inv.plan.lastError = message;
+            inv.plan.failedAttempts = (inv.plan.failedAttempts || 0) + 1;
+            if (inv.plan.failedAttempts >= 3) inv.plan.status = 'failed';
+          } else {
+            inv.status = 'open';
+          }
+          await inv.save();
+        }
+        console.log(`Invoice payment failed for intent ${pi.id}: ${message}`);
       }
     }
   } catch (err) {
@@ -81,53 +90,100 @@ export async function POST(request) {
   return Response.json({ received: true });
 }
 
-// A family paid an invoice. The enrollment it belongs to is settled at the same
-// time, so the portal and the admin's enrollment list agree.
+// A charge against an invoice landed. Handles both a single payment and one
+// instalment of a monthly plan.
 //
-// The status guard makes a webhook redelivery a no-op: the second delivery
-// matches nothing, because the first already moved the invoice to 'paid'.
-async function settleInvoice(pi) {
+// Idempotency is the $ne guard on the payments array: a redelivered event finds
+// its own intent id already recorded and matches nothing, so it cannot be
+// counted twice.
+async function settleInvoice(pi, stripe) {
+  const amountCents = pi.amount_received ?? pi.amount;
+  const feeCents = Number(pi.metadata.feeCents || 0);
+  const installments = Number(pi.metadata.installments || 0) || null;
+  const installmentNumber = Number(pi.metadata.installmentNumber || 0) || null;
+
   const invoice = await Invoice.findOneAndUpdate(
-    { stripePaymentIntentId: pi.id, status: { $ne: 'paid' } },
+    { _id: pi.metadata.invoiceId, 'payments.stripePaymentIntentId': { $ne: pi.id } },
     {
-      status: 'paid',
-      paidAt: new Date(),
-      totalPaidCents: pi.amount_received ?? pi.amount,
-      lastPaymentError: '',
+      $push: {
+        payments: {
+          at: new Date(),
+          amountCents,
+          feeCents,
+          stripePaymentIntentId: pi.id,
+          installmentNumber,
+        },
+      },
+      $inc: { totalPaidCents: amountCents },
+      $set: { lastPaymentError: '' },
     },
     { new: true },
   );
   if (!invoice) {
-    console.log(`Invoice for intent ${pi.id} already settled; skipping.`);
+    console.log(`Payment ${pi.id} already recorded; skipping.`);
     return;
   }
 
-  if (invoice.enrollmentId) {
-    // A seat on a payment plan is not settled by its first instalment. Gather
-    // every live invoice in the plan and only mark the enrollment paid once all
-    // of them have landed — otherwise one payment of three closes the debt.
-    const siblings = invoice.planId
-      ? await Invoice.find({ planId: invoice.planId, status: { $ne: 'void' } }).lean()
-      : [invoice];
+  const planned = invoice.plan?.installments || installments;
 
-    const allPaid = siblings.length > 0 && siblings.every((s) => s.status === 'paid');
-    // Tuition only. The convenience fee is what the card channel cost, not
-    // revenue for the class, and folding it in here would inflate every
-    // tuition figure the school reports.
-    const tuitionPaidCents = siblings
-      .filter((s) => s.status === 'paid')
-      .reduce((sum, s) => sum + (s.subtotalCents || 0), 0);
+  if (!planned) {
+    invoice.status = 'paid';
+    invoice.paidAt = new Date();
+    await invoice.save();
+  } else {
+    const chargedCount = invoice.payments.length;
+    invoice.plan.installments = planned;
+    invoice.plan.chargedCount = chargedCount;
+    invoice.plan.lastError = '';
+    invoice.plan.failedAttempts = 0;
+
+    // Keep the card for the remaining instalments. Only worth doing on the first
+    // charge — later ones already used the stored method.
+    if (pi.payment_method && !invoice.plan.stripePaymentMethodId) {
+      invoice.plan.stripePaymentMethodId =
+        typeof pi.payment_method === 'string' ? pi.payment_method : pi.payment_method.id;
+      if (pi.customer) invoice.plan.stripeCustomerId = pi.customer;
+      try {
+        const pm = await stripe.paymentMethods.retrieve(invoice.plan.stripePaymentMethodId);
+        invoice.plan.cardBrand = pm.card?.brand || '';
+        invoice.plan.cardLast4 = pm.card?.last4 || '';
+      } catch {
+        /* cosmetic only — the plan still charges without the brand */
+      }
+    }
+
+    if (chargedCount >= planned) {
+      invoice.status = 'paid';
+      invoice.paidAt = new Date();
+      invoice.plan.status = 'complete';
+      invoice.plan.nextChargeAt = null;
+    } else {
+      // Partly paid is its own state: the family owes nothing today but the
+      // invoice is not settled, so it must not read as either.
+      invoice.status = 'processing';
+      invoice.plan.status = 'active';
+      invoice.plan.nextChargeAt = nextChargeDate(invoice, chargedCount);
+    }
+    await invoice.save();
+  }
+
+  if (invoice.enrollmentId) {
+    // The seat is settled only when the invoice is, which for a plan means every
+    // instalment has landed. amountPaid tracks tuition actually received.
+    const tuitionPaidCents =
+      invoice.status === 'paid'
+        ? invoice.subtotalCents
+        : Math.max(0, (invoice.totalPaidCents || 0) - (invoice.payments || []).reduce((sum, p) => sum + (p.feeCents || 0), 0));
 
     await Enrollment.findByIdAndUpdate(invoice.enrollmentId, {
       amountPaid: tuitionPaidCents / 100,
-      ...(allPaid ? { paymentStatus: 'paid', paidAt: new Date() } : {}),
+      ...(invoice.status === 'paid' ? { paymentStatus: 'paid', paidAt: new Date() } : {}),
     });
-    if (!allPaid) {
-      const done = siblings.filter((s) => s.status === 'paid').length;
-      console.log(`Enrollment ${invoice.enrollmentId} now ${done}/${siblings.length} paid; still pending.`);
-    }
   }
-  console.log(`Invoice ${invoice.number} paid via ${invoice.paymentMethod} (${pi.id})`);
+
+  console.log(
+    `Invoice ${invoice.number}: ${invoice.payments.length}/${planned || 1} charged, status ${invoice.status}`,
+  );
 }
 
 // A family bought a session-credit pack in the portal. The grant is created here

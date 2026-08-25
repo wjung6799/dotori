@@ -1,6 +1,7 @@
 {
   "crons": [
     { "path": "/api/cron/poll-lulu", "schedule": "0 * * * *" },
-    { "path": "/api/cron/book-recurring", "schedule": "0 8 * * *" }
+    { "path": "/api/cron/book-recurring", "schedule": "0 8 * * *" },
+    { "path": "/api/cron/charge-installments", "schedule": "0 9 * * *" }
   ]
 }

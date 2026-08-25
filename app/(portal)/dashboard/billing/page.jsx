@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
+import Link from 'next/link';
 
 import LocalTime from '../../LocalTime';
 import PayPanel from '../../PayPanel';
@@ -35,6 +36,43 @@ const METHOD_LABEL = { ach: 'bank transfer (ACH)', card: 'card', offline: 'Zelle
 // lib/pricing.js. Anyone who would rather not pay the fee uses Zelle or a check.
 const ONLINE_METHOD = 'card';
 
+// Mirrors MAX_INSTALLMENTS in lib/invoicing.js. Not imported: that module pulls
+// in the Mongo models and the mailer, neither of which belongs in a client
+// bundle. Three months is the ceiling — past that a term ends before it is paid.
+const MAX_INSTALLMENTS = 3;
+
+// Stripe rejects anything under 50 cents, so a bill too small to divide is only
+// ever payable in full. Mirrors STRIPE_MIN_CENTS in lib/invoicing.js.
+const STRIPE_MIN_CENTS = 50;
+
+// Divide integer cents into n parts that add back to exactly the total, with the
+// remainder on the FIRST payment. This MUST stay identical to
+// installmentSchedule() in lib/invoicing.js — the moment the two disagree, the
+// pay button promises a figure the server does not charge.
+function splitCents(totalCents, n) {
+  const base = Math.floor(totalCents / n);
+  const remainder = totalCents - base * n;
+  return Array.from({ length: n }, (_, i) => base + (i === 0 ? remainder : 0));
+}
+
+// "$141.34 today · $141.33 in 1 month · $141.33 in 2 months" — the same amounts
+// the cron will take, in the order it will take them.
+function scheduleText(totalCents, n) {
+  return splitCents(totalCents, n)
+    .map((cents, i) => money(cents) + (i === 0 ? ' today' : ' in ' + i + (i === 1 ? ' month' : ' months')))
+    .join(' · ');
+}
+
+// "visa ending 4242" when Stripe told us what was saved, a neutral phrase when
+// it did not — the sentence around it reads the same either way.
+function cardLabel(plan) {
+  return (
+    [plan?.cardBrand, plan?.cardLast4 ? 'ending ' + plan.cardLast4 : '']
+      .filter(Boolean)
+      .join(' ') || 'card on file'
+  );
+}
+
 export default function BillingPage() {
   const [invoiceData, setInvoiceData] = useState(null);
   const [history, setHistory] = useState(null);
@@ -48,8 +86,10 @@ export default function BillingPage() {
   // Chosen method per invoice. Bank transfer is the default because it is the
   // cheaper option for the family; picking it should never be the extra step.
   const [methodById, setMethodById] = useState({});
-  // Per-invoice busy flag, so splitting one bill does not blank the whole page.
-  const [splitting, setSplitting] = useState({});
+  // Chosen plan per invoice: 1 is pay in full, n > 1 an n-month plan on one
+  // invoice. Full is the default — a family that wants a plan asks for it, and
+  // nobody should have to opt out of one they never chose.
+  const [planById, setPlanById] = useState({});
 
   const load = useCallback(async () => {
     const [invRes, histRes] = await Promise.allSettled([
@@ -95,7 +135,6 @@ export default function BillingPage() {
   const invoices = invoiceData?.invoices || [];
   const savingsHint = invoiceData?.savingsHint || '';
   const outstandingCents = invoiceData?.outstandingCents ?? 0;
-  const paidCents = history?.paidCents ?? 0;
 
   const payable = invoices.filter((inv) => inv.status === 'open' || inv.status === 'processing');
   const openCount = invoices.filter((inv) => inv.status === 'open').length;
@@ -107,8 +146,7 @@ export default function BillingPage() {
 
   // ...but it DOES list the class enrollment the invoice was raised for, and the
   // webhook settles both in the same breath. Drop the enrollment row an invoice
-  // supersedes, or the family sees one payment twice and the rows no longer add
-  // up to the "Total paid" figure above.
+  // supersedes, or the family sees the same payment listed twice.
   const supersededIds = new Set(
     paidInvoices.filter((inv) => inv.enrollmentId).map((inv) => 'enr-' + inv.enrollmentId),
   );
@@ -130,6 +168,7 @@ export default function BillingPage() {
   ].sort((a, b) => new Date(b.at) - new Date(a.at));
 
   const methodFor = () => ONLINE_METHOD;
+  const planFor = (id) => planById[id] || 1;
 
   function choose(id, method) {
     // Tapping the method that is already live collapses the panel, so a family
@@ -142,34 +181,22 @@ export default function BillingPage() {
     setActiveId(id);
   }
 
-  async function splitInto(invoiceId, installments) {
-    setSplitting((prev) => ({ ...prev, [invoiceId]: true }));
-    setError('');
-    try {
-      const res = await fetch(`/api/family/invoices/${invoiceId}/split`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ installments }),
-      });
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(data.error || 'Could not set up the payment plan.');
-      // The original invoice is now void and N new ones exist, so reload rather
-      // than patching the list in place.
-      setActiveId('');
-      await load();
-    } catch (err) {
-      setError(err.message);
-    } finally {
-      setSplitting((prev) => ({ ...prev, [invoiceId]: false }));
-    }
+  function choosePlan(id, installments) {
+    if (planFor(id) === installments) return;
+    setPlanById((prev) => ({ ...prev, [id]: installments }));
+    // The Payment Element is built for one fixed amount, so a plan change has to
+    // tear an open panel down rather than quietly confirm the old figure.
+    if (activeId === id) setActiveId('');
   }
 
-  function createIntentFor(invoiceId, method) {
+  function createIntentFor(invoiceId, method, installments) {
     return async () => {
       const res = await fetch('/api/family/invoices/' + invoiceId + '/pay', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ method }),
+        // Paying in full sends no `installments` at all: the route reads any
+        // number it is given as a request for a plan.
+        body: JSON.stringify(installments > 1 ? { method, installments } : { method }),
       });
       const payload = await res.json().catch(() => ({}));
       if (!res.ok || !payload.clientSecret) {
@@ -193,15 +220,15 @@ export default function BillingPage() {
 
       {justPaid ? (
         <div className="notice ok">
-          <strong>Your payment went through — thank you.</strong> A card payment shows as paid within
-          a few seconds. A bank transfer takes 3–5 business days to clear, so it will sit as
-          “processing” until then. This page refreshes itself in a moment.
+          <strong>Your payment went through — thank you.</strong> A card payment shows as paid
+          within a few seconds. If you chose to pay monthly, the first payment is done and we take
+          the rest from the same card ourselves. This page refreshes itself in a moment.
         </div>
       ) : null}
 
       {error ? <div className="notice err">{error}</div> : null}
 
-      {/* ── The two numbers that matter ──────────────────────────────────── */}
+      {/* ── The number that matters ──────────────────────────────────────── */}
       <div className="grid" style={{ marginBottom: '1.1rem' }}>
         <div className="stat">
           <div className="label">Outstanding</div>
@@ -215,11 +242,6 @@ export default function BillingPage() {
                 ? 'Nothing due right now'
                 : openCount + (openCount === 1 ? ' invoice' : ' invoices') + ' waiting to be paid'}
           </div>
-        </div>
-        <div className="stat">
-          <div className="label">Total paid</div>
-          <div className="value">{history ? money(paidCents) : '—'}</div>
-          <div className="hint">Across classes, session credits and the store</div>
         </div>
       </div>
 
@@ -265,20 +287,39 @@ export default function BillingPage() {
         // A processing invoice was already quoted at intent time, so show the
         // amount actually in flight rather than the raw subtotal.
         const inFlightCents = inv.quotes?.[inv.paymentMethod]?.totalCents ?? inv.subtotalCents;
+        const planFailed = inv.plan?.status === 'failed';
+
+        // Every part has to clear Stripe's floor, or the plan is a dead button.
+        const canPlan = Math.floor(quote.totalCents / MAX_INSTALLMENTS) >= STRIPE_MIN_CENTS;
+        const plan = canPlan ? planFor(inv.id) : 1;
+        // On a plan only the first payment is taken now; the cron takes the rest.
+        const chargeCents = plan > 1 ? splitCents(quote.totalCents, plan)[0] : quote.totalCents;
 
         return (
           <div className="card" key={inv.id}>
             <div className="card-head">
               <h2>
                 {inv.number}
-                {inv.installmentCount ? (
+                {inv.plan ? (
                   <span className="muted small nowrap">
-                    {'  ·  Payment ' + inv.installmentNumber + ' of ' + inv.installmentCount}
+                    {'  ·  ' + (inv.plan.chargedCount || 0) + ' of ' + inv.plan.installments + ' paid'}
                   </span>
                 ) : null}
               </h2>
-              <span className={isOpen ? (overdue ? 'pill err' : 'pill warn') : 'pill info'}>
-                {isOpen ? (overdue ? 'overdue' : 'due') : 'processing'}
+              <span
+                className={
+                  isOpen ? (overdue ? 'pill err' : 'pill warn') : planFailed ? 'pill err' : 'pill info'
+                }
+              >
+                {isOpen
+                  ? overdue
+                    ? 'overdue'
+                    : 'due'
+                  : planFailed
+                    ? 'payment failed'
+                    : inv.plan
+                      ? 'paying monthly'
+                      : 'processing'}
               </span>
             </div>
 
@@ -331,7 +372,7 @@ export default function BillingPage() {
             {isOpen ? (
               <>
                 {inv.lastPaymentError ? (
-                  // A bank debit can bounce days after the family thought they
+                  // A card can be declined days after the family thought they
                   // were done. This is the only place they would ever find out.
                   <div className="notice err" style={{ marginTop: '1rem' }}>
                     <strong>Your last payment did not go through.</strong> {inv.lastPaymentError} You
@@ -382,39 +423,67 @@ export default function BillingPage() {
                   </div>
                 </div>
 
-                {/* Splitting is offered only on a bill that is not already one
-                    instalment of a plan, and only while nothing has been paid. */}
-                {!inv.installmentCount && !splitting[inv.id] ? (
-                  <p className="muted small" style={{ margin: '0.8rem 0 0' }}>
-                    Rather pay monthly?{' '}
-                    {[2, 3].map((n, i) => (
-                      <span key={n}>
-                        {i ? ' · ' : ''}
-                        <button
-                          type="button"
-                          className="link"
-                          style={{
-                            background: 'none',
-                            border: 0,
-                            padding: 0,
-                            font: 'inherit',
-                            color: 'var(--brown-mid)',
-                            fontWeight: 700,
-                            cursor: 'pointer',
-                          }}
-                          onClick={() => splitInto(inv.id, n)}
-                        >
-                          Split into {n} payments
-                        </button>
-                      </span>
-                    ))}
-                    . The total stays {money(quote.totalCents)} — the fee is split too.
-                  </p>
-                ) : null}
-                {splitting[inv.id] ? (
-                  <p className="muted small" style={{ margin: '0.8rem 0 0' }}>
-                    Setting up your payment plan…
-                  </p>
+                {/* Paying monthly is now ONE invoice with the card kept on file,
+                    not a stack of separate bills: the family authorises once,
+                    the first payment goes through there and then, and the cron
+                    takes the rest. The total is identical either way, so the
+                    choice is about cash flow and nothing else. */}
+                {canPlan ? (
+                  <>
+                    <div className="grid-2" style={{ marginTop: '0.9rem' }}>
+                      {[1, MAX_INSTALLMENTS].map((n) => {
+                        const chosen = plan === n;
+                        return (
+                          <button
+                            key={inv.id + '-plan-' + n}
+                            type="button"
+                            className="card"
+                            aria-pressed={chosen}
+                            onClick={() => choosePlan(inv.id, n)}
+                            style={{
+                              margin: 0,
+                              font: 'inherit',
+                              textAlign: 'left',
+                              cursor: 'pointer',
+                              width: '100%',
+                              borderWidth: chosen ? 2 : 1,
+                              borderColor: chosen ? 'var(--brown-mid)' : 'var(--line)',
+                            }}
+                          >
+                            <div className="card-head" style={{ marginBottom: '0.4rem' }}>
+                              <h2>{n === 1 ? 'Pay in full' : 'Pay monthly'}</h2>
+                              {chosen ? <span className="pill info">Chosen</span> : null}
+                            </div>
+                            <div
+                              className="strong"
+                              style={{ fontSize: '1.45rem', fontWeight: 800, lineHeight: 1.2 }}
+                            >
+                              {/* The first payment carries the rounding remainder, so
+                                  "3 × $141.34" would advertise $424.02 against a
+                                  $424.00 bill. Quote the real first payment instead. */}
+                              {n === 1
+                                ? money(quote.totalCents)
+                                : money(splitCents(quote.totalCents, n)[0]) + ' / mo'}
+                            </div>
+                            <p className="muted small" style={{ margin: '0.2rem 0 0' }}>
+                              {n === 1
+                                ? 'One payment, today.'
+                                : `First of ${n} monthly payments, charged today. Same total — ` +
+                                  money(quote.totalCents) +
+                                  '.'}
+                            </p>
+                          </button>
+                        );
+                      })}
+                    </div>
+
+                    {plan > 1 ? (
+                      <p className="muted small" style={{ margin: '0.6rem 0 0' }}>
+                        {scheduleText(quote.totalCents, plan)}. We keep your card for the later ones
+                        and email you each time.
+                      </p>
+                    ) : null}
+                  </>
                 ) : null}
 
                 {!isActive ? (
@@ -424,32 +493,90 @@ export default function BillingPage() {
                     style={{ marginTop: '1rem' }}
                     onClick={() => choose(inv.id, ONLINE_METHOD)}
                   >
-                    Pay {money(quote.totalCents)} by card
+                    {plan > 1
+                      ? 'Pay ' + money(chargeCents) + ' now by card'
+                      : 'Pay ' + money(quote.totalCents) + ' by card'}
                   </button>
                 ) : (
                   <div style={{ marginTop: '1.25rem' }}>
                     <p className="strong" style={{ margin: '0 0 0.15rem' }}>
-                      Paying {money(quote.totalCents)} by card
+                      Paying {money(chargeCents)} by card
                     </p>
                     <p className="muted small" style={{ margin: '0 0 0.6rem' }}>
-                      Your card is charged now and the invoice is marked paid within seconds.
+                      {plan > 1
+                        ? 'This is payment 1 of ' +
+                          plan +
+                          '. Your card is charged now and kept for the rest — nothing else to do.'
+                        : 'Your card is charged now and the invoice is marked paid within seconds.'}
                     </p>
-                    {/* Keyed so switching invoice builds a clean panel rather than
-                        reusing an Element created for the last one. */}
+                    {/* Keyed on the plan as well as the invoice: the Element is
+                        built for one amount, so switching plans has to build a
+                        fresh panel rather than reuse the last one. */}
                     <PayPanel
-                      key={inv.id + ':' + ONLINE_METHOD}
-                      amountCents={quote.totalCents}
+                      key={inv.id + ':' + ONLINE_METHOD + ':' + plan}
+                      amountCents={chargeCents}
                       methods={['card']}
-                      createIntent={createIntentFor(inv.id, ONLINE_METHOD)}
+                      // A plan keeps the card for the later payments, so the
+                      // Element has to be built for that too or Stripe refuses
+                      // the confirm on a setup_future_usage mismatch.
+                      saveCard={plan > 1}
+                      createIntent={createIntentFor(inv.id, ONLINE_METHOD, plan)}
                       returnUrl="/dashboard/billing?paid=1"
-                      label={'Pay ' + money(quote.totalCents)}
+                      label={'Pay ' + money(chargeCents)}
                     />
                   </div>
                 )}
               </>
+            ) : inv.plan ? (
+              // Not a bank debit clearing: a plan part-way through. The money is
+              // committed and the card is on file, so there must be no second
+              // way to pay — only a clear account of what happens next.
+              <>
+                {planFailed ? (
+                  <div className="notice err" style={{ margin: '1rem 0 0' }}>
+                    <strong>
+                      Your last monthly payment was declined — {inv.plan.chargedCount || 0} of{' '}
+                      {inv.plan.installments} have gone through.
+                    </strong>{' '}
+                    {inv.plan.lastError ? inv.plan.lastError + ' ' : ''}We have stopped trying, so
+                    your card is not charged over and over.{' '}
+                    <Link href="/contact">Contact the school</Link> and we will settle the rest with
+                    you.
+                  </div>
+                ) : (
+                  <div className="notice info" style={{ margin: '1rem 0 0' }}>
+                    <strong>
+                      Paying monthly — {inv.plan.chargedCount || 0} of {inv.plan.installments} taken
+                      from your {cardLabel(inv.plan)}.
+                    </strong>{' '}
+                    {inv.plan.nextChargeAt ? (
+                      <>
+                        The next payment is due{' '}
+                        <LocalTime iso={inv.plan.nextChargeAt} format="date" />.{' '}
+                      </>
+                    ) : null}
+                    Nothing is needed from you — we will email you each time.
+                  </div>
+                )}
+
+                {(inv.payments || []).length ? (
+                  <div className="muted small" style={{ marginTop: '0.7rem' }}>
+                    {inv.payments.map((p, i) => (
+                      <div key={inv.number + '-pay-' + i}>
+                        Payment {p.installmentNumber || i + 1} · {money(p.amountCents)}
+                        {p.at ? (
+                          <>
+                            {' · '}
+                            <LocalTime iso={p.at} format="date" />
+                          </>
+                        ) : null}
+                      </div>
+                    ))}
+                  </div>
+                ) : null}
+              </>
             ) : (
-              // Processing: the money is already on its way, so there must be no
-              // way to pay it a second time.
+              // Processing without a plan: an older bank transfer still clearing.
               <div className="notice info" style={{ margin: '1rem 0 0' }}>
                 <strong>We have your {METHOD_LABEL[inv.paymentMethod] || 'payment'} for {money(inFlightCents)}.</strong>{' '}
                 Bank transfers take 3–5 business days to clear. Nothing more is needed from you — the
