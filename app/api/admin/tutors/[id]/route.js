@@ -15,6 +15,17 @@ export async function PUT(request, { params }) {
     for (const k of ['name', 'specialty', 'bio', 'active', 'sortOrder']) {
       if (body[k] !== undefined) update[k] = body[k];
     }
+    // Session-credit rates for this tutor. Sanitised here because the family
+    // side derives real prices from these two numbers.
+    if (body.rates !== undefined) {
+      update.rates = (Array.isArray(body.rates) ? body.rates : [])
+        .map((r) => ({
+          sessions: Math.max(1, Math.round(Number(r?.sessions) || 0)),
+          ratePerHour: Math.max(0, Number(r?.ratePerHour) || 0),
+          tag: (r?.tag || '').toString().trim().slice(0, 40),
+        }))
+        .filter((r) => r.sessions > 0 && r.ratePerHour > 0);
+    }
     if (body.slug !== undefined) {
       update.slug = body.slug.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
     }

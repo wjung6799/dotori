@@ -181,7 +181,26 @@ export default function BookingPage() {
     .sort((a, b) => new Date(a.startAt) - new Date(b.startAt));
   const recurringSeries = me?.recurring || [];
   const selectedTutor = tutors.find((t) => t._id === tutorId);
-  const remaining = me ? me.totalRemaining : null;
+
+  // Credits are per instructor: one bought for Yesol cannot book Won. Showing a
+  // single grand total would promise sessions this instructor cannot take, so
+  // the number here is what is spendable on the instructor currently selected —
+  // their own credits plus any that work with anybody.
+  const spendable = (() => {
+    if (!me) return null;
+    const grants = me.credits || [];
+    let mine = 0;
+    let anyone = 0;
+    for (const g of grants) {
+      const left = g.remainingSessions || 0;
+      if (left <= 0) continue;
+      const gid = g.tutorId ? String(g.tutorId._id ?? g.tutorId) : null;
+      if (!gid) anyone += left;
+      else if (gid === tutorId) mine += left;
+    }
+    return { withThisTutor: mine, anyInstructor: anyone, total: mine + anyone };
+  })();
+  const remaining = spendable ? spendable.total : null;
 
   return (
     <>
@@ -199,12 +218,20 @@ export default function BookingPage() {
           buy more sits right next to the number. */}
       <div className="grid grid-2" style={{ marginBottom: '1.1rem' }}>
         <div className="stat">
-          <div className="label">Sessions remaining (남은 수업)</div>
+          <div className="label">
+            {selectedTutor ? `Sessions with ${selectedTutor.name} (남은 수업)` : 'Sessions remaining (남은 수업)'}
+          </div>
           <div className="value">{remaining === null ? '…' : remaining}</div>
           <div className="hint" style={{ marginBottom: '0.7rem' }}>
             {remaining === 0
-              ? 'You have no sessions left to use.'
-              : 'One session per booking; a private session uses two.'}
+              ? selectedTutor
+                ? `You have no sessions left with ${selectedTutor.name}.`
+                : 'You have no sessions left to use.'
+              : spendable && spendable.anyInstructor > 0 && spendable.withThisTutor > 0
+                ? `${spendable.withThisTutor} with this instructor, plus ${spendable.anyInstructor} usable with anyone.`
+                : spendable && spendable.anyInstructor > 0
+                  ? 'Usable with any instructor.'
+                  : 'One session per booking; a private session uses two.'}
           </div>
           <Link href="/dashboard/credits" className="btn btn-accent btn-sm">Buy more credits</Link>
         </div>

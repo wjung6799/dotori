@@ -4,7 +4,6 @@ import Order from '@/lib/models/Order';
 import SessionCredit from '@/lib/models/SessionCredit';
 import Invoice from '@/lib/models/Invoice';
 import { nextChargeDate } from '@/lib/invoicing';
-import { findPack } from '@/lib/pricing';
 import { getStripe } from '@/lib/stripe';
 import { sendOrderConfirmation } from '@/lib/mailer';
 import { createPrintfulOrder } from '@/lib/printful';
@@ -191,25 +190,33 @@ async function settleInvoice(pi, stripe) {
 // The unique sparse index on stripePaymentIntentId makes a webhook redelivery a
 // no-op instead of a double grant.
 async function handleCreditPurchase(pi) {
-  const pack = findPack(pi.metadata.packId);
-  if (!pack) {
-    console.error('Credit purchase for unknown pack:', pi.metadata.packId, pi.id);
+  const sessions = Number(pi.metadata.sessions || 0);
+  if (!sessions) {
+    console.error('Credit purchase with no session count:', pi.id);
     return;
   }
+  // Read back from the intent rather than looking the pack up again: rates are
+  // per tutor and can be edited, and what the family agreed to is what was on
+  // the intent at the time.
+  const feeCents = Number(pi.metadata.onlineFeeCents || 0);
+  const packName = pi.metadata.packName || `${sessions} sessions`;
+
   try {
     await SessionCredit.create({
       userId: pi.metadata.userId,
-      tutorId: null,
-      totalSessions: pack.sessions,
-      remainingSessions: pack.sessions,
-      note: `${pack.name} purchased online`,
+      // Scoped to the tutor whose rates were charged. lib/booking.js spends this
+      // on that tutor first, and it is not usable with anyone else.
+      tutorId: pi.metadata.tutorId || null,
+      totalSessions: sessions,
+      remainingSessions: sessions,
+      note: `${packName} purchased online`,
       grantedBy: 'stripe',
       stripePaymentIntentId: pi.id,
-      packId: pack.id,
-      amountPaidCents: pi.amount_received ?? pack.amountCents + (pack.onlineFeeCents || 0),
-      onlineFeeCents: Number(pi.metadata.onlineFeeCents || pack.onlineFeeCents || 0),
+      packId: pi.metadata.packId || '',
+      amountPaidCents: pi.amount_received ?? pi.amount,
+      onlineFeeCents: feeCents,
     });
-    console.log(`Granted ${pack.sessions} credits for intent ${pi.id}`);
+    console.log(`Granted ${sessions} credits for intent ${pi.id}`);
   } catch (err) {
     // 11000 = duplicate key, i.e. this webhook already ran. Anything else is real.
     if (err && err.code === 11000) {

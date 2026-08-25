@@ -42,7 +42,9 @@ export default async function OverviewPage() {
   const now = new Date();
 
   const [credits, upcoming, enrollments, surveys, reports, feedback] = await Promise.all([
-    SessionCredit.find({ userId: user._id, remainingSessions: { $gt: 0 } }).lean(),
+    SessionCredit.find({ userId: user._id, remainingSessions: { $gt: 0 } })
+      .populate('tutorId', 'name')
+      .lean(),
     Booking.find({ userId: user._id, status: 'scheduled', startAt: { $gte: now } })
       .populate('tutorId', 'name')
       .sort({ startAt: 1 })
@@ -58,6 +60,17 @@ export default async function OverviewPage() {
   ]);
 
   const totalCredits = credits.reduce((sum, c) => sum + (c.remainingSessions || 0), 0);
+
+  // Grouped for the hint: "8 with Yesol Jung · 2 with Won Jung" says something a
+  // bare total cannot, because a credit only books the instructor it was for.
+  const creditsByTutor = Object.values(
+    credits.reduce((acc, c) => {
+      const name = c.tutorId?.name || 'any instructor';
+      acc[name] = acc[name] || { name, remaining: 0 };
+      acc[name].remaining += c.remainingSessions || 0;
+      return acc;
+    }, {}),
+  ).sort((a, b) => b.remaining - a.remaining);
   const students = (user.students || []).filter((s) => s.name);
   const submittedFor = new Set(surveys.map((s) => s.studentName));
   const firstName = user.firstName || (user.name || '').split(' ')[0] || 'there';
@@ -139,7 +152,15 @@ export default async function OverviewPage() {
         <Link href="/dashboard/credits" className="stat" style={{ textDecoration: 'none' }}>
           <div className="label">Session credits (남은 크레딧)</div>
           <div className="value">{totalCredits}</div>
-          <div className="hint">{totalCredits > 0 ? 'Ready to book' : 'Buy a pack to get started'}</div>
+          <div className="hint">
+            {/* Credits belong to one instructor, so a single total is a summary,
+                not something bookable anywhere. Name who they are with. */}
+            {totalCredits === 0
+              ? 'Buy a pack to get started'
+              : creditsByTutor.length === 0
+                ? 'Usable with any instructor'
+                : creditsByTutor.map((c) => `${c.remaining} with ${c.name}`).join(' · ')}
+          </div>
         </Link>
 
         <Link href="/dashboard/booking" className="stat" style={{ textDecoration: 'none' }}>

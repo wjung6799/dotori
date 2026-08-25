@@ -51,7 +51,10 @@ const ADMIN_NAV = [
   },
   {
     section: 'Money',
-    links: [{ href: '/admin/invoices', label: 'Invoices', icon: '🧾' }],
+    links: [
+      { href: '/admin/invoices', label: 'Invoices', icon: '🧾' },
+      { href: '/admin/rates', label: 'Tutor rates', icon: '🏷' },
+    ],
   },
   {
     section: 'Review queues',
