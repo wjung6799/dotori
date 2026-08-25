@@ -1,7 +1,8 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { Fragment, useCallback, useEffect, useMemo, useState } from 'react';
 import { defaultOnlineFeeCents } from '@/lib/pricing';
+import ClassRoster from './ClassRoster';
 
 const QUARTERS = [
   ['fall-2025', 'Fall 2025'],
@@ -53,6 +54,10 @@ export default function CatalogEditor({ literacySlots }) {
   const [form, setForm] = useState(BLANK);
   const [msg, setMsg] = useState(null); // { type, text }
   const [busy, setBusy] = useState(false);
+
+  // Which class's roster is open. One at a time: each one fetches its own
+  // enrollments, and opening every row would hammer the API for nothing.
+  const [rosterFor, setRosterFor] = useState(null);
 
   const [copyFrom, setCopyFrom] = useState('');
   const [copyTo, setCopyTo] = useState('');
@@ -475,7 +480,8 @@ export default function CatalogEditor({ literacySlots }) {
                   const taken = c.manualEnrolled ?? c.enrolledCount ?? 0;
                   const full = taken >= (c.capacity ?? 0);
                   return (
-                    <tr key={c._id}>
+                    <Fragment key={c._id}>
+                    <tr>
                       <td>
                         <span className="strong">{c.name}</span>
                         <div className="muted small">{categoryLabel(c.category)}</div>
@@ -514,6 +520,13 @@ export default function CatalogEditor({ literacySlots }) {
                         )}
                       </td>
                       <td className="nowrap">
+                        <button
+                          type="button"
+                          className="btn btn-ghost btn-sm"
+                          onClick={() => setRosterFor(rosterFor === c._id ? null : c._id)}
+                        >
+                          {rosterFor === c._id ? 'Hide students' : 'Students'}
+                        </button>{' '}
                         <button type="button" className="btn btn-ghost btn-sm" onClick={() => startEdit(c)}>
                           Edit
                         </button>{' '}
@@ -535,6 +548,14 @@ export default function CatalogEditor({ literacySlots }) {
                         </button>
                       </td>
                     </tr>
+                    {rosterFor === c._id ? (
+                      <tr>
+                        <td colSpan={7} style={{ padding: '0 0.7rem 0.9rem' }}>
+                          <ClassRoster cls={c} onChanged={load} />
+                        </td>
+                      </tr>
+                    ) : null}
+                    </Fragment>
                   );
                 })}
               </tbody>

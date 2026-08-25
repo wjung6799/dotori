@@ -20,6 +20,9 @@ export async function GET(request) {
     const filter = {};
     if (searchParams.get('quarter')) filter.quarter = searchParams.get('quarter');
     if (searchParams.get('status')) filter.paymentStatus = searchParams.get('status');
+    // Lets the class catalog show one class's roster without pulling every
+    // enrollment the school has ever recorded.
+    if (searchParams.get('classId')) filter.classId = searchParams.get('classId');
 
     const enrollments = await Enrollment.find(filter)
       .populate('userId', 'firstName lastName email phone name students')
