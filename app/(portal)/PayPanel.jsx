@@ -1,21 +1,25 @@
 'use client';
 
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useId, useRef, useState } from 'react';
 import Script from 'next/script';
 
-// Reusable card-payment panel for the portal. Mirrors the deferred-intent flow
-// the shop checkout already uses: mount a Payment Element for a known amount,
-// then ask the server to create the PaymentIntent at the moment the parent hits
-// pay, and confirm with the client secret it returns.
+// Reusable card / bank-transfer panel for the portal. Mirrors the deferred-intent
+// flow the shop checkout uses: mount a Payment Element for a known amount, ask
+// the server to create the PaymentIntent when the parent hits pay, then confirm
+// with the client secret it returns. The server re-derives the amount, so what
+// is passed here only decides what the Element renders.
 //
 // Props:
-//   amountCents  what we will charge (drives the Element, server re-derives it)
-//   createIntent async () => ({ clientSecret }) — must throw with a message on failure
-//   returnUrl    absolute-path Stripe redirects back to after 3-D Secure
-//   label        button text
-//   disabled     block payment while the caller's own form is incomplete
+//   amountCents        what will be charged
+//   methods            Stripe payment_method_types, e.g. ['card'] or
+//                      ['us_bank_account']. Must match what the server route
+//                      creates the intent with, or Stripe rejects the confirm.
+//   createIntent       async () => ({ clientSecret }); throw with a message
+//   returnUrl          absolute-path Stripe redirects back to
+//   label, disabled, onError
 export default function PayPanel({
   amountCents,
+  methods = ['card'],
   createIntent,
   returnUrl,
   label = 'Pay now',
@@ -29,7 +33,12 @@ export default function PayPanel({
 
   const stripeRef = useRef(null);
   const elementsRef = useRef(null);
-  const mountedRef = useRef(false);
+  const elementRef = useRef(null);
+
+  // One mount point per panel instance, so two panels on a page cannot fight
+  // over the same DOM id.
+  const domId = 'pay-el-' + useId().replace(/:/g, '');
+  const methodKey = methods.join(',');
 
   const fail = useCallback(
     (msg) => {
@@ -39,16 +48,21 @@ export default function PayPanel({
     [onError],
   );
 
+  // Remount whenever the method set changes: an Element created for cards cannot
+  // be reused to collect bank details, and Stripe will not let you update
+  // paymentMethodTypes in place.
   useEffect(() => {
-    if (!scriptReady || mountedRef.current || !amountCents) return;
-    mountedRef.current = true;
+    if (!scriptReady || !amountCents) return undefined;
+    let cancelled = false;
+    setElementReady(false);
 
     (async () => {
       try {
         const res = await fetch('/api/config/stripe-key');
         const { publishableKey } = await res.json();
+        if (cancelled) return;
         if (!publishableKey) {
-          fail('Card payments are not configured yet. Please contact the school.');
+          fail('Online payments are not switched on yet. Please contact the school to settle this.');
           return;
         }
         // eslint-disable-next-line no-undef
@@ -59,24 +73,45 @@ export default function PayPanel({
           mode: 'payment',
           amount: amountCents,
           currency: 'usd',
+          paymentMethodTypes: methodKey.split(','),
           appearance: { theme: 'stripe', variables: { colorPrimary: '#6b5b47' } },
         });
         elementsRef.current = elements;
 
         const el = elements.create('payment');
-        el.mount('#portal-payment-element');
-        el.on('ready', () => setElementReady(true));
+        elementRef.current = el;
+        el.mount('#' + domId);
+        el.on('ready', () => {
+          if (!cancelled) setElementReady(true);
+        });
       } catch {
-        fail('Payment system unavailable. Please try again.');
+        if (!cancelled) fail('Payment system unavailable. Please try again.');
       }
     })();
-  }, [scriptReady, amountCents, fail]);
 
-  // The Element is created with an amount; if the caller switches package the
-  // amount has to be pushed into it or Stripe will charge against the old one.
+    return () => {
+      cancelled = true;
+      if (elementRef.current) {
+        try {
+          elementRef.current.unmount();
+        } catch {
+          /* already gone */
+        }
+        elementRef.current = null;
+      }
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [scriptReady, methodKey, domId, fail]);
+
+  // Amount can change without changing the method (switching package), and that
+  // the Element does support in place.
   useEffect(() => {
     if (elementsRef.current && amountCents) {
-      elementsRef.current.update({ amount: amountCents });
+      try {
+        elementsRef.current.update({ amount: amountCents });
+      } catch {
+        /* the remount effect will rebuild it */
+      }
     }
   }, [amountCents]);
 
@@ -103,10 +138,12 @@ export default function PayPanel({
     }
   }
 
+  const isBank = methodKey.includes('us_bank_account');
+
   return (
     <>
       <Script src="https://js.stripe.com/v3/" onLoad={() => setScriptReady(true)} />
-      <div id="portal-payment-element" style={{ marginTop: '0.4rem', minHeight: 44 }} />
+      <div id={domId} style={{ marginTop: '0.4rem', minHeight: 44 }} />
       {error ? (
         <p className="notice err" style={{ marginTop: '0.9rem', marginBottom: 0 }}>
           {error}
@@ -122,7 +159,9 @@ export default function PayPanel({
         {busy ? 'Processing…' : !elementReady ? 'Loading payment…' : label}
       </button>
       <p className="muted small" style={{ textAlign: 'center', marginTop: '0.6rem', marginBottom: 0 }}>
-        Secured by Stripe. Dotori School never sees your card number.
+        {isBank
+          ? 'Bank transfers take 3–5 business days to clear. Secured by Stripe.'
+          : 'Secured by Stripe. Dotori School never sees your card number.'}
       </p>
     </>
   );

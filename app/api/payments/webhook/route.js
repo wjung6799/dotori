@@ -2,6 +2,7 @@ import dbConnect from '@/lib/db';
 import Enrollment from '@/lib/models/Enrollment';
 import Order from '@/lib/models/Order';
 import SessionCredit from '@/lib/models/SessionCredit';
+import Invoice from '@/lib/models/Invoice';
 import { findPack } from '@/lib/pricing';
 import { getStripe } from '@/lib/stripe';
 import { sendOrderConfirmation } from '@/lib/mailer';
@@ -26,14 +27,18 @@ export async function POST(request) {
     return new Response(`Webhook Error: ${err.message}`, { status: 400 });
   }
 
-  if (event.type === 'payment_intent.succeeded') {
-    const pi = event.data.object;
-    try {
+  const pi = event.data?.object;
+  const source = pi?.metadata?.source;
+
+  try {
+    if (event.type === 'payment_intent.succeeded') {
       await dbConnect();
-      if (pi.metadata && pi.metadata.source === 'shop') {
+      if (source === 'shop') {
         await handleShopPayment(pi, stripe);
-      } else if (pi.metadata && pi.metadata.source === 'credits') {
+      } else if (source === 'credits') {
         await handleCreditPurchase(pi);
+      } else if (source === 'invoice') {
+        await settleInvoice(pi);
       } else {
         await Enrollment.findOneAndUpdate(
           { stripePaymentIntentId: pi.id },
@@ -41,12 +46,72 @@ export async function POST(request) {
         );
         console.log(`Enrollment payment confirmed for intent ${pi.id}`);
       }
-    } catch (err) {
-      console.error('Payment processing error:', err);
+    } else if (event.type === 'payment_intent.processing') {
+      // Bank debits do not settle immediately. The family has authorised it and
+      // should not be chased, but the money is not here yet — so the invoice
+      // moves to its own state rather than straight to paid.
+      if (source === 'invoice') {
+        await dbConnect();
+        await Invoice.findOneAndUpdate(
+          { stripePaymentIntentId: pi.id, status: { $in: ['open', 'processing'] } },
+          { status: 'processing', lastPaymentError: '' },
+        );
+        console.log(`Invoice ${pi.metadata.invoiceNumber} bank transfer processing (${pi.id})`);
+      }
+    } else if (event.type === 'payment_intent.payment_failed') {
+      // A bank debit can fail days later (insufficient funds, closed account),
+      // which is exactly why nothing is marked paid before this point.
+      if (source === 'invoice') {
+        await dbConnect();
+        await Invoice.findOneAndUpdate(
+          { stripePaymentIntentId: pi.id, status: { $ne: 'paid' } },
+          {
+            status: 'open',
+            lastPaymentError:
+              pi.last_payment_error?.message || 'The payment did not go through. Please try again.',
+          },
+        );
+        console.log(`Invoice payment failed for intent ${pi.id}`);
+      }
     }
+  } catch (err) {
+    console.error('Payment processing error:', err);
   }
 
   return Response.json({ received: true });
+}
+
+// A family paid an invoice. The enrollment it belongs to is settled at the same
+// time, so the portal and the admin's enrollment list agree.
+//
+// The status guard makes a webhook redelivery a no-op: the second delivery
+// matches nothing, because the first already moved the invoice to 'paid'.
+async function settleInvoice(pi) {
+  const invoice = await Invoice.findOneAndUpdate(
+    { stripePaymentIntentId: pi.id, status: { $ne: 'paid' } },
+    {
+      status: 'paid',
+      paidAt: new Date(),
+      totalPaidCents: pi.amount_received ?? pi.amount,
+      lastPaymentError: '',
+    },
+    { new: true },
+  );
+  if (!invoice) {
+    console.log(`Invoice for intent ${pi.id} already settled; skipping.`);
+    return;
+  }
+
+  if (invoice.enrollmentId) {
+    await Enrollment.findByIdAndUpdate(invoice.enrollmentId, {
+      paymentStatus: 'paid',
+      paidAt: new Date(),
+      // Store what actually arrived, which is the discounted figure when they
+      // paid by bank transfer.
+      amountPaid: (pi.amount_received ?? pi.amount) / 100,
+    });
+  }
+  console.log(`Invoice ${invoice.number} paid via ${invoice.paymentMethod} (${pi.id})`);
 }
 
 // A family bought a session-credit pack in the portal. The grant is created here

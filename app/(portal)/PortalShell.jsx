@@ -29,7 +29,7 @@ const FAMILY_NAV = [
     section: 'Billing',
     links: [
       { href: '/dashboard/credits', label: 'Session credits', icon: '🎟' },
-      { href: '/dashboard/billing', label: 'Payment history', icon: '💳' },
+      { href: '/dashboard/billing', label: 'Invoices & billing', icon: '💳' },
     ],
   },
   {
@@ -50,8 +50,15 @@ const ADMIN_NAV = [
     ],
   },
   {
+    section: 'Money',
+    links: [{ href: '/admin/invoices', label: 'Invoices', icon: '🧾' }],
+  },
+  {
     section: 'Review queues',
     links: [
+      // countKey wires this row to a live number from /api/admin/enrollment-requests:
+      // a queue nobody can see the depth of is a queue nobody clears.
+      { href: '/admin/requests', label: 'Placement requests', icon: '📥', countKey: 'pending' },
       { href: '/admin/reviews', label: 'Parent reviews', icon: '⭐', exact: true },
       { href: '/admin/surveys', label: 'Enrollment forms', icon: '📝', exact: true },
       { href: '/admin/waitlist', label: 'Waitlist', icon: '⏳', exact: true },
@@ -89,6 +96,23 @@ export default function PortalShell({ user, children }) {
   const [open, setOpen] = useState(false);
   const nav = navFor(user?.role);
   const isAdmin = user?.role === 'admin';
+  const [pendingRequests, setPendingRequests] = useState(0);
+
+  // Admin only, and once per shell mount: enough to notice a queue has filled up
+  // without putting a request on every navigation.
+  useEffect(() => {
+    if (!isAdmin) return undefined;
+    let cancelled = false;
+    fetch('/api/admin/enrollment-requests?status=pending')
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => {
+        if (!cancelled && d) setPendingRequests(d.pendingCount || 0);
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [isAdmin]);
 
   // Close the drawer on navigation, so a tap on a link doesn't leave the scrim up.
   useEffect(() => {
@@ -136,6 +160,9 @@ export default function PortalShell({ user, children }) {
                 >
                   <span className="ico" aria-hidden="true">{l.icon}</span>
                   {l.label}
+                  {l.countKey === 'pending' && pendingRequests > 0 ? (
+                    <span className="badge">{pendingRequests}</span>
+                  ) : null}
                 </Link>
               ))}
             </div>

@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useSession } from 'next-auth/react';
 import AvailabilityCalendar from '@/components/AvailabilityCalendar';
+import RequestPlacement from './RequestPlacement';
 
 const BROWN = '#6b5b47';
 const ACCENT = '#e8a87c';
@@ -67,7 +68,7 @@ export default function TutorDashboard() {
       </p>
 
       <div style={{ display: 'flex', gap: 6, borderBottom: '1px solid #eee', marginBottom: 20, flexWrap: 'wrap' }}>
-        {[['availability', 'My Availability'], ['sessions', 'Add Sessions'], ['bookings', 'My Bookings'], ['feedback', 'Feedback']].map(([k, l]) => (
+        {[['availability', 'My Availability'], ['sessions', 'Add Sessions'], ['bookings', 'My Bookings'], ['feedback', 'Feedback'], ['placement', 'Class Placement']].map(([k, l]) => (
           <button key={k} onClick={() => setTab(k)} style={tabBtn(tab === k)}>{l}</button>
         ))}
       </div>
@@ -88,6 +89,9 @@ export default function TutorDashboard() {
       {tab === 'sessions' && <SessionsTab />}
       {tab === 'bookings' && <BookingsTab tutorId={data?.tutor?._id} />}
       {tab === 'feedback' && <FeedbackTab />}
+      {/* Instructors propose a placement; the office approves it, which is what
+          creates the enrollment and bills the family. */}
+      {tab === 'placement' && <RequestPlacement />}
     </section>
   );
 }
