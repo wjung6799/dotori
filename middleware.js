@@ -1,8 +1,9 @@
 import NextAuth from 'next-auth';
 import authConfig from '@/auth.config';
 
-// Edge middleware that protects /profile and /admin using the `authorized`
-// callback in auth.config.js. Uses only the edge-safe config (no Mongo/bcrypt).
+// Edge middleware that protects /dashboard, /profile, /admin and /tutor using
+// the `authorized` callback in auth.config.js. Uses only the edge-safe config
+// (no Mongo/bcrypt).
 export const { auth: middleware } = NextAuth(authConfig);
 
 export const config = {
@@ -10,5 +11,5 @@ export const config = {
   // DecompressionStream, unsupported in the Edge Runtime. Node middleware is
   // stable as of Next.js 15.5.
   runtime: 'nodejs',
-  matcher: ['/profile/:path*', '/admin/:path*', '/tutor/:path*'],
+  matcher: ['/dashboard/:path*', '/profile/:path*', '/admin/:path*', '/tutor/:path*'],
 };

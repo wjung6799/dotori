@@ -429,7 +429,7 @@ export default function LiteracyClient() {
 
             <p style={{ textAlign: 'left', lineHeight: 1.7 }}>
               {t.introParts.before}
-              <Link href="/placement-test" style={{ color: '#8b7355', fontWeight: 700 }}>
+              <Link href="/diagnostic" style={{ color: '#8b7355', fontWeight: 700 }}>
                 {t.introParts.link}
               </Link>
               {t.introParts.after}

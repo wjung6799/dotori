@@ -48,12 +48,12 @@ const authConfig = {
       if (path.startsWith('/tutor')) {
         if (!isLoggedIn) return false;
         if (auth.user.role !== 'tutor' && auth.user.role !== 'admin') {
-          return Response.redirect(new URL('/profile', nextUrl));
+          return Response.redirect(new URL('/dashboard', nextUrl));
         }
         return true;
       }
 
-      if (path.startsWith('/profile')) {
+      if (path.startsWith('/profile') || path.startsWith('/dashboard')) {
         return isLoggedIn;
       }
 

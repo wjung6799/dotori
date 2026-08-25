@@ -1,4 +1,6 @@
 import DiagnosticBooking from './DiagnosticBooking';
+import dbConnect from '@/lib/db';
+import Tutor from '@/lib/models/Tutor';
 import { getGlobal } from '@/lib/cms';
 
 export const metadata = {
@@ -9,9 +11,23 @@ export const metadata = {
 
 export const dynamic = 'force-dynamic';
 
+// The single first-contact page: literacy placement and the math/literacy
+// diagnostic are the same visit, so /placement-test now redirects here. Open
+// times come from Mrs. Jung's diagnostic-kind availability (set in
+// Admin → Booking → Availability).
 export default async function DiagnosticPage() {
   const c = await getGlobal('diagnosticPage');
   const STEPS = c.steps || [];
+
+  let tutorId = null;
+  try {
+    await dbConnect();
+    const tutor = await Tutor.findOne({ name: /yesol/i, active: true }).select('_id');
+    tutorId = tutor ? tutor._id.toString() : null;
+  } catch (err) {
+    console.error('Diagnostic tutor lookup failed:', err);
+  }
+
   return (
     <main>
       <div className="container" style={{ maxWidth: 820, margin: '0 auto' }}>
@@ -33,7 +49,7 @@ export default async function DiagnosticPage() {
           ))}
         </div>
 
-        <DiagnosticBooking />
+        <DiagnosticBooking tutorId={tutorId} />
 
         <p style={{ textAlign: 'center', color: '#9b8b77', margin: '1.5rem auto 3rem', maxWidth: 560 }}>
           Prefer to talk first? Email{' '}

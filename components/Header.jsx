@@ -14,75 +14,108 @@ const PROGRAM_LINKS = [
   { href: '/summer-camp', label: 'Summer Camp' },
 ];
 
-const NAV_LINKS = [
+// Once signed in the marketing pages collapse into this one menu, so the top
+// level of the nav belongs to the family's own pages.
+const SCHOOL_LINKS = [
   { href: '/', label: 'Home' },
   { href: '/about', label: 'About' },
   { href: '/team', label: 'Our Team' },
   { href: '/calendar', label: 'Calendar' },
-  { dropdown: true, label: 'Programs' },
   { href: '/reviews', label: 'Reviews' },
-  { href: '/schedule', label: 'Schedule', authOnly: true },
+];
+
+// Signed-out: the full marketing site, laid out flat.
+const PUBLIC_NAV = [
+  { href: '/', label: 'Home' },
+  { href: '/about', label: 'About' },
+  { href: '/team', label: 'Our Team' },
+  { href: '/calendar', label: 'Calendar' },
+  { dropdown: 'programs', label: 'Programs', links: PROGRAM_LINKS },
+  { href: '/reviews', label: 'Reviews' },
   { href: '/contact', label: 'Contact Us', cta: true },
 ];
 
+// Where each role's "home" is once signed in.
+function roleHome(role) {
+  if (role === 'admin') return { href: '/admin', label: 'Admin' };
+  if (role === 'tutor') return { href: '/tutor', label: 'Instructor' };
+  return { href: '/dashboard', label: 'Dashboard' };
+}
+
+// Signed-in: role home first, then the school pages behind two menus.
+function memberNav(role) {
+  const nav = [roleHome(role)];
+  if (role !== 'admin' && role !== 'tutor') nav.push({ href: '/schedule', label: 'Schedule' });
+  nav.push(
+    { dropdown: 'programs', label: 'Programs', links: PROGRAM_LINKS },
+    { dropdown: 'school', label: 'School', links: SCHOOL_LINKS },
+    { href: '/contact', label: 'Contact Us', cta: true },
+  );
+  return nav;
+}
+
 export default function Header() {
   const [open, setOpen] = useState(false);
-  const [programsOpen, setProgramsOpen] = useState(false);
+  const [openMenu, setOpenMenu] = useState(null); // 'programs' | 'school' | null
   const pathname = usePathname();
   const { data: session, status } = useSession();
   const role = session?.user?.role;
+  const signedIn = status === 'authenticated';
+  const isFamily = signedIn && role !== 'admin' && role !== 'tutor';
+
   const close = () => {
     setOpen(false);
-    setProgramsOpen(false);
+    setOpenMenu(null);
   };
 
-  // Hide auth-only links (e.g. Schedule, the family booking page) until signed in.
-  const navLinks = NAV_LINKS.filter((l) => !l.authOnly || status === 'authenticated');
-  const onProgramPage = PROGRAM_LINKS.some((l) => l.href === pathname);
+  const navLinks = signedIn ? memberNav(role) : PUBLIC_NAV;
 
-  // Auth links, rendered both inside the mobile dropdown and in the
-  // right-hand desktop zone (CSS shows the right one per breakpoint).
-  const authLinks =
-    status === 'authenticated' ? (
-      <>
+  // A dropdown counts as active when the current page lives inside it. '/' would
+  // match every path with startsWith, so compare it exactly.
+  const menuActive = (links) => links.some((l) => l.href === pathname);
+
+  // Auth links, rendered both inside the mobile dropdown and in the right-hand
+  // desktop zone (CSS shows the right one per breakpoint). The role console is
+  // already the first main-nav item, so this zone only carries the account link
+  // (families) and sign out.
+  const authLinks = signedIn ? (
+    <>
+      {isFamily ? (
         <li className="auth-item">
           <Link
-            href={role === 'admin' ? '/admin' : role === 'tutor' ? '/tutor' : '/profile'}
-            className={
-              pathname === '/profile' || pathname === '/admin' || pathname === '/tutor'
-                ? 'active'
-                : undefined
-            }
+            href="/profile"
+            className={pathname.startsWith('/profile') ? 'active' : undefined}
             onClick={close}
           >
-            {role === 'admin' ? 'Admin' : role === 'tutor' ? 'Instructor' : 'My Account'}
+            My Account
           </Link>
         </li>
-        <li className="auth-item">
-          <a
-            href="#"
-            className="login-btn"
-            onClick={(e) => {
-              e.preventDefault();
-              close();
-              signOut({ callbackUrl: '/' });
-            }}
-          >
-            Sign Out
-          </a>
-        </li>
-      </>
-    ) : (
+      ) : null}
       <li className="auth-item">
-        <Link
-          href="/login"
-          className={`login-btn${pathname === '/login' ? ' active' : ''}`}
-          onClick={close}
+        <a
+          href="#"
+          className="login-btn"
+          onClick={(e) => {
+            e.preventDefault();
+            close();
+            signOut({ callbackUrl: '/' });
+          }}
         >
-          Log In
-        </Link>
+          Sign Out
+        </a>
       </li>
-    );
+    </>
+  ) : (
+    <li className="auth-item">
+      <Link
+        href="/login"
+        className={`login-btn${pathname === '/login' ? ' active' : ''}`}
+        onClick={close}
+      >
+        Log In
+      </Link>
+    </li>
+  );
 
   return (
     <header>
@@ -128,20 +161,20 @@ export default function Header() {
           {navLinks.map((link) =>
             link.dropdown ? (
               <li
-                key="programs"
-                className={`has-dropdown${programsOpen ? ' submenu-open' : ''}`}
+                key={link.dropdown}
+                className={`has-dropdown${openMenu === link.dropdown ? ' submenu-open' : ''}`}
               >
                 <button
                   type="button"
-                  className={`dropdown-toggle${onProgramPage ? ' active' : ''}`}
+                  className={`dropdown-toggle${menuActive(link.links) ? ' active' : ''}`}
                   aria-haspopup="true"
-                  aria-expanded={programsOpen}
-                  onClick={() => setProgramsOpen((v) => !v)}
+                  aria-expanded={openMenu === link.dropdown}
+                  onClick={() => setOpenMenu((v) => (v === link.dropdown ? null : link.dropdown))}
                 >
                   {link.label} <span aria-hidden="true">▾</span>
                 </button>
                 <ul className="dropdown-menu">
-                  {PROGRAM_LINKS.map((l) => (
+                  {link.links.map((l) => (
                     <li key={l.href}>
                       <Link
                         href={l.href}

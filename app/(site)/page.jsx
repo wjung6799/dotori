@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { getGlobal, getTeam } from '@/lib/cms';
+import HomeMemberBanner from './HomeMemberBanner';
 
 // Real parent testimonials go here (e.g. pulled from the Google Business Profile).
 // Leave empty and the section stays hidden; we never ship placeholder quotes.
@@ -50,6 +51,7 @@ export default async function HomePage() {
         }}
       >
         <div className="container" style={{ maxWidth: 860 }}>
+          <HomeMemberBanner />
           <h1 style={{ fontSize: '3rem', fontWeight: 800, marginBottom: '1rem', lineHeight: 1.15, color: '#4a3c28', whiteSpace: 'pre-line' }}>
             {c.heroHeading}
           </h1>

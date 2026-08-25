@@ -26,6 +26,14 @@ export default function ProfilePage() {
   const [currentUser, setCurrentUser] = useState(null);
   const [activeTab, setActiveTab] = useState('account');
 
+  // Deep links from the dashboard (/profile?tab=reports) open that tab directly.
+  // Read from location instead of useSearchParams so this page needs no Suspense
+  // boundary at build time.
+  useEffect(() => {
+    const tab = new URLSearchParams(window.location.search).get('tab');
+    if (tab === 'reports' || tab === 'feedback' || tab === 'account') setActiveTab(tab);
+  }, []);
+
   const [reports, setReports] = useState(null);
   const [feedback, setFeedback] = useState(null);
   const [surveys, setSurveys] = useState([]); // enrollment surveys, one per student

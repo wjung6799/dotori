@@ -64,7 +64,7 @@ export default function ContactForm({ heading }) {
 
         {/* New literacy students book their placement test directly. */}
         <Link
-          href="/placement-test"
+          href="/diagnostic"
           style={{
             display: 'block',
             background: '#fbf6e9',

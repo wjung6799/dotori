@@ -69,7 +69,7 @@ export default function SignupPage() {
         router.push('/login');
         return;
       }
-      router.push('/profile');
+      router.push('/dashboard');
       router.refresh();
     } catch {
       setSubmitting(false);
@@ -94,7 +94,7 @@ export default function SignupPage() {
 
         <button
           type="button"
-          onClick={() => signIn('google', { callbackUrl: '/profile' })}
+          onClick={() => signIn('google', { callbackUrl: '/dashboard' })}
           style={{
             width: '100%',
             display: 'flex',

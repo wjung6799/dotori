@@ -31,7 +31,10 @@ function GoogleIcon() {
 function LoginInner() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const callbackUrl = searchParams.get('callbackUrl') || '/profile';
+  // Post-login home is the dashboard for every role; /dashboard itself forwards
+  // admins to /admin and instructors to /tutor, so Google sign-in (which can
+  // only carry a static callbackUrl) lands correctly too.
+  const callbackUrl = searchParams.get('callbackUrl') || '/dashboard';
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
