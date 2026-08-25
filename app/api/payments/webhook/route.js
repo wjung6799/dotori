@@ -103,13 +103,29 @@ async function settleInvoice(pi) {
   }
 
   if (invoice.enrollmentId) {
+    // A seat on a payment plan is not settled by its first instalment. Gather
+    // every live invoice in the plan and only mark the enrollment paid once all
+    // of them have landed — otherwise one payment of three closes the debt.
+    const siblings = invoice.planId
+      ? await Invoice.find({ planId: invoice.planId, status: { $ne: 'void' } }).lean()
+      : [invoice];
+
+    const allPaid = siblings.length > 0 && siblings.every((s) => s.status === 'paid');
+    // Tuition only. The convenience fee is what the card channel cost, not
+    // revenue for the class, and folding it in here would inflate every
+    // tuition figure the school reports.
+    const tuitionPaidCents = siblings
+      .filter((s) => s.status === 'paid')
+      .reduce((sum, s) => sum + (s.subtotalCents || 0), 0);
+
     await Enrollment.findByIdAndUpdate(invoice.enrollmentId, {
-      paymentStatus: 'paid',
-      paidAt: new Date(),
-      // Store what actually arrived, which is the discounted figure when they
-      // paid by bank transfer.
-      amountPaid: (pi.amount_received ?? pi.amount) / 100,
+      amountPaid: tuitionPaidCents / 100,
+      ...(allPaid ? { paymentStatus: 'paid', paidAt: new Date() } : {}),
     });
+    if (!allPaid) {
+      const done = siblings.filter((s) => s.status === 'paid').length;
+      console.log(`Enrollment ${invoice.enrollmentId} now ${done}/${siblings.length} paid; still pending.`);
+    }
   }
   console.log(`Invoice ${invoice.number} paid via ${invoice.paymentMethod} (${pi.id})`);
 }

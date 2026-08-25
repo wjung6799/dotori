@@ -2,6 +2,7 @@ import mongoose from 'mongoose';
 import dbConnect from '@/lib/db';
 import Invoice from '@/lib/models/Invoice';
 import { splitInvoiceIntoInstallments, serializeInvoice, MAX_INSTALLMENTS } from '@/lib/invoicing';
+import { getStripe } from '@/lib/stripe';
 import { getCurrentUser, unauthorized } from '@/lib/auth-helpers';
 
 export const dynamic = 'force-dynamic';
@@ -49,13 +50,31 @@ export async function POST(request, { params }) {
       { status: 409 },
     );
   }
-  // A part-paid attempt would leave a PaymentIntent pointing at an invoice that
-  // no longer exists in a payable state.
+  // A previous attempt can leave a live PaymentIntent behind — a declined card is
+  // the usual way, and a declined card is exactly when a family wants to spread
+  // the cost. Refusing to split would trap them, so cancel the stale intent
+  // instead: leaving it confirmable would let it pay an invoice this call is
+  // about to void.
   if (invoice.stripePaymentIntentId) {
-    return Response.json(
-      { error: 'A payment was already started on this invoice. Please finish or contact the school.' },
-      { status: 409 },
-    );
+    try {
+      const stripe = getStripe();
+      const intent = await stripe.paymentIntents.retrieve(invoice.stripePaymentIntentId);
+      if (intent.status === 'succeeded' || intent.status === 'processing') {
+        return Response.json(
+          { error: 'A payment on this invoice is still going through. Please wait for it to settle.' },
+          { status: 409 },
+        );
+      }
+      if (intent.status !== 'canceled') {
+        await stripe.paymentIntents.cancel(invoice.stripePaymentIntentId);
+      }
+    } catch (err) {
+      console.error('Could not cancel the stale intent on', invoice.number, err?.message || err);
+      return Response.json(
+        { error: 'We could not clear your previous payment attempt. Please contact the school.' },
+        { status: 409 },
+      );
+    }
   }
   // Each instalment still has to clear Stripe's own minimum on its own.
   if (Math.floor(invoice.subtotalCents / count) < 50) {

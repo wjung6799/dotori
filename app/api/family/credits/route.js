@@ -58,6 +58,10 @@ export async function POST(request) {
     const paymentIntent = await stripe.paymentIntents.create({
       amount: pack.amountCents,
       currency: 'usd',
+      // Must match what PayPanel builds its Element with. An Element pinned to
+      // card cannot be confirmed against an intent left on automatic payment
+      // methods — Stripe rejects the confirm outright.
+      payment_method_types: ['card'],
       // The webhook reads these back; never trust an amount sent by the client.
       metadata: {
         source: 'credits',
