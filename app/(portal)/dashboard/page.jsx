@@ -77,16 +77,18 @@ export default async function OverviewPage() {
       todos.push({
         text: `Enrollment form not submitted for ${s.name}. (${s.name} 등록 신청서 미제출)`,
         cta: 'Fill it out',
-        href: `/profile/enrollment-survey?student=${encodeURIComponent(s.name)}`,
+        href: `/dashboard/students/enrollment-form?student=${encodeURIComponent(s.name)}`,
       });
     }
   }
+  // Class tuition is settled with the office, not in the portal, so the action
+  // here is to talk to us — pointing at billing would be a dead end.
   const pendingPayment = enrollments.filter((e) => e.paymentStatus !== 'paid');
   if (pendingPayment.length > 0) {
     todos.push({
-      text: `${pendingPayment.length} class enrollment${pendingPayment.length === 1 ? '' : 's'} still awaiting payment.`,
-      cta: 'Review',
-      href: '/dashboard/billing',
+      text: `Tuition is outstanding on ${pendingPayment.length} class enrollment${pendingPayment.length === 1 ? '' : 's'}.`,
+      cta: 'Contact the school',
+      href: '/contact',
     });
   }
   if (totalCredits === 0) {
@@ -98,7 +100,7 @@ export default async function OverviewPage() {
   } else if (upcoming.length === 0) {
     todos.push({
       text: `You have ${totalCredits} session credit${totalCredits === 1 ? '' : 's'} and nothing booked yet.`,
-      cta: 'Book a session',
+      cta: 'Book a 1:1 session',
       href: '/dashboard/booking',
     });
   }
@@ -113,7 +115,7 @@ export default async function OverviewPage() {
           <p className="lede">Everything for your family, in one place. (우리 가족 한눈에 보기)</p>
         </div>
         <Link href="/dashboard/booking" className="btn btn-primary">
-          Book a session
+          Book a 1:1 session
         </Link>
       </div>
 
@@ -167,7 +169,7 @@ export default async function OverviewPage() {
         {upcoming.length === 0 ? (
           <div className="empty">
             <span className="ico" aria-hidden="true">📅</span>
-            <p>No sessions booked yet. Pick an open time on the booking page.</p>
+            <p>No 1:1 sessions booked yet. Pick an open time on the booking page.</p>
           </div>
         ) : (
           <div className="stack">

@@ -187,9 +187,10 @@ export default function BookingPage() {
     <>
       <div className="page-head">
         <div>
-          <h1>Book a session</h1>
+          <h1>Book a 1:1 session</h1>
           <p className="lede">
-            Pick an instructor and an open time. Each booking uses one of your sessions.
+            Pick an instructor and an open time. Each booking uses one of your session credits.
+            Group classes are arranged with the school, not booked here.
           </p>
         </div>
       </div>

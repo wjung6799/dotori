@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import LocalTime from '../../LocalTime';
 
 const QUARTER_LABEL = {
@@ -21,10 +22,11 @@ function gradeLabel(g) {
 }
 
 function surveyHref(name) {
-  return `/profile/enrollment-survey?student=${encodeURIComponent(name)}`;
+  return `/dashboard/students/enrollment-form?student=${encodeURIComponent(name)}`;
 }
 
 export default function StudentsPage() {
+  const router = useRouter();
   // profile === null means "not loaded yet"; loadError means the PUT must stay
   // disabled, because saving without the loaded name/phone would wipe them.
   const [profile, setProfile] = useState(null);
@@ -128,6 +130,16 @@ export default function StudentsPage() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
       const user = data.user || {};
+
+      // A student is only really registered once their enrollment form is in, so
+      // send the parent straight there instead of leaving a badge to be noticed.
+      // Renames are excluded: those already have a submission under the old name.
+      const knownNames = new Set((profile.students || []).map((st) => st.name).filter(Boolean));
+      const needsForm = (user.students || [])
+        .map((st) => st.name)
+        .filter(Boolean)
+        .filter((name) => !knownNames.has(name) && !surveys.some((sv) => sv.studentName === name));
+
       setProfile(user);
       setRows(
         (user.students || []).map((s) => ({
@@ -136,6 +148,15 @@ export default function StudentsPage() {
           orig: s.name || '',
         })),
       );
+
+      if (needsForm.length > 0) {
+        setMsg({
+          type: 'ok',
+          text: `Saved. Next: the enrollment form for ${needsForm[0]}…`,
+        });
+        router.push(surveyHref(needsForm[0]));
+        return;
+      }
       setMsg({ type: 'ok', text: 'Saved. Your students are up to date.' });
     } catch (err) {
       setMsg({ type: 'err', text: err.message || 'We could not save your changes. Please try again.' });
@@ -153,7 +174,8 @@ export default function StudentsPage() {
         <div>
           <h1>Students</h1>
           <p className="lede">
-            Your children, their enrolment forms and the classes they are signed up for.
+            Your children, their enrollment forms and the classes they are signed up for.
+            (우리 아이 · 등록 신청서)
           </p>
         </div>
       </div>
@@ -199,8 +221,8 @@ export default function StudentsPage() {
                 <div className="strong">Enrolment form (신규 학생 등록 신청서)</div>
                 <div className="meta">One form per student — it tells us how {s.name} learns best.</div>
               </div>
-              <span className={submitted ? 'pill ok' : 'pill warn'}>
-                {submitted ? 'Submitted' : 'Not submitted'}
+              <span className={submitted ? 'pill ok' : 'pill err'}>
+                {submitted ? 'Submitted' : 'Required'}
               </span>
             </div>
 
@@ -253,6 +275,12 @@ export default function StudentsPage() {
             Parent details →
           </Link>
         </div>
+
+        <p className="muted small" style={{ marginTop: 0 }}>
+          Adding a student opens their <strong>New Student Enrollment Form</strong> (신규 학생 등록
+          신청서) — one per child, and it is what tells us how they learn. You can come back and
+          edit it any time.
+        </p>
 
         {msg ? <div className={msg.type === 'ok' ? 'notice ok' : 'notice err'}>{msg.text}</div> : null}
 

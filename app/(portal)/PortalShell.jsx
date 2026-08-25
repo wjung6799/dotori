@@ -14,7 +14,7 @@ const FAMILY_NAV = [
     section: null,
     links: [
       { href: '/dashboard', label: 'Overview', icon: '◎', exact: true },
-      { href: '/dashboard/booking', label: 'Book a session', icon: '🗓' },
+      { href: '/dashboard/booking', label: 'Book a 1:1 session', icon: '🗓' },
       { href: '/dashboard/classes', label: 'Group classes', icon: '📚' },
     ],
   },

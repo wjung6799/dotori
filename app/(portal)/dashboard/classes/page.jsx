@@ -3,155 +3,80 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 
-import PayPanel from '../../PayPanel';
+// Group classes are placed by the school, not self-served: a student is put in a
+// level after their assessment, and the office records the enrollment. So this
+// page is read-only — what your students are in, and what is running this term.
+// Booking a 1:1 session is the one thing families do for themselves; that lives
+// at /dashboard/booking.
 
-// Categories are shown in the order families think about them, not the order
-// Mongo returns them. Anything with an unknown category falls to "Other".
-const CATEGORIES = [
-  { key: 'reading', label: 'Reading & literacy (읽기)' },
-  { key: 'writing', label: 'Writing (쓰기)' },
-  { key: 'korean', label: 'Korean (한국어)' },
-  { key: 'summer', label: 'Summer camp' },
-  { key: '1on1', label: '1:1 lessons' },
-];
+const QUARTER_LABEL = {
+  'fall-2025': 'Fall 2025',
+  'winter-2026': 'Winter 2026',
+  'spring-2026': 'Spring 2026',
+  'summer-2026': 'Summer 2026',
+  'fall-2026': 'Fall 2026',
+  'winter-2027': 'Winter 2027',
+  'spring-2027': 'Spring 2027',
+  'summer-2027': 'Summer 2027',
+};
 
-function categoryLabel(key) {
-  const found = CATEGORIES.find((c) => c.key === key);
-  return found ? found.label : 'Other classes';
-}
+const CATEGORY_ORDER = ['reading', 'writing', 'korean', 'summer', '1on1'];
+const CATEGORY_LABEL = {
+  reading: 'Reading',
+  writing: 'Writing',
+  korean: 'Korean',
+  summer: 'Summer Camp',
+  '1on1': 'Private & semi-private',
+};
 
-// 'fall-2025' → 'Fall 2025'. Anything that doesn't match is shown as stored.
-function quarterLabel(q) {
-  if (!q) return '';
-  const [term, year] = String(q).split('-');
-  if (!term || !year) return q;
-  return `${term.charAt(0).toUpperCase()}${term.slice(1)} ${year}`;
-}
-
-function money(dollars) {
-  return `$${Number(dollars || 0).toLocaleString('en-US')}`;
-}
-
-function priceLabel(cls) {
-  if (!(cls.price > 0)) return 'Tuition on request';
-  if (cls.priceMax && cls.priceMax > cls.price) return `${money(cls.price)}–${money(cls.priceMax)}`;
-  return money(cls.price);
-}
-
-// A schedule like 'Tuesdays 4–5pm or Thursdays 4–5pm' means the family picks one.
-function dayOptions(schedule) {
-  if (!schedule || !schedule.includes(' or ')) return [];
-  return schedule
-    .split(' or ')
-    .map((s) => s.trim())
-    .filter(Boolean);
-}
-
-function sameName(a, b) {
-  return String(a || '').trim().toLowerCase() === String(b || '').trim().toLowerCase();
-}
+const quarterLabel = (q) => QUARTER_LABEL[q] || q || '';
 
 export default function ClassesPage() {
-  const [loading, setLoading] = useState(true);
-  const [loadError, setLoadError] = useState('');
-  const [classes, setClasses] = useState([]);
+  const [classes, setClasses] = useState(null); // null = loading
   const [enrollments, setEnrollments] = useState([]);
-  const [students, setStudents] = useState([]);
-
-  const [justEnrolled, setJustEnrolled] = useState(false);
-
-  // One class panel is open at a time — PayPanel mounts a single Stripe element.
-  const [openId, setOpenId] = useState('');
-  const [studentName, setStudentName] = useState('');
-  const [dayChoice, setDayChoice] = useState('');
-
-  // Read straight from location: useSearchParams would force a Suspense
-  // boundary around this whole page at build time.
-  useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    if (params.get('enrolled') === '1') setJustEnrolled(true);
-  }, []);
+  const [error, setError] = useState('');
 
   useEffect(() => {
     let cancelled = false;
-
     (async () => {
       try {
-        const [clsRes, enrRes, profRes] = await Promise.all([
+        const [clsRes, enrRes] = await Promise.all([
           fetch('/api/classes'),
           fetch('/api/family/enrollments'),
-          fetch('/api/family/profile'),
         ]);
-        if (!clsRes.ok) throw new Error('Could not load the class list.');
-
-        const clsData = await clsRes.json();
-        const enrData = enrRes.ok ? await enrRes.json() : { enrollments: [] };
-        const profData = profRes.ok ? await profRes.json() : { user: {} };
-
         if (cancelled) return;
-        setClasses(Array.isArray(clsData.classes) ? clsData.classes : []);
-        setEnrollments(Array.isArray(enrData.enrollments) ? enrData.enrollments : []);
-        setStudents(((profData.user && profData.user.students) || []).filter((s) => s && s.name));
-      } catch (err) {
-        if (!cancelled) setLoadError(err.message || 'Something went wrong loading this page.');
-      } finally {
-        if (!cancelled) setLoading(false);
+        const clsData = clsRes.ok ? await clsRes.json() : { classes: [] };
+        const enrData = enrRes.ok ? await enrRes.json() : { enrollments: [] };
+        if (cancelled) return;
+        setClasses(clsData.classes || []);
+        setEnrollments((enrData.enrollments || []).filter((e) => e.paymentStatus !== 'refunded'));
+      } catch {
+        if (!cancelled) {
+          setClasses([]);
+          setError('We could not load the class list. Please refresh, or contact the school.');
+        }
       }
     })();
-
     return () => {
       cancelled = true;
     };
   }, []);
 
-  // Students already holding a live (non-refunded) seat in a given class.
-  function enrolledNames(classId) {
-    return enrollments
-      .filter((e) => e.paymentStatus !== 'refunded')
-      .filter((e) => {
-        const cid = e.classId && typeof e.classId === 'object' ? e.classId._id : e.classId;
-        return String(cid || '') === String(classId);
-      })
-      .map((e) => e.studentName);
-  }
+  // An enrollment's classId arrives populated, but fall back to a bare id so a
+  // lean query shape never blanks the row.
+  const classIdOf = (en) =>
+    typeof en.classId === 'object' && en.classId ? String(en.classId._id ?? '') : String(en.classId ?? '');
 
-  function openPanel(cls) {
-    const id = String(cls._id);
-    if (openId === id) {
-      setOpenId('');
-      return;
-    }
-    const taken = enrolledNames(id);
-    const available = students.filter((s) => !taken.some((n) => sameName(n, s.name)));
-    setOpenId(id);
-    setStudentName(available.length ? available[0].name : '');
-    setDayChoice('');
-  }
+  const enrolledIds = new Set(enrollments.map(classIdOf).filter(Boolean));
 
-  function createIntent(cls) {
-    return async () => {
-      const res = await fetch(`/api/classes/${cls._id}/enroll`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ studentName, dayChoice }),
-      });
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(data.error || 'Could not start the enrollment.');
-      return data;
-    };
-  }
-
-  // Group once for render; /api/classes already sorts by the category order.
+  // Group the catalog by category, keeping the school's own ordering.
   const groups = [];
-  for (const cls of classes) {
-    const key = CATEGORIES.some((c) => c.key === cls.category) ? cls.category : 'other';
-    let group = groups.find((g) => g.key === key);
-    if (!group) {
-      group = { key, label: categoryLabel(key), items: [] };
-      groups.push(group);
-    }
-    group.items.push(cls);
+  for (const key of CATEGORY_ORDER) {
+    const inGroup = (classes || []).filter((c) => c.category === key);
+    if (inGroup.length) groups.push({ key, label: CATEGORY_LABEL[key], classes: inGroup });
   }
+  const other = (classes || []).filter((c) => !CATEGORY_ORDER.includes(c.category));
+  if (other.length) groups.push({ key: 'other', label: 'Other classes', classes: other });
 
   return (
     <>
@@ -159,221 +84,145 @@ export default function ClassesPage() {
         <div>
           <h1>Group classes</h1>
           <p className="lede">
-            Browse this term&rsquo;s classes and enroll your student. (그룹 수업 신청)
+            Your students&rsquo; classes, and what&rsquo;s running this term. (그룹 수업)
           </p>
         </div>
+        <Link href="/contact" className="btn btn-ghost">
+          Ask about a class
+        </Link>
       </div>
 
-      {justEnrolled ? (
-        <p className="notice ok">
-          Enrollment received — thank you! A receipt is on its way to your email, and the seat will
-          show as <strong>Enrolled</strong> here once the payment settles.
-        </p>
-      ) : null}
+      {error ? <div className="notice err">{error}</div> : null}
 
-      {loadError ? <p className="notice err">{loadError}</p> : null}
-
-      {loading ? (
-        <div className="card">
-          <div className="empty">
-            <span className="ico">📚</span>
-            <p>Loading classes…</p>
-          </div>
+      {/* ── What my students are in ─────────────────────────────── */}
+      <section className="card">
+        <div className="card-head">
+          <h2>Your students&rsquo; classes (수강 중인 수업)</h2>
+          <Link href="/dashboard/students" className="link">My students →</Link>
         </div>
-      ) : null}
 
-      {!loading && !loadError && classes.length === 0 ? (
-        <div className="card">
+        {classes === null ? (
           <div className="empty">
-            <span className="ico">📚</span>
+            <p>Loading…</p>
+          </div>
+        ) : enrollments.length === 0 ? (
+          <div className="empty">
+            <span className="ico" aria-hidden="true">📚</span>
             <p>
-              No classes are open for registration right now. New terms are posted a few weeks
-              before they start — <Link href="/contact">ask us what&rsquo;s coming up</Link>.
+              No group classes yet. Placement happens after your child&rsquo;s assessment — talk to
+              us and we&rsquo;ll find the right level.
             </p>
           </div>
+        ) : (
+          <div className="stack">
+            {enrollments.map((en) => (
+              <div className="row" key={String(en._id)}>
+                <span className="main">
+                  <span className="strong">{en.studentName}</span>
+                  <span className="meta">
+                    {' · '}
+                    {en.classId?.name || 'Class'}
+                    {en.classId?.schedule ? ` · ${en.classId.schedule}` : ''}
+                    {en.dayChoice ? ` · ${en.dayChoice}` : ''}
+                  </span>
+                  {en.quarter ? <div className="meta small">{quarterLabel(en.quarter)}</div> : null}
+                </span>
+                <span className={`pill ${en.paymentStatus === 'paid' ? 'ok' : 'warn'}`}>
+                  {en.paymentStatus === 'paid' ? 'Enrolled' : 'Payment pending'}
+                </span>
+              </div>
+            ))}
+          </div>
+        )}
+      </section>
+
+      {/* ── The term's catalog, for reference ───────────────────── */}
+      <section className="card">
+        <div className="card-head">
+          <h2>This term at Dotori</h2>
         </div>
-      ) : null}
 
-      {!loading &&
-        groups.map((group) => (
-          <section key={group.key} style={{ marginBottom: '1.6rem' }}>
-            <div className="card-head">
-              <h2>{group.label}</h2>
-              <span className="muted small nowrap">
-                {group.items.length} class{group.items.length === 1 ? '' : 'es'}
-              </span>
-            </div>
+        <p className="muted small" style={{ marginTop: 0 }}>
+          Students are placed into a level after their assessment, so classes aren&rsquo;t signed up
+          for online. If one looks right for your child, mention it at your next session or{' '}
+          <Link href="/contact">contact the school</Link> and we&rsquo;ll sort out the placement and
+          the tuition together.
+        </p>
 
-            <div className="grid grid-2">
-              {group.items.map((cls) => {
-                const id = String(cls._id);
-                const capacity = cls.capacity || 0;
-                const taken = enrolledNames(id);
-                const seatsLeft = Math.max(0, capacity - (cls.enrolledCount || 0));
-                const isFull = capacity > 0 && seatsLeft === 0;
-                const days = dayOptions(cls.schedule);
-                const available = students.filter((s) => !taken.some((n) => sameName(n, s.name)));
-                // Stripe rejects anything under 50 cents, so a mispriced class must never
-                // get a pay button — the same floor the credits page uses.
-                const payable = Math.round((cls.price || 0) * 100) >= 50;
-                const open = openId === id;
-
-                return (
-                  <article key={id} className="card" style={{ margin: 0 }}>
-                    <div className="card-head">
-                      <h2>{cls.name}</h2>
-                      {taken.length > 0 ? <span className="pill ok">Enrolled</span> : null}
-                    </div>
-
-                    <div className="stack" style={{ gap: '0.35rem' }}>
-                      {cls.schedule ? <p className="mb0 mt0">{cls.schedule}</p> : null}
-                      {cls.quarter ? (
-                        <p className="mb0 mt0">
-                          <span className="pill info">{quarterLabel(cls.quarter)}</span>
-                        </p>
-                      ) : null}
-                      {cls.description ? (
-                        <p className="muted small mb0 mt0">{cls.description}</p>
-                      ) : null}
-                    </div>
-
+        {classes === null ? (
+          <div className="empty">
+            <p>Loading the class list…</p>
+          </div>
+        ) : groups.length === 0 ? (
+          <div className="empty">
+            <span className="ico" aria-hidden="true">🗓</span>
+            <p>No classes are published for this term yet.</p>
+          </div>
+        ) : (
+          groups.map((g) => (
+            <div key={g.key} style={{ marginBottom: '1.4rem' }}>
+              <h3
+                style={{
+                  fontSize: '0.78rem',
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.06em',
+                  color: 'var(--ink-3)',
+                  marginBottom: '0.6rem',
+                }}
+              >
+                {g.label}
+              </h3>
+              <div className="grid-2">
+                {g.classes.map((c) => {
+                  const taken = c.manualEnrolled ?? c.enrolledCount ?? 0;
+                  const full = taken >= (c.capacity ?? 0);
+                  const mine = enrolledIds.has(String(c._id));
+                  return (
                     <div
+                      key={String(c._id)}
                       style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'space-between',
-                        flexWrap: 'wrap',
-                        gap: '0.5rem 1rem',
-                        marginTop: '0.9rem',
+                        background: 'var(--surface-2)',
+                        border: `1px solid ${mine ? 'var(--accent)' : 'var(--line-soft)'}`,
+                        borderRadius: 'var(--radius-sm)',
+                        padding: '0.9rem 1.05rem',
                       }}
                     >
-                      <div>
-                        <span className="strong">{priceLabel(cls)}</span>
-                        {cls.earlyBirdPrice ? (
-                          <span className="muted small"> · early bird {money(cls.earlyBirdPrice)}</span>
-                        ) : null}
-                      </div>
-                      <span className={isFull ? 'pill err' : 'pill ok'}>
-                        {isFull
-                          ? `Full · ${cls.enrolledCount || 0}/${capacity}`
-                          : `${cls.enrolledCount || 0} of ${capacity} seats taken`}
-                      </span>
-                    </div>
-
-                    {isFull ? (
-                      <p className="muted small mb0" style={{ marginTop: '0.75rem' }}>
-                        This class is full. <Link href="/contact">Ask about the waitlist</Link>.
-                      </p>
-                    ) : (
-                      <button
-                        type="button"
-                        className={open ? 'btn btn-ghost btn-sm' : 'btn btn-primary btn-sm'}
-                        style={{ marginTop: '0.9rem' }}
-                        onClick={() => openPanel(cls)}
-                      >
-                        {open ? 'Close' : 'Enroll a student'}
-                      </button>
-                    )}
-
-                    {open && !isFull ? (
                       <div
                         style={{
-                          marginTop: '1rem',
-                          paddingTop: '1rem',
-                          borderTop: '1px solid var(--line-soft)',
+                          display: 'flex',
+                          justifyContent: 'space-between',
+                          alignItems: 'flex-start',
+                          gap: '0.6rem',
                         }}
                       >
-                        {students.length === 0 ? (
-                          <div className="empty">
-                            <span className="ico">🌱</span>
-                            <p>
-                              Add your student to your account first so we can link the class to
-                              them.
-                            </p>
-                            <Link
-                              href="/dashboard/students"
-                              className="btn btn-primary btn-sm"
-                              style={{ marginTop: '0.8rem' }}
-                            >
-                              Add a student
-                            </Link>
-                          </div>
-                        ) : available.length === 0 ? (
-                          <p className="notice info mb0">
-                            Every student on your account is already enrolled in this class.
-                          </p>
-                        ) : (
-                          <>
-                            <div className="field">
-                              <label htmlFor={`student-${id}`}>Student (학생)</label>
-                              <select
-                                id={`student-${id}`}
-                                value={studentName}
-                                onChange={(e) => setStudentName(e.target.value)}
-                              >
-                                {available.map((s) => (
-                                  <option key={s.name} value={s.name}>
-                                    {s.name}
-                                  </option>
-                                ))}
-                              </select>
-                            </div>
-
-                            {days.length > 0 ? (
-                              <div className="field">
-                                <label htmlFor={`day-${id}`}>Which day? (요일 선택)</label>
-                                <select
-                                  id={`day-${id}`}
-                                  value={dayChoice}
-                                  onChange={(e) => setDayChoice(e.target.value)}
-                                >
-                                  <option value="">Choose a day…</option>
-                                  {days.map((d) => (
-                                    <option key={d} value={d}>
-                                      {d}
-                                    </option>
-                                  ))}
-                                </select>
-                                <p className="hint">
-                                  This class meets on more than one day — pick the one you want.
-                                </p>
-                              </div>
-                            ) : null}
-
-                            {payable ? (
-                              <PayPanel
-                                key={id}
-                                amountCents={Math.round(cls.price * 100)}
-                                createIntent={createIntent(cls)}
-                                returnUrl="/dashboard/classes?enrolled=1"
-                                label={`Pay ${money(cls.price)}`}
-                                disabled={!studentName || (days.length > 0 && !dayChoice)}
-                              />
-                            ) : (
-                              // Tuition is 0 in the database for these classes, and Stripe
-                              // rejects anything under 50¢ — so send the family to us instead
-                              // of handing them a pay button that cannot work.
-                              <>
-                                <p className="notice info">
-                                  Tuition for this class isn&rsquo;t set up for online payment yet.
-                                  Get in touch and we&rsquo;ll register {studentName || 'your student'}{' '}
-                                  and send an invoice.
-                                </p>
-                                <Link href="/contact" className="btn btn-primary btn-block">
-                                  Enroll through the school
-                                </Link>
-                              </>
-                            )}
-                          </>
-                        )}
+                        <span className="strong">{c.name}</span>
+                        {mine ? <span className="pill ok nowrap">Enrolled</span> : null}
                       </div>
-                    ) : null}
-                  </article>
-                );
-              })}
+
+                      <div className="muted small">
+                        {c.schedule || 'Schedule to be confirmed'}
+                        {c.quarter ? ` · ${quarterLabel(c.quarter)}` : ''}
+                      </div>
+
+                      {c.description ? (
+                        <p className="small" style={{ color: 'var(--ink-2)', margin: '0.5rem 0 0.6rem' }}>
+                          {c.description}
+                        </p>
+                      ) : (
+                        <div style={{ height: '0.5rem' }} />
+                      )}
+
+                      <span className={`pill ${full ? 'err' : 'ok'}`}>
+                        {full ? 'Full' : `${Math.max(0, (c.capacity ?? 0) - taken)} of ${c.capacity} seats open`}
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
             </div>
-          </section>
-        ))}
+          ))
+        )}
+      </section>
     </>
   );
 }
