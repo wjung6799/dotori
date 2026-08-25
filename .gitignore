@@ -32,3 +32,6 @@ media/
 .env*
 next-env.d.ts
 .checkmate/
+
+# Verification builds (see distDir in next.config.mjs)
+/.next-verify/

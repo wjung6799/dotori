@@ -1,6 +1,8 @@
 import dbConnect from '@/lib/db';
 import Enrollment from '@/lib/models/Enrollment';
 import Order from '@/lib/models/Order';
+import SessionCredit from '@/lib/models/SessionCredit';
+import { findPack } from '@/lib/pricing';
 import { getStripe } from '@/lib/stripe';
 import { sendOrderConfirmation } from '@/lib/mailer';
 import { createPrintfulOrder } from '@/lib/printful';
@@ -30,6 +32,8 @@ export async function POST(request) {
       await dbConnect();
       if (pi.metadata && pi.metadata.source === 'shop') {
         await handleShopPayment(pi, stripe);
+      } else if (pi.metadata && pi.metadata.source === 'credits') {
+        await handleCreditPurchase(pi);
       } else {
         await Enrollment.findOneAndUpdate(
           { stripePaymentIntentId: pi.id },
@@ -43,6 +47,39 @@ export async function POST(request) {
   }
 
   return Response.json({ received: true });
+}
+
+// A family bought a session-credit pack in the portal. The grant is created here
+// rather than at checkout so an abandoned payment never hands out credits.
+// The unique sparse index on stripePaymentIntentId makes a webhook redelivery a
+// no-op instead of a double grant.
+async function handleCreditPurchase(pi) {
+  const pack = findPack(pi.metadata.packId);
+  if (!pack) {
+    console.error('Credit purchase for unknown pack:', pi.metadata.packId, pi.id);
+    return;
+  }
+  try {
+    await SessionCredit.create({
+      userId: pi.metadata.userId,
+      tutorId: null,
+      totalSessions: pack.sessions,
+      remainingSessions: pack.sessions,
+      note: `${pack.name} purchased online`,
+      grantedBy: 'stripe',
+      stripePaymentIntentId: pi.id,
+      packId: pack.id,
+      amountPaidCents: pi.amount_received ?? pack.amountCents,
+    });
+    console.log(`Granted ${pack.sessions} credits for intent ${pi.id}`);
+  } catch (err) {
+    // 11000 = duplicate key, i.e. this webhook already ran. Anything else is real.
+    if (err && err.code === 11000) {
+      console.log(`Credit grant for intent ${pi.id} already exists; skipping.`);
+      return;
+    }
+    throw err;
+  }
 }
 
 async function handleShopPayment(pi, stripe) {

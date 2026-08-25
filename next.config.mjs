@@ -10,6 +10,12 @@ import { withPayload } from '@payloadcms/next/withPayload';
 const API_BASE_URL = process.env.API_BASE_URL;
 
 const nextConfig = {
+  // Verification builds must not clobber a running dev server: both write the
+  // same output directory, and whichever writes last invalidates the chunk
+  // hashes the other already served, so the browser 404s on its css/js.
+  // Run `NEXT_DIST_DIR=.next-verify npm run build` to type/compile-check while
+  // `npm run dev` keeps serving from .next.
+  distDir: process.env.NEXT_DIST_DIR || '.next',
   // This app lives in a subfolder of a repo that also has the Express backend's
   // package-lock.json. Pin the tracing root to this folder so Next doesn't warn
   // about multiple lockfiles. (On Vercel, set the project Root Directory to

@@ -900,6 +900,45 @@ export default function AdminPage() {
 
           {/* CLASSES */}
           <div className="tab-panel" style={{ display: tab === 'classes' ? 'block' : 'none' }}>
+            {/* The full catalog editor lives in the staff console: it also covers
+                early-bird pricing, price ranges, the active toggle and copying a
+                whole term forward. This tab stays for quick one-off edits. */}
+            <div
+              style={{
+                background: '#fff8f0',
+                border: '1px solid rgba(232,168,124,0.45)',
+                borderRadius: 12,
+                padding: '0.9rem 1.2rem',
+                marginBottom: '1.5rem',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                gap: '1rem',
+                flexWrap: 'wrap',
+                maxWidth: 600,
+              }}
+            >
+              <span style={{ color: '#6b5b47', fontSize: '0.92rem' }}>
+                Building a term? The full class catalog has pricing, term copying and
+                the seat overrides.
+              </span>
+              <a
+                href="/admin/classes"
+                style={{
+                  background: '#e8a87c',
+                  color: '#4a3c28',
+                  fontWeight: 700,
+                  borderRadius: 8,
+                  padding: '0.45rem 1rem',
+                  fontSize: '0.85rem',
+                  textDecoration: 'none',
+                  whiteSpace: 'nowrap',
+                }}
+              >
+                Open class catalog →
+              </a>
+            </div>
+
             {/* Add class form */}
             <div
               style={{

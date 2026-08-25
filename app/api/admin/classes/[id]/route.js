@@ -19,6 +19,18 @@ export async function PUT(request, { params }) {
     if (schedule !== undefined) update.schedule = schedule;
     if (description !== undefined) update.description = description;
     if (price !== undefined) update.price = Number(price);
+    // Blank clears the field back to null rather than storing 0, which the
+    // catalog would otherwise render as a real $0 price.
+    if (body?.earlyBirdPrice !== undefined) {
+      update.earlyBirdPrice = body.earlyBirdPrice === '' || body.earlyBirdPrice === null
+        ? null
+        : Number(body.earlyBirdPrice);
+    }
+    if (body?.priceMax !== undefined) {
+      update.priceMax = body.priceMax === '' || body.priceMax === null
+        ? null
+        : Number(body.priceMax);
+    }
     if (capacity !== undefined) update.capacity = Number(capacity);
     if (active !== undefined) update.active = active;
     if (scheduleKey !== undefined) update.scheduleKey = scheduleKey;

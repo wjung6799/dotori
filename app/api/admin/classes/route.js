@@ -5,6 +5,13 @@ import { getAdminUser, forbidden } from '@/lib/auth-helpers';
 
 export const dynamic = 'force-dynamic';
 
+// '' / null / undefined → null (field not set); anything numeric → Number.
+function numOrNull(v) {
+  if (v === undefined || v === null || v === '') return null;
+  const n = Number(v);
+  return Number.isFinite(n) ? n : null;
+}
+
 // GET /api/admin/classes: all classes (active + inactive) with enrollment counts
 export async function GET() {
   if (!(await getAdminUser())) return forbidden();
@@ -49,6 +56,11 @@ export async function POST(request) {
       schedule,
       description,
       price: Number(price),
+      // Optional price fields: an early-bird figure and an upper bound for the
+      // ranged 1:1 listings. Blank means "not set", which must stay null rather
+      // than 0 — 0 would render as a real $0 price on the catalog.
+      earlyBirdPrice: numOrNull(body?.earlyBirdPrice),
+      priceMax: numOrNull(body?.priceMax),
       capacity: capacity || 20,
       scheduleKey: scheduleKey || '',
     });

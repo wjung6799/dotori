@@ -136,7 +136,7 @@ function SurveyForm() {
               Please open this form from your profile&apos;s Students section, so we know which
               student it is for. (프로필의 학생 목록에서 작성 버튼을 눌러 주세요.)
             </p>
-            <Link href="/profile" style={{ color: '#8b7355', fontWeight: 700 }}>← Back to profile</Link>
+            <Link href="/dashboard/students" style={{ color: '#8b7355', fontWeight: 700 }}>← Back to my students</Link>
           </div>
         </div>
       </main>
@@ -154,7 +154,7 @@ function SurveyForm() {
               The enrollment form for <strong>{studentName}</strong> has been submitted.
               ({studentName} 학생의 등록 신청서가 제출되었습니다.)
             </p>
-            <Link href="/profile" className="btn btn-primary" style={{ display: 'inline-block', flex: 'none', padding: '0.7rem 1.75rem' }}>
+            <Link href="/dashboard/students" className="btn btn-primary" style={{ display: 'inline-block', flex: 'none', padding: '0.7rem 1.75rem' }}>
               Back to Profile
             </Link>
           </div>
@@ -387,7 +387,7 @@ function SurveyForm() {
             <button type="submit" className="btn btn-primary" disabled={saving} style={{ flex: 'none', padding: '0.85rem 2.25rem' }}>
               {saving ? 'Submitting…' : 'Submit (제출하기)'}
             </button>
-            <Link href="/profile" style={{ color: '#9b8b77', fontWeight: 600 }}>Cancel</Link>
+            <Link href="/dashboard/students" style={{ color: '#9b8b77', fontWeight: 600 }}>Cancel</Link>
           </div>
         </form>
       </div>
