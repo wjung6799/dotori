@@ -29,7 +29,11 @@ function money(cents) {
   });
 }
 
-const METHOD_LABEL = { ach: 'bank transfer (ACH)', card: 'card' };
+const METHOD_LABEL = { ach: 'bank transfer (ACH)', card: 'card', offline: 'Zelle or check' };
+
+// Card is the only method the online channel offers — see ONLINE_METHODS in
+// lib/pricing.js. Anyone who would rather not pay the fee uses Zelle or a check.
+const ONLINE_METHOD = 'card';
 
 export default function BillingPage() {
   const [invoiceData, setInvoiceData] = useState(null);
@@ -44,6 +48,8 @@ export default function BillingPage() {
   // Chosen method per invoice. Bank transfer is the default because it is the
   // cheaper option for the family; picking it should never be the extra step.
   const [methodById, setMethodById] = useState({});
+  // Per-invoice busy flag, so splitting one bill does not blank the whole page.
+  const [splitting, setSplitting] = useState({});
 
   const load = useCallback(async () => {
     const [invRes, histRes] = await Promise.allSettled([
@@ -123,7 +129,7 @@ export default function BillingPage() {
     ...invoiceRows,
   ].sort((a, b) => new Date(b.at) - new Date(a.at));
 
-  const methodFor = (id) => methodById[id] || 'ach';
+  const methodFor = () => ONLINE_METHOD;
 
   function choose(id, method) {
     // Tapping the method that is already live collapses the panel, so a family
@@ -134,6 +140,28 @@ export default function BillingPage() {
     }
     setMethodById((prev) => ({ ...prev, [id]: method }));
     setActiveId(id);
+  }
+
+  async function splitInto(invoiceId, installments) {
+    setSplitting((prev) => ({ ...prev, [invoiceId]: true }));
+    setError('');
+    try {
+      const res = await fetch(`/api/family/invoices/${invoiceId}/split`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ installments }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || 'Could not set up the payment plan.');
+      // The original invoice is now void and N new ones exist, so reload rather
+      // than patching the list in place.
+      setActiveId('');
+      await load();
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setSplitting((prev) => ({ ...prev, [invoiceId]: false }));
+    }
   }
 
   function createIntentFor(invoiceId, method) {
@@ -241,7 +269,14 @@ export default function BillingPage() {
         return (
           <div className="card" key={inv.id}>
             <div className="card-head">
-              <h2>{inv.number}</h2>
+              <h2>
+                {inv.number}
+                {inv.installmentCount ? (
+                  <span className="muted small nowrap">
+                    {'  ·  Payment ' + inv.installmentNumber + ' of ' + inv.installmentCount}
+                  </span>
+                ) : null}
+              </h2>
               <span className={isOpen ? (overdue ? 'pill err' : 'pill warn') : 'pill info'}>
                 {isOpen ? (overdue ? 'overdue' : 'due') : 'processing'}
               </span>
@@ -305,88 +340,112 @@ export default function BillingPage() {
                 ) : null}
 
                 {savingsHint ? (
-                  <p className="small strong" style={{ margin: '1.1rem 0 0.6rem' }}>
+                  <p className="muted small" style={{ margin: '1.1rem 0 0.6rem' }}>
                     {savingsHint}
                   </p>
                 ) : null}
 
-                <div className="grid-2">
-                  {['ach', 'card'].map((m) => {
-                    const q = inv.quotes?.[m] || { totalCents: inv.subtotalCents };
-                    const selected = isActive && method === m;
-                    // Bank transfer carries the default outline even before the
-                    // family touches anything, because it is what we recommend.
-                    const preferred = !isActive && m === 'ach';
-                    return (
-                      <button
-                        key={m}
-                        type="button"
-                        className="card"
-                        aria-pressed={selected}
-                        onClick={() => choose(inv.id, m)}
-                        style={{
-                          margin: 0,
-                          font: 'inherit',
-                          textAlign: 'left',
-                          cursor: 'pointer',
-                          width: '100%',
-                          borderWidth: selected || preferred ? 2 : 1,
-                          borderColor: selected
-                            ? 'var(--brown-mid)'
-                            : preferred
-                              ? 'var(--accent)'
-                              : 'var(--line)',
-                        }}
-                      >
-                        <div className="card-head" style={{ marginBottom: '0.4rem' }}>
-                          <h2>{m === 'ach' ? 'Bank transfer (ACH)' : 'Card'}</h2>
-                          {preferred ? <span className="pill warn">Cheaper</span> : null}
-                        </div>
-
-                        <div style={{ fontSize: '1.6rem', fontWeight: 800, lineHeight: 1.2, color: 'var(--brown-dark)' }}>
-                          {money(q.totalCents)}
-                        </div>
-
-                        {m === 'ach' && q.adjustmentLabel ? (
-                          <p className="small" style={{ color: 'var(--ok)', fontWeight: 700, margin: '0.2rem 0 0' }}>
-                            {q.adjustmentLabel} — you save {money(Math.abs(q.adjustmentCents || 0))}
-                          </p>
-                        ) : null}
-
-                        <p className="muted small" style={{ margin: '0.35rem 0 0' }}>
-                          {m === 'ach' ? '3–5 business days to clear' : 'Clears immediately'}
-                        </p>
-
-                        <p className="small strong" style={{ margin: '0.8rem 0 0' }}>
-                          {selected ? '✓ Selected' : m === 'ach' ? 'Pay by bank transfer' : 'Pay by card'}
-                        </p>
-                      </button>
-                    );
-                  })}
+                {/* One online method, so there is nothing to choose between —
+                    just the total, itemised so the fee is never a surprise. */}
+                <div
+                  style={{
+                    background: 'var(--surface-2)',
+                    border: '1px solid var(--line-soft)',
+                    borderRadius: 'var(--radius-sm)',
+                    padding: '0.85rem 1.05rem',
+                  }}
+                >
+                  <div className="row" style={{ background: 'none', border: 0, padding: 0 }}>
+                    <span className="main muted small">Tuition</span>
+                    <span className="small">{money(inv.subtotalCents)}</span>
+                  </div>
+                  {quote.adjustmentCents ? (
+                    <div className="row" style={{ background: 'none', border: 0, padding: '0.2rem 0 0' }}>
+                      <span className="main muted small">{quote.adjustmentLabel}</span>
+                      <span className="small">{money(quote.adjustmentCents)}</span>
+                    </div>
+                  ) : null}
+                  <div
+                    className="row"
+                    style={{
+                      background: 'none',
+                      border: 0,
+                      borderTop: '1px solid var(--line)',
+                      marginTop: '0.45rem',
+                      padding: '0.45rem 0 0',
+                    }}
+                  >
+                    <span className="main strong">Total by card</span>
+                    <span className="strong" style={{ fontSize: '1.15rem' }}>
+                      {money(quote.totalCents)}
+                    </span>
+                  </div>
                 </div>
 
-                {isActive ? (
+                {/* Splitting is offered only on a bill that is not already one
+                    instalment of a plan, and only while nothing has been paid. */}
+                {!inv.installmentCount && !splitting[inv.id] ? (
+                  <p className="muted small" style={{ margin: '0.8rem 0 0' }}>
+                    Rather pay monthly?{' '}
+                    {[2, 3].map((n, i) => (
+                      <span key={n}>
+                        {i ? ' · ' : ''}
+                        <button
+                          type="button"
+                          className="link"
+                          style={{
+                            background: 'none',
+                            border: 0,
+                            padding: 0,
+                            font: 'inherit',
+                            color: 'var(--brown-mid)',
+                            fontWeight: 700,
+                            cursor: 'pointer',
+                          }}
+                          onClick={() => splitInto(inv.id, n)}
+                        >
+                          Split into {n} payments
+                        </button>
+                      </span>
+                    ))}
+                    . The total stays {money(quote.totalCents)} — the fee is split too.
+                  </p>
+                ) : null}
+                {splitting[inv.id] ? (
+                  <p className="muted small" style={{ margin: '0.8rem 0 0' }}>
+                    Setting up your payment plan…
+                  </p>
+                ) : null}
+
+                {!isActive ? (
+                  <button
+                    type="button"
+                    className="btn btn-primary"
+                    style={{ marginTop: '1rem' }}
+                    onClick={() => choose(inv.id, ONLINE_METHOD)}
+                  >
+                    Pay {money(quote.totalCents)} by card
+                  </button>
+                ) : (
                   <div style={{ marginTop: '1.25rem' }}>
                     <p className="strong" style={{ margin: '0 0 0.15rem' }}>
-                      Paying {money(quote.totalCents)} by {METHOD_LABEL[method]}
+                      Paying {money(quote.totalCents)} by card
                     </p>
                     <p className="muted small" style={{ margin: '0 0 0.6rem' }}>
-                      {method === 'ach'
-                        ? 'We debit your bank account. The invoice sits as processing until it clears.'
-                        : 'Your card is charged now and the invoice is marked paid within seconds.'}
+                      Your card is charged now and the invoice is marked paid within seconds.
                     </p>
-                    {/* Keyed so switching invoice or method builds a clean panel
-                        rather than reusing an Element created for the last one. */}
+                    {/* Keyed so switching invoice builds a clean panel rather than
+                        reusing an Element created for the last one. */}
                     <PayPanel
-                      key={inv.id + ':' + method}
+                      key={inv.id + ':' + ONLINE_METHOD}
                       amountCents={quote.totalCents}
-                      methods={method === 'ach' ? ['us_bank_account'] : ['card']}
-                      createIntent={createIntentFor(inv.id, method)}
+                      methods={['card']}
+                      createIntent={createIntentFor(inv.id, ONLINE_METHOD)}
                       returnUrl="/dashboard/billing?paid=1"
                       label={'Pay ' + money(quote.totalCents)}
                     />
                   </div>
-                ) : null}
+                )}
               </>
             ) : (
               // Processing: the money is already on its way, so there must be no

@@ -1,5 +1,6 @@
 import dbConnect from '@/lib/db';
 import Class from '@/lib/models/Class';
+import { defaultOnlineFeeCents } from '@/lib/pricing';
 import { getAdminUser, forbidden } from '@/lib/auth-helpers';
 
 export const dynamic = 'force-dynamic';
@@ -30,6 +31,14 @@ export async function PUT(request, { params }) {
       update.priceMax = body.priceMax === '' || body.priceMax === null
         ? null
         : Number(body.priceMax);
+    }
+    // Blanking the fee means "go back to the automatic 3%", recomputed against
+    // whatever price is being saved — not silently kept at the old figure.
+    if (body?.onlineFeeCents !== undefined) {
+      update.onlineFeeCents =
+        body.onlineFeeCents === '' || body.onlineFeeCents === null
+          ? defaultOnlineFeeCents(Math.round(Number(price ?? 0) * 100))
+          : Math.max(0, Math.round(Number(body.onlineFeeCents)));
     }
     if (capacity !== undefined) update.capacity = Number(capacity);
     if (active !== undefined) update.active = active;

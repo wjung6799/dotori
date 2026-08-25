@@ -2,13 +2,15 @@ import mongoose from 'mongoose';
 import dbConnect from '@/lib/db';
 import Invoice from '@/lib/models/Invoice';
 import { invoiceTotals, isPayable, STRIPE_MIN_CENTS } from '@/lib/invoicing';
+import { ONLINE_METHODS } from '@/lib/pricing';
 import { getStripe } from '@/lib/stripe';
 import { getCurrentUser, unauthorized } from '@/lib/auth-helpers';
 
 export const dynamic = 'force-dynamic';
 
-// Bank debits settle in days, cards in seconds. Stripe wants the method fixed up
-// front because the two use different payment_method_types.
+// Card is the only method the online channel offers — see ONLINE_METHODS in
+// lib/pricing.js for why. Bank transfer stays in the map so re-enabling it is a
+// one-line change, but a request for it is refused until it is listed there.
 const METHODS = {
   card: { types: ['card'], label: 'card' },
   ach: { types: ['us_bank_account'], label: 'bank transfer' },
@@ -34,9 +36,12 @@ export async function POST(request, { params }) {
     return Response.json({ error: 'Invalid request.' }, { status: 400 });
   }
 
-  const method = METHODS[body?.method] ? body.method : null;
+  const method = METHODS[body?.method] && ONLINE_METHODS.includes(body.method) ? body.method : null;
   if (!method) {
-    return Response.json({ error: 'Choose bank transfer or card.' }, { status: 400 });
+    return Response.json(
+      { error: 'That payment method is not available online. Please contact the school to pay by Zelle or check.' },
+      { status: 400 },
+    );
   }
 
   await dbConnect();

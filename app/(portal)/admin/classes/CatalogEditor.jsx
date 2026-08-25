@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { defaultOnlineFeeCents } from '@/lib/pricing';
 
 const QUARTERS = [
   ['fall-2025', 'Fall 2025'],
@@ -38,6 +39,7 @@ const BLANK = {
   price: '',
   earlyBirdPrice: '',
   priceMax: '',
+  onlineFee: '',
   capacity: 4,
   scheduleKey: '',
   manualEnrolled: '',
@@ -73,6 +75,18 @@ export default function CatalogEditor({ literacySlots }) {
 
   const set = (k, v) => setForm((f) => ({ ...f, [k]: v }));
 
+  // The online fee follows the tuition unless someone has typed their own. It is
+  // charged as a fixed dollar amount, so it has to be a real stored number
+  // rather than a rate applied at checkout.
+  function setPrice(v) {
+    setForm((f) => {
+      const autoBefore = f.price === '' ? '' : String(defaultOnlineFeeCents(Math.round(Number(f.price) * 100)) / 100);
+      const untouched = f.onlineFee === '' || f.onlineFee === autoBefore;
+      const nextAuto = v === '' ? '' : String(defaultOnlineFeeCents(Math.round(Number(v) * 100)) / 100);
+      return { ...f, price: v, onlineFee: untouched ? nextAuto : f.onlineFee };
+    });
+  }
+
   function startNew() {
     setForm({ ...BLANK, quarter: filter === 'all' ? BLANK.quarter : filter });
     setEditing('new');
@@ -89,6 +103,7 @@ export default function CatalogEditor({ literacySlots }) {
       price: c.price ?? '',
       earlyBirdPrice: c.earlyBirdPrice ?? '',
       priceMax: c.priceMax ?? '',
+      onlineFee: c.onlineFeeCents === null || c.onlineFeeCents === undefined ? '' : c.onlineFeeCents / 100,
       capacity: c.capacity ?? 4,
       scheduleKey: c.scheduleKey || '',
       manualEnrolled: c.manualEnrolled ?? '',
@@ -106,6 +121,8 @@ export default function CatalogEditor({ literacySlots }) {
     const payload = {
       ...form,
       price: form.price === '' ? 0 : Number(form.price),
+      // Blank means "use the automatic 3%"; the API recomputes it from the price.
+      onlineFeeCents: form.onlineFee === '' ? '' : Math.round(Number(form.onlineFee) * 100),
       capacity: Number(form.capacity) || 1,
       manualEnrolled: form.manualEnrolled === '' ? null : Number(form.manualEnrolled),
     };
@@ -303,10 +320,26 @@ export default function CatalogEditor({ literacySlots }) {
                   min="0"
                   step="0.01"
                   value={form.price}
-                  onChange={(e) => set('price', e.target.value)}
+                  onChange={(e) => setPrice(e.target.value)}
                   placeholder="350"
                 />
                 <p className="hint">$0 means no online payment.</p>
+              </div>
+              <div className="field">
+                <label htmlFor="cl-fee">Online card fee ($)</label>
+                <input
+                  id="cl-fee"
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  value={form.onlineFee}
+                  onChange={(e) => set('onlineFee', e.target.value)}
+                  placeholder="auto"
+                />
+                <p className="hint">
+                  Fills in at 3% of tuition. Overwrite it, or clear it to go back to automatic.
+                  Families who pay by Zelle or check are never charged it.
+                </p>
               </div>
               <div className="field">
                 <label htmlFor="cl-early">Early-bird ($)</label>
@@ -457,6 +490,9 @@ export default function CatalogEditor({ literacySlots }) {
                             {c.earlyBirdPrice ? (
                               <div className="muted small">early {money(c.earlyBirdPrice)}</div>
                             ) : null}
+                            <div className="muted small">
+                              +{money((c.onlineFeeCents ?? defaultOnlineFeeCents(Math.round(c.price * 100))) / 100)} card fee
+                            </div>
                           </>
                         ) : (
                           <span className="pill warn">No price</span>

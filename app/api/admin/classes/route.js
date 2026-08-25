@@ -1,6 +1,7 @@
 import dbConnect from '@/lib/db';
 import Class from '@/lib/models/Class';
 import Enrollment from '@/lib/models/Enrollment';
+import { defaultOnlineFeeCents } from '@/lib/pricing';
 import { getAdminUser, forbidden } from '@/lib/auth-helpers';
 
 export const dynamic = 'force-dynamic';
@@ -61,6 +62,13 @@ export async function POST(request) {
       // than 0 — 0 would render as a real $0 price on the catalog.
       earlyBirdPrice: numOrNull(body?.earlyBirdPrice),
       priceMax: numOrNull(body?.priceMax),
+      // Every class gets an online card fee the moment it is priced, so nobody
+      // has to remember a second field. It is a fixed dollar figure derived once
+      // from the tuition, and the admin can overwrite it.
+      onlineFeeCents:
+        body?.onlineFeeCents === undefined || body?.onlineFeeCents === '' || body?.onlineFeeCents === null
+          ? defaultOnlineFeeCents(Math.round(Number(price) * 100))
+          : Math.max(0, Math.round(Number(body.onlineFeeCents))),
       capacity: capacity || 20,
       scheduleKey: scheduleKey || '',
     });

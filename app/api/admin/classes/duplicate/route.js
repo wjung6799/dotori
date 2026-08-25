@@ -52,6 +52,7 @@ export async function POST(request) {
         price: c.price,
         priceMax: c.priceMax,
         earlyBirdPrice: c.earlyBirdPrice,
+        onlineFeeCents: c.onlineFeeCents,
         capacity: c.capacity,
         scheduleKey: c.scheduleKey,
         // Enrollment counts and manual overrides belong to the old term.
