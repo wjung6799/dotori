@@ -99,7 +99,7 @@ export async function POST(request, { params }) {
   try {
     const stripe = getStripe();
 
-    // Later instalments are taken without the family present, which needs a
+    // Later installments are taken without the family present, which needs a
     // Customer to hang the saved card on.
     let customerId = invoice.plan?.stripeCustomerId || null;
     if (installments && !customerId) {

@@ -48,7 +48,7 @@ export async function POST(request) {
         console.log(`Enrollment payment confirmed for intent ${pi.id}`);
       }
     } else if (event.type === 'payment_intent.processing') {
-      // Bank debits do not settle immediately. The family has authorised it and
+      // Bank debits do not settle immediately. The family has authorized it and
       // should not be chased, but the money is not here yet — so the invoice
       // moves to its own state rather than straight to paid.
       if (source === 'invoice') {
@@ -91,7 +91,7 @@ export async function POST(request) {
 }
 
 // A charge against an invoice landed. Handles both a single payment and one
-// instalment of a monthly plan.
+// installment of a monthly plan.
 //
 // Idempotency is the $ne guard on the payments array: a redelivered event finds
 // its own intent id already recorded and matches nothing, so it cannot be
@@ -137,7 +137,7 @@ async function settleInvoice(pi, stripe) {
     invoice.plan.lastError = '';
     invoice.plan.failedAttempts = 0;
 
-    // Keep the card for the remaining instalments. Only worth doing on the first
+    // Keep the card for the remaining installments. Only worth doing on the first
     // charge — later ones already used the stored method.
     if (pi.payment_method && !invoice.plan.stripePaymentMethodId) {
       invoice.plan.stripePaymentMethodId =
@@ -169,7 +169,7 @@ async function settleInvoice(pi, stripe) {
 
   if (invoice.enrollmentId) {
     // The seat is settled only when the invoice is, which for a plan means every
-    // instalment has landed. amountPaid tracks tuition actually received.
+    // installment has landed. amountPaid tracks tuition actually received.
     const tuitionPaidCents =
       invoice.status === 'paid'
         ? invoice.subtotalCents

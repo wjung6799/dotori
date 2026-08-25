@@ -11,7 +11,7 @@ export const maxDuration = 60;
 
 // GET /api/cron/charge-installments: invoked daily by Vercel Cron (see
 // vercel.json). Takes the next payment on every monthly plan that has come due,
-// using the card the family authorised when they started the plan.
+// using the card the family authorized when they started the plan.
 //
 // Nothing here marks an invoice paid. It creates a charge and the webhook
 // records it, exactly as it does for a payment the family makes themselves —
@@ -54,7 +54,7 @@ export async function GET(request) {
       continue;
     }
 
-    // Recomputed from the invoice, not stored per instalment, so a correction to
+    // Recomputed from the invoice, not stored per installment, so a correction to
     // the invoice flows into whatever has not been charged yet.
     const schedule = installmentSchedule(invoice, n);
     const step = schedule[already];
@@ -67,7 +67,7 @@ export async function GET(request) {
         customer: invoice.plan.stripeCustomerId || undefined,
         payment_method: invoice.plan.stripePaymentMethodId,
         // The family is not at the keyboard, so Stripe has to know this is a
-        // charge they pre-authorised rather than an unattended fraud attempt.
+        // charge they pre-authorized rather than an unattended fraud attempt.
         off_session: true,
         confirm: true,
         payment_method_types: ['card'],
@@ -99,7 +99,7 @@ export async function GET(request) {
             siteUrl,
           });
         } catch (mailErr) {
-          console.error('Instalment receipt email failed:', mailErr?.message || mailErr);
+          console.error('Installment receipt email failed:', mailErr?.message || mailErr);
         }
       }
     } catch (err) {
@@ -132,10 +132,10 @@ export async function GET(request) {
             siteUrl,
           });
         } catch (mailErr) {
-          console.error('Instalment failure email failed:', mailErr?.message || mailErr);
+          console.error('Installment failure email failed:', mailErr?.message || mailErr);
         }
       }
-      console.error(`Instalment ${already + 1}/${n} failed for ${invoice.number}: ${message}`);
+      console.error(`Installment ${already + 1}/${n} failed for ${invoice.number}: ${message}`);
     }
   }
 

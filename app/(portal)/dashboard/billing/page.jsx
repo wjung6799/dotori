@@ -424,7 +424,7 @@ export default function BillingPage() {
                 </div>
 
                 {/* Paying monthly is now ONE invoice with the card kept on file,
-                    not a stack of separate bills: the family authorises once,
+                    not a stack of separate bills: the family authorizes once,
                     the first payment goes through there and then, and the cron
                     takes the rest. The total is identical either way, so the
                     choice is about cash flow and nothing else. */}

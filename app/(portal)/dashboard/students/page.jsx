@@ -5,12 +5,14 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import LocalTime from '../../LocalTime';
 
-const QUARTER_LABEL = {
-  'fall-2025': 'Fall 2025',
-  'winter-2026': 'Winter 2026',
-  'spring-2026': 'Spring 2026',
-  'summer-2026': 'Summer 2026',
-};
+// Derived rather than hand-listed: a term the school adds later would otherwise
+// show a parent the raw slug, which is what "fall-2026" was doing.
+function quarterLabel(q) {
+  if (!q) return '';
+  const [season, year] = String(q).split('-');
+  if (!year) return q;
+  return season.charAt(0).toUpperCase() + season.slice(1) + ' ' + year;
+}
 
 const GRADE_OPTIONS = ['Pre-K', 'K', '1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12'];
 
@@ -218,7 +220,7 @@ export default function StudentsPage() {
 
             <div className="row">
               <div className="main">
-                <div className="strong">Enrolment form (신규 학생 등록 신청서)</div>
+                <div className="strong">Enrollment form (신규 학생 등록 신청서)</div>
                 <div className="meta">One form per student — it tells us how {s.name} learns best.</div>
               </div>
               <span className={submitted ? 'pill ok' : 'pill err'}>
@@ -239,7 +241,7 @@ export default function StudentsPage() {
                     const meta = [
                       en.classId?.schedule,
                       en.dayChoice,
-                      QUARTER_LABEL[en.quarter] || en.quarter,
+                      quarterLabel(en.quarter),
                     ].filter(Boolean);
                     return (
                       <div className="row" key={en._id}>
@@ -300,7 +302,12 @@ export default function StudentsPage() {
                 {rows.map((r, i) => {
                   const renamed = r.orig && r.name.trim() !== r.orig;
                   return (
-                    <div className="row" key={i} style={{ alignItems: 'flex-end' }}>
+                    // flex-start aligns the two labels exactly; flex-end would
+                    // hang them off the controls' bottoms, and a select renders a
+                    // couple of pixels taller than an input, so the Grade label
+                    // sat visibly lower. The button re-aligns itself below.
+                    // rowGap keeps the hint tight once it wraps to its own line.
+                    <div className="row" key={i} style={{ alignItems: 'flex-start', rowGap: '0.4rem' }}>
                       <div className="main" style={{ flex: '1 1 220px' }}>
                         <div className="field mb0">
                           <label htmlFor={`student-name-${i}`}>Student name (학생 이름)</label>
@@ -311,13 +318,6 @@ export default function StudentsPage() {
                             value={r.name}
                             onChange={(e) => updateRow(i, 'name', e.target.value)}
                           />
-                          {r.orig ? (
-                            <p className="hint">
-                              {renamed
-                                ? `Heads up: this student's enrolment form and bookings are filed under “${r.orig}”. Saving a new name unlinks them.`
-                                : 'Enrolment forms and bookings are matched by name, so renaming unlinks them.'}
-                            </p>
-                          ) : null}
                         </div>
                       </div>
 
@@ -342,11 +342,26 @@ export default function StudentsPage() {
                       <button
                         type="button"
                         className="btn btn-ghost btn-sm"
+                        style={{ alignSelf: 'flex-end' }}
                         onClick={() => removeRow(i)}
                         aria-label={r.name ? `Remove ${r.name}` : 'Remove this student'}
                       >
                         Remove
                       </button>
+
+                      {/* Full-width so it sits below all three controls instead
+                          of making the name column taller than its neighbours,
+                          which pushed the Grade label out of alignment. */}
+                      {r.orig ? (
+                        <p
+                          className="muted small"
+                          style={{ flex: '1 1 100%', margin: 0, color: renamed ? 'var(--warn)' : undefined }}
+                        >
+                          {renamed
+                            ? `Heads up: this student's enrollment form and bookings are filed under “${r.orig}”. Saving a new name unlinks them.`
+                            : 'Enrollment forms and bookings are matched by name, so renaming unlinks them.'}
+                        </p>
+                      ) : null}
                     </div>
                   );
                 })}

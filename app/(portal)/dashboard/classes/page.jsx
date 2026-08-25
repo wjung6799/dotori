@@ -9,16 +9,6 @@ import Link from 'next/link';
 // Booking a 1:1 session is the one thing families do for themselves; that lives
 // at /dashboard/booking.
 
-const QUARTER_LABEL = {
-  'fall-2025': 'Fall 2025',
-  'winter-2026': 'Winter 2026',
-  'spring-2026': 'Spring 2026',
-  'summer-2026': 'Summer 2026',
-  'fall-2026': 'Fall 2026',
-  'winter-2027': 'Winter 2027',
-  'spring-2027': 'Spring 2027',
-  'summer-2027': 'Summer 2027',
-};
 
 const CATEGORY_ORDER = ['reading', 'writing', 'korean', 'summer', '1on1'];
 const CATEGORY_LABEL = {
@@ -29,7 +19,14 @@ const CATEGORY_LABEL = {
   '1on1': 'Private & semi-private',
 };
 
-const quarterLabel = (q) => QUARTER_LABEL[q] || q || '';
+// Derived, not hand-listed: a term the school adds later would otherwise show a
+// parent the raw slug like "fall-2026".
+const quarterLabel = (q) => {
+  if (!q) return '';
+  const [season, year] = String(q).split('-');
+  if (!year) return q;
+  return season.charAt(0).toUpperCase() + season.slice(1) + ' ' + year;
+};
 
 export default function ClassesPage() {
   const [classes, setClasses] = useState(null); // null = loading

@@ -17,18 +17,14 @@ export const metadata = {
   robots: { index: false, follow: false },
 };
 
-const QUARTER_LABEL = {
-  'fall-2025': 'Fall 2025',
-  'winter-2026': 'Winter 2026',
-  'spring-2026': 'Spring 2026',
-  'summer-2026': 'Summer 2026',
-  'fall-2026': 'Fall 2026',
-};
 
 // Unknown quarters fall through to the raw value rather than an empty cell —
 // admins type these by hand, so a new term should still be readable here.
 function quarterLabel(q) {
-  return QUARTER_LABEL[q] || q || '—';
+    // Derived, not hand-listed, so a new term never shows a parent its raw slug.
+  const [season, year] = String(q).split('-');
+  if (!year) return q || '—';
+  return season.charAt(0).toUpperCase() + season.slice(1) + ' ' + year;
 }
 
 // .lean() hands back real Date objects; LocalTime needs an ISO string.
