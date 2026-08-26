@@ -69,8 +69,35 @@ const ADMIN_NAV = [
   },
 ];
 
+// Instructors get the same console shape as everyone else. Their pages used to
+// live on the marketing site behind a tab bar, which meant the one role that
+// works in the system every day was the one without a dashboard.
+const TUTOR_NAV = [
+  {
+    section: null,
+    links: [
+      { href: '/tutor', label: 'Overview', icon: '◎', exact: true },
+      { href: '/tutor/availability', label: 'My availability', icon: '🗓' },
+      { href: '/tutor/bookings', label: 'My bookings', icon: '📋' },
+    ],
+  },
+  {
+    section: 'Students',
+    links: [
+      { href: '/tutor/feedback', label: 'Feedback', icon: '💬' },
+      { href: '/tutor/placement', label: 'Class placement', icon: '📥' },
+    ],
+  },
+  {
+    section: 'Money',
+    links: [{ href: '/tutor/rates', label: 'My rates', icon: '🏷' }],
+  },
+];
+
 function navFor(role) {
-  return role === 'admin' ? ADMIN_NAV : FAMILY_NAV;
+  if (role === 'admin') return ADMIN_NAV;
+  if (role === 'tutor') return TUTOR_NAV;
+  return FAMILY_NAV;
 }
 
 // Pages that still live on the marketing site. Called out separately so it is
@@ -146,7 +173,9 @@ export default function PortalShell({ user, children }) {
           <img src="/assets/images/logo.png" alt="" />
           <div>
             <div className="name">Dotori School</div>
-            <div className="sub">{isAdmin ? 'Staff console' : 'Family portal'}</div>
+            <div className="sub">
+              {isAdmin ? 'Staff console' : user?.role === 'tutor' ? 'Instructor console' : 'Family portal'}
+            </div>
           </div>
         </div>
 
