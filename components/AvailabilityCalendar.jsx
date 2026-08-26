@@ -17,6 +17,12 @@ const CONTENT_H = (END_HOUR - START_HOUR) * HOUR_PX;
 const VIEWPORT_H = 560;
 const GUTTER = 52;
 const SNAP = 15;
+
+// What a slot can open as when nobody has narrowed it down.
+const DEFAULT_KINDS = [
+  { type: 'semi_private', label: 'Semi-private', hint: 'A small group shares the time.' },
+  { type: 'private', label: 'Private (1:1)', hint: 'One student has the whole time.' },
+];
 const WEEKS_AHEAD = 8;
 const DEFAULT_DUR = 60;
 
@@ -41,9 +47,14 @@ const fromHHMM = (s) => { const [h, m] = s.split(':').map(Number); return h * 60
 export default function AvailabilityCalendar({
   schedules = [],
   exceptions = [],
-  onAddSlot,        // async ({ mode:'recurring'|'oneoff', dayOfWeek, specificDate, startMinute, durationMinutes, capacity, subject })
+  onAddSlot,        // async ({ mode:'recurring'|'oneoff', dayOfWeek, specificDate, startMinute, durationMinutes, capacity, sessionType, subject })
   onCancelInstance, // async (scheduleId, dateKey)
   onDeleteSeries,   // async (scheduleId)
+  // The kinds a paid slot may open as: [{ type, label, hint }]. The tutor page
+  // derives this from the packages the tutor actually sells, so a slot can only
+  // be opened as something a family can buy a credit for. Left out (the admin
+  // page), both kinds are offered.
+  kinds = DEFAULT_KINDS,
 }) {
   const [weekOffset, setWeekOffset] = useState(0);
   const [preview, setPreview] = useState(null);   // { columnIdx, startMin, curMin }
@@ -220,6 +231,7 @@ export default function AvailabilityCalendar({
       {/* Create modal (after drag) */}
       {creating && (
         <CreateModal
+          kinds={kinds}
           creating={creating}
           onClose={() => setCreating(null)}
           onSubmit={async (payload) => { await onAddSlot(payload); setCreating(null); }}
@@ -261,7 +273,7 @@ export default function AvailabilityCalendar({
   );
 }
 
-function CreateModal({ creating, onClose, onSubmit }) {
+function CreateModal({ creating, onClose, onSubmit, kinds = DEFAULT_KINDS }) {
   const dom = Number(creating.date.split('-')[2]);
   const [start, setStart] = useState(hhmm(creating.startMin));
   const [dur, setDur] = useState(String(creating.durMin));
@@ -269,7 +281,17 @@ function CreateModal({ creating, onClose, onSubmit }) {
   const [subject, setSubject] = useState('');
   const [recurrence, setRecurrence] = useState('weekly');
   const [diagnostic, setDiagnostic] = useState(false);
+  // Which kind of session this slot is for. A family's credit only books the
+  // kind it was bought as, so this decides which token the slot takes. With
+  // one kind on offer there is nothing to choose and it is simply that kind.
+  const [sessionType, setSessionType] = useState(kinds[0]?.type || null);
   const [busy, setBusy] = useState(false);
+
+  const kind = kinds.find((k) => k.type === sessionType) || kinds[0] || null;
+  const isPrivateKind = kind?.type === 'private';
+  // A paid slot with no kind would take no family's credit — refuse to open one.
+  // A free diagnostic slot charges nothing, so it is fine without.
+  const canAdd = diagnostic || !!kind;
 
   const options = [
     ['weekly', `Weekly, every ${DOW[creating.dow]}`],
@@ -289,8 +311,10 @@ function CreateModal({ creating, onClose, onSubmit }) {
         specificDate: recurrence === 'oneoff' ? creating.date : null,
         startMinute: fromHHMM(start),
         durationMinutes: Math.max(SNAP, Number(dur) || DEFAULT_DUR),
-        capacity: Math.max(1, Number(capacity) || 1),
+        // One student is one seat: a private slot is one seat whatever the box says.
+        capacity: isPrivateKind ? 1 : Math.max(1, Number(capacity) || 1),
         kind: diagnostic ? 'diagnostic' : 'session',
+        sessionType: kind?.type || null,
         subject,
       });
     } finally { setBusy(false); }
@@ -306,7 +330,7 @@ function CreateModal({ creating, onClose, onSubmit }) {
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 12 }}>
           <label style={fld()}>Start<input type="time" value={start} onChange={(e) => setStart(e.target.value)} style={inp()} /></label>
           <label style={fld()}>Minutes<input type="number" min={SNAP} step={SNAP} value={dur} onChange={(e) => setDur(e.target.value)} style={{ ...inp(), width: 84 }} /></label>
-          <label style={fld()}>Seats<input type="number" min="1" value={capacity} onChange={(e) => setCapacity(e.target.value)} style={{ ...inp(), width: 72 }} /></label>
+          <label style={fld()}>Seats<input type="number" min="1" value={isPrivateKind ? '1' : capacity} disabled={isPrivateKind} title={isPrivateKind ? 'A private slot is one student' : undefined} onChange={(e) => setCapacity(e.target.value)} style={{ ...inp(), width: 72, opacity: isPrivateKind ? 0.6 : 1 }} /></label>
           <label style={fld()}>Subject<input value={subject} onChange={(e) => setSubject(e.target.value)} placeholder="optional" style={inp()} /></label>
         </div>
         <label style={{ ...fld(), marginBottom: 14 }}>
@@ -315,6 +339,47 @@ function CreateModal({ creating, onClose, onSubmit }) {
             {options.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
           </select>
         </label>
+        {/* The kind comes from the packages the tutor sells, so the slot can only
+            open as something a family can hold a credit for. */}
+        {!diagnostic && kinds.length > 1 ? (
+          <div style={{ ...fld(), marginBottom: 14 }}>
+            Session kind
+            <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+              {kinds.map((k) => {
+                const on = k.type === kind?.type;
+                return (
+                  <button
+                    key={k.type}
+                    type="button"
+                    aria-pressed={on}
+                    onClick={() => setSessionType(k.type)}
+                    style={{
+                      ...ghost(),
+                      padding: '7px 12px',
+                      background: on ? ACCENT : '#faf8f5',
+                      borderColor: on ? ACCENT : '#ece5db',
+                      color: on ? '#fff' : BROWN,
+                      fontWeight: on ? 700 : 500,
+                    }}
+                  >
+                    {k.label}
+                  </button>
+                );
+              })}
+            </div>
+            {kind?.hint ? <span style={{ fontSize: '0.78rem', color: '#9b8b77', fontWeight: 400 }}>{kind.hint} Books with a {kind.label.toLowerCase()} session token.</span> : null}
+          </div>
+        ) : null}
+        {!diagnostic && kinds.length === 1 ? (
+          <div style={{ fontSize: '0.82rem', color: '#9b8b77', marginBottom: 14 }}>
+            Opens as <strong style={{ color: BROWN }}>{kind.label}</strong> — the only kind you sell packages for, so that is the token it takes.
+          </div>
+        ) : null}
+        {!diagnostic && kinds.length === 0 ? (
+          <div style={{ fontSize: '0.82rem', color: '#b3423a', background: '#fdf1ef', border: '1.5px solid #f3c9c3', borderRadius: 9, padding: '10px 12px', marginBottom: 14 }}>
+            You have no packages priced yet, so a paid slot here would take nobody&rsquo;s session token. Set a package on your Rates page first, or open this as a free diagnostic slot.
+          </div>
+        ) : null}
         <label
           style={{
             display: 'flex', alignItems: 'flex-start', gap: 8, marginBottom: 14,
@@ -330,7 +395,7 @@ function CreateModal({ creating, onClose, onSubmit }) {
           </span>
         </label>
         <div style={{ display: 'grid', gap: 8 }}>
-          <button onClick={go} disabled={busy} style={btn()}>{busy ? 'Adding…' : 'Add availability'}</button>
+          <button onClick={go} disabled={busy || !canAdd} style={{ ...btn(), opacity: canAdd ? 1 : 0.5 }}>{busy ? 'Adding…' : 'Add availability'}</button>
           <button onClick={onClose} disabled={busy} style={{ ...ghost(), border: 'none', color: '#9b8b77' }}>Cancel</button>
         </div>
       </div>

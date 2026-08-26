@@ -8,11 +8,11 @@ import LocalTime from '../../LocalTime';
 import {
   PRIVATE,
   SEMI_PRIVATE,
-  SESSION_TYPES,
   SESSION_TYPE_BLURB,
   inferSlotType,
   sessionTypeLabel,
 } from '@/lib/sessionTypes';
+import { sessionTypesForTutor } from '@/lib/pricing';
 import { DOW_LABELS, minuteLabel, recurrenceLabel } from '@/lib/slots';
 
 // When you teach: the weekly grid, and the one-off sessions layered on top of
@@ -31,12 +31,6 @@ const famName = (f) => {
   const kids = (f.students || []).map((s) => s.name).filter(Boolean).join(', ');
   return kids ? `${base} (${kids})` : base;
 };
-
-// The seat count AvailabilityCalendar's create dialog opens with. The kind
-// picker below is defaulted from it through inferSlotType, so the form starts on
-// whatever the server would have inferred for a slot sent without a kind — one
-// seat has always meant 1:1 — and the existing flow keeps saving what it saved.
-const NEW_SLOT_SEATS = 1;
 
 // How a schedule row reads in a list: "Every Tue", "Mon-Fri", "Sat, Sep 14".
 // The recurrence is derived the same way lib/slots does it, and a row missing
@@ -80,13 +74,17 @@ export default function TutorAvailabilityPage() {
   const [data, setData] = useState(null); // { tutor, schedules, exceptions }
   const [loadError, setLoadError] = useState('');
   const [slotError, setSlotError] = useState('');
-  // Semi-private or private. Held here rather than inside the calendar's drag
-  // dialog: the calendar is shared with the admin page, and a tutor opening a
-  // run of slots normally opens them all as the same kind, so this is set once
-  // and every drag that follows inherits it.
-  const [newSlotType, setNewSlotType] = useState(() =>
-    inferSlotType({ capacity: NEW_SLOT_SEATS }),
-  );
+  // The kinds this tutor can open a slot as: exactly the ones they sell a
+  // package for. A slot is a promise that some family's token fits it, and the
+  // package is where that token is defined — so the drag dialog offers these
+  // and nothing else. Yesol sells both; Won sells semi-private only.
+  const kinds = data?.tutor
+    ? sessionTypesForTutor(data.tutor).map((t) => ({
+        type: t,
+        label: sessionTypeLabel(t),
+        hint: SESSION_TYPE_BLURB[t],
+      }))
+    : [];
 
   const loadMe = useCallback(async () => {
     try {
@@ -109,20 +107,22 @@ export default function TutorAvailabilityPage() {
   // rejected slot just silently never appears on the grid.
   async function addSlot(payload) {
     setSlotError('');
-    // The kind is chosen on this page, so it is merged into the body on the way
-    // out. buildScheduleFields reads the field as `sessionType`; sending none
-    // would leave the slot on the capacity guess that only exists to read rows
-    // written before kinds did.
-    //
-    // Private means one family taking the whole slot, so its seat count is set
-    // here rather than trusting whatever the dialog's Seats box was left on — a
-    // "private" slot with four seats in it is not a private slot.
+    // The dialog picked the kind from `kinds`, so it is one this tutor sells.
+    // A paid slot arriving without one would fall back to the server's seat-count
+    // guess, and a guessed slot takes any token — the opposite of the point.
+    const sessionType = payload?.sessionType || null;
+    if (payload?.kind !== 'diagnostic' && !sessionType) {
+      setSlotError('Pick which kind of session this slot is for. Price a package on your Rates page if none is offered.');
+      return;
+    }
+    // One student is one seat: a private slot is saved with one seat whatever
+    // the dialog's Seats box was left on.
     const capacity =
-      newSlotType === PRIVATE ? 1 : Math.max(1, Number(payload?.capacity) || 1);
+      sessionType === PRIVATE ? 1 : Math.max(1, Number(payload?.capacity) || 1);
     const res = await fetch('/api/tutor/schedules', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ ...(payload || {}), sessionType: newSlotType, capacity }),
+      body: JSON.stringify({ ...(payload || {}), sessionType, capacity }),
     });
     if (!res.ok) {
       const d = await res.json().catch(() => ({}));
@@ -198,36 +198,23 @@ export default function TutorAvailabilityPage() {
 
             {slotError ? <div className="notice err">{slotError}</div> : null}
 
-            {/* A slot has to be opened as one kind or the other. A family who
-                bought private credits can only spend them on a private slot, so
-                until one is open they are holding a package they cannot book. */}
-            <div className="field">
-              <label htmlFor="new-slot-type">New slots open as</label>
-              <select
-                id="new-slot-type"
-                className="input"
-                style={{ width: 'auto' }}
-                value={newSlotType}
-                onChange={(e) => setNewSlotType(e.target.value)}
-              >
-                {SESSION_TYPES.map((t) => (
-                  <option key={t} value={t}>
-                    {sessionTypeLabel(t)}
-                  </option>
-                ))}
-              </select>
-              <div className="hint">
-                {SESSION_TYPE_BLURB[newSlotType]}{' '}
-                {newSlotType === PRIVATE
-                  ? 'One student is one seat, so a private slot is saved with a seat count of 1 whatever the Seats box in the drag dialog is left on.'
-                  : 'The Seats box in the drag dialog sets how many students can share it.'}
-              </div>
-            </div>
+            {/* Drag a column to open a slot. The dialog asks which kind it is,
+                offering only the kinds this tutor sells a package for — a slot
+                is a promise that some family's token fits it. */}
+            <p className="muted small">
+              Drag down a day to open a slot. It opens as one of the kinds you sell &mdash;{' '}
+              {kinds.length
+                ? kinds.map((k) => k.label).join(' or ')
+                : 'none yet, so only free diagnostic slots can be opened'}
+              {' '}&mdash; and takes that kind of session token.{' '}
+              <Link href="/tutor/rates">Change what you sell</Link>.
+            </p>
 
             {data ? (
               <AvailabilityCalendar
                 schedules={data.schedules || []}
                 exceptions={data.exceptions || []}
+                kinds={kinds}
                 onAddSlot={addSlot}
                 onCancelInstance={cancelInstance}
                 onDeleteSeries={deleteSeries}
