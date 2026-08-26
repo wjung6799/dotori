@@ -5,7 +5,7 @@ import Link from 'next/link';
 
 import LocalTime from '../../LocalTime';
 import PayPanel from '../../PayPanel';
-import { formatUsd } from '@/lib/pricing';
+import { expiryFor, formatUsd, validityLabel } from '@/lib/pricing';
 
 // Session credits (수업 크레딧) are PER INSTRUCTOR: every tutor sets their own
 // rates, so a credit bought for one tutor books that tutor. That is why this page
@@ -20,6 +20,32 @@ import { formatUsd } from '@/lib/pricing';
 // so a redirect back from checkout can land a beat before the balance moves.
 
 const plural = (n) => (n === 1 ? '' : 's');
+
+// A grant nearing its window gets a nudge a month out — long enough to still
+// book the sessions, short enough that the warning means something.
+const EXPIRING_SOON_DAYS = 30;
+
+// null expiresAt means the grant NEVER lapses: everything granted before
+// packages had a window carries null, and those credits must keep working
+// forever. Unparseable data lands here too — a date we cannot read is not
+// evidence that anything expired, so it gets no pill either.
+function expiryState(iso) {
+  if (!iso) return null;
+  const at = new Date(iso).getTime();
+  if (!Number.isFinite(at)) return null;
+  const days = (at - Date.now()) / 86400000;
+  if (days < 0) return 'expired';
+  return days <= EXPIRING_SOON_DAYS ? 'soon' : 'ok';
+}
+
+// The flag beside an expiry date. Renders nothing while the window is still
+// comfortably open, so the table stays quiet until a date actually matters.
+function ExpiryPill({ iso }) {
+  const state = expiryState(iso);
+  if (state === 'expired') return <span className="pill err">Expired</span>;
+  if (state === 'soon') return <span className="pill warn">Soon</span>;
+  return null;
+}
 
 export default function CreditsPage() {
   const [data, setData] = useState(null);
@@ -59,12 +85,17 @@ export default function CreditsPage() {
   const anyTutorRemaining = data?.anyTutorRemaining || 0;
   const tutors = data?.tutors || [];
   const grants = data?.grants || [];
+  const expiredSessions = data?.expiredSessions || 0;
 
   const tutor = tutors.find((t) => t.id === tutorId) || null;
   const packs = tutor?.packs || [];
   const pack = packs.find((p) => p.id === packId) || null;
 
   const packTotal = pack ? pack.amountCents + (pack.onlineFeeCents || 0) : 0;
+  // The window starts when the payment clears, i.e. today — so this is quoted
+  // from the current clock rather than frozen at mount. null months = no expiry,
+  // and then there is no date to promise and the sentence is dropped entirely.
+  const packExpiry = pack ? expiryFor(pack.validMonths) : null;
   // Stripe refuses anything under 50 cents, so a mispriced pack must never get a
   // pay button — point at a human instead of a guaranteed failure.
   const payable = pack && packTotal >= 50;
@@ -91,7 +122,11 @@ export default function CreditsPage() {
     return payload;
   }
 
-  const noCreditsAtAll = balances.length === 0 && anyTutorRemaining === 0;
+  // Only a SUCCESSFUL load can say "you have none". When the fetch failed there
+  // is no data, and rendering a confident 0 next to "we could not load your
+  // credits" tells a family their sessions are gone when we simply do not know.
+  const noCreditsAtAll = Boolean(data) && balances.length === 0 && anyTutorRemaining === 0;
+  const balanceUnknown = !loading && !data;
 
   return (
     <>
@@ -114,6 +149,22 @@ export default function CreditsPage() {
 
       {error ? <div className="notice err">{error}</div> : null}
 
+      {/* Lapsed sessions are deliberately stated as a plain number and kept out
+          of the balances below, because booking will refuse them. The school
+          extends a lapsed package once, so this points at a person, not a
+          dead end. */}
+      {expiredSessions > 0 ? (
+        <div className="notice warn">
+          <strong>
+            {expiredSessions} session{plural(expiredSessions)} expired.
+          </strong>{' '}
+          {expiredSessions === 1 ? 'It is' : 'They are'} no longer bookable and{' '}
+          {expiredSessions === 1 ? 'is' : 'are'} not counted in the balances below. If life got in
+          the way, <Link href="/contact">contact the school</Link> — we extend a lapsed package
+          once as a courtesy.
+        </div>
+      ) : null}
+
       {/* ── Balances, one per instructor ─────────────────────────────────── */}
       <div className="grid" style={{ marginBottom: '1.1rem' }}>
         {loading ? (
@@ -121,6 +172,12 @@ export default function CreditsPage() {
             <div className="label">Credits remaining</div>
             <div className="value">—</div>
             <div className="hint">Loading your balance…</div>
+          </div>
+        ) : balanceUnknown ? (
+          <div className="stat">
+            <div className="label">Credits remaining</div>
+            <div className="value">—</div>
+            <div className="hint">We could not read your balance just now. Please refresh.</div>
           </div>
         ) : noCreditsAtAll ? (
           <div className="stat">
@@ -293,6 +350,13 @@ export default function CreditsPage() {
                             ))}
                           </ul>
 
+                          {/* A family weighing a 10-pack against a 40-pack is
+                              really weighing how long they have to use it, so
+                              the window belongs beside the price. */}
+                          <p className="muted small" style={{ margin: '0.6rem 0 0' }}>
+                            {validityLabel(p.validMonths)}
+                          </p>
+
                           <p className="small strong" style={{ margin: '0.85rem 0 0' }}>
                             {chosen ? '✓ Selected' : 'Choose this package'}
                           </p>
@@ -319,6 +383,13 @@ export default function CreditsPage() {
                     <p className="muted small" style={{ margin: '0 0 0.7rem' }}>
                       {pack.sessions} session{plural(pack.sessions)} with {tutor.name}, added to your
                       balance once the payment clears.
+                      {packExpiry ? (
+                        <>
+                          {' '}
+                          These sessions would need to be used by{' '}
+                          <LocalTime iso={packExpiry.toISOString()} format="date" />.
+                        </>
+                      ) : null}
                     </p>
 
                     {/* Only shown when a fee actually moves the number — never a
@@ -415,6 +486,7 @@ export default function CreditsPage() {
                   <th>Instructor</th>
                   <th>What</th>
                   <th>Sessions</th>
+                  <th>Expires</th>
                   <th>How paid</th>
                   {/* table.data styles td.num only, so the header is aligned here. */}
                   <th className="num" style={{ textAlign: 'right' }}>
@@ -432,6 +504,20 @@ export default function CreditsPage() {
                     <td>{g.note || 'Session credits'}</td>
                     <td className="nowrap">
                       {g.remainingSessions} of {g.totalSessions} left
+                    </td>
+                    <td className="nowrap">
+                      {g.expiresAt ? (
+                        <>
+                          <LocalTime iso={g.expiresAt} format="date" />{' '}
+                          <ExpiryPill iso={g.expiresAt} />
+                          {/* Says why the date is later than the package sold:
+                              the one courtesy extension has been used. */}
+                          {g.extendedAt ? <div className="muted small">extended</div> : null}
+                        </>
+                      ) : (
+                        /* No expiry — never render this as lapsed. */
+                        '—'
+                      )}
                     </td>
                     <td>
                       {g.paid ? (

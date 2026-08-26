@@ -1,5 +1,6 @@
 import dbConnect from '@/lib/db';
 import SessionCredit from '@/lib/models/SessionCredit';
+import { expiryFor } from '@/lib/pricing';
 import User from '@/lib/models/User';   // registers model for populate()
 import Tutor from '@/lib/models/Tutor';  // registers model for populate()
 import { getAdminUser, forbidden } from '@/lib/auth-helpers';
@@ -44,6 +45,10 @@ export async function POST(request) {
       userId,
       tutorId: tutorId || null,
       totalSessions: n,
+      // Optional: a hand-granted pack can carry the same window a bought one
+      // does. Omitted means it never lapses, which is how every grant behaved
+      // before expiry existed.
+      expiresAt: expiryFor(Number(body?.validMonths) || null),
       remainingSessions: n,
       note: note || '',
       grantedBy: admin.firstName || admin.name || admin.email || 'admin',

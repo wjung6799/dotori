@@ -27,7 +27,14 @@ export async function GET() {
   // other credit total in the app (the family dashboard, /api/booking/me) is
   // this same sum, and both screens reading this field label it "sessions".
   const [creditAgg] = await SessionCredit.aggregate([
-    { $match: { tutorId: tutor._id, remainingSessions: { $gt: 0 } } },
+    {
+      $match: {
+        tutorId: tutor._id,
+        remainingSessions: { $gt: 0 },
+        // Lapsed sessions are not an obligation any more.
+        $or: [{ expiresAt: null }, { expiresAt: { $gte: new Date() } }],
+      },
+    },
     { $group: { _id: null, sessions: { $sum: '$remainingSessions' } } },
   ]);
   const soldCredits = creditAgg?.sessions || 0;
@@ -38,6 +45,10 @@ export async function GET() {
       sessions: r.sessions,
       ratePerHour: r.ratePerHour,
       tag: r.tag || '',
+      // null = this package never lapses. Send it through as null rather than
+      // omitting the field: the editor treats a missing value as "no expiry"
+      // too, but then saves that blank back over a window someone did set.
+      validMonths: r.validMonths ?? null,
     })),
     usesDefaultRates: (tutor.rates || []).length === 0,
     // What a family is quoted right now, whether that comes from these rates or
@@ -54,7 +65,7 @@ export async function GET() {
   });
 }
 
-// PUT /api/tutor/rates  body { rates: [{ sessions, ratePerHour, tag }] }
+// PUT /api/tutor/rates  body { rates: [{ sessions, ratePerHour, tag, validMonths }] }
 // An empty list hands this tutor back to the school-wide defaults.
 export async function PUT(request) {
   if (!(await getTutorOrAdmin())) return unauthorized();
@@ -87,7 +98,17 @@ export async function PUT(request) {
       );
     }
     seen.add(sessions);
-    cleaned.push({ sessions, ratePerHour, tag: (r?.tag || '').toString().trim().slice(0, 40) });
+    // Blank / absent means the package never lapses, so it stores as null — a 0
+    // would read as a package that expired the moment it was paid for. Carried
+    // through here because the editor sends it: dropping it would silently wipe
+    // the window an admin set on this tutor the next time they save a rate.
+    const months = Math.round(Number(r?.validMonths));
+    cleaned.push({
+      sessions,
+      ratePerHour,
+      tag: (r?.tag || '').toString().trim().slice(0, 40),
+      validMonths: Number.isFinite(months) && months >= 1 ? months : null,
+    });
   }
 
   cleaned.sort((a, b) => a.sessions - b.sessions);

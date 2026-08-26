@@ -19,12 +19,22 @@ export async function PUT(request, { params }) {
     // side derives real prices from these two numbers.
     if (body.rates !== undefined) {
       update.rates = (Array.isArray(body.rates) ? body.rates : [])
-        .map((r) => ({
-          sessions: Math.max(1, Math.round(Number(r?.sessions) || 0)),
-          ratePerHour: Math.max(0, Number(r?.ratePerHour) || 0),
-          tag: (r?.tag || '').toString().trim().slice(0, 40),
-        }))
-        .filter((r) => r.sessions > 0 && r.ratePerHour > 0);
+        .map((r) => {
+          const sessions = Math.round(Number(r?.sessions));
+          const ratePerHour = Number(r?.ratePerHour);
+          const months = Math.round(Number(r?.validMonths));
+          return {
+            // NaN rather than a coerced 1: a blank session count is a
+            // half-filled row, and Math.max(1, …) would turn it into a real
+            // one-session package nobody meant to sell.
+            sessions,
+            ratePerHour,
+            tag: (r?.tag || '').toString().trim().slice(0, 40),
+            // Blank means the package never lapses.
+            validMonths: Number.isFinite(months) && months >= 1 ? months : null,
+          };
+        })
+        .filter((r) => Number.isFinite(r.sessions) && r.sessions >= 1 && Number.isFinite(r.ratePerHour) && r.ratePerHour > 0);
     }
     if (body.slug !== undefined) {
       update.slug = body.slug.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');

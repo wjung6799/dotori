@@ -26,11 +26,22 @@ export async function GET() {
   ]);
 
   // One balance per tutor, plus whatever is usable with anyone.
+  const now = new Date();
+  const isSpendable = (g) =>
+    (g.remainingSessions || 0) > 0 && (!g.expiresAt || new Date(g.expiresAt) >= now);
+
   const byTutor = new Map();
   let anyTutorRemaining = 0;
+  let expiredSessions = 0;
   for (const g of grants) {
     const remaining = g.remainingSessions || 0;
     if (remaining <= 0) continue;
+    // Lapsed sessions are surfaced as their own number, never folded into a
+    // balance the booking route would then refuse.
+    if (!isSpendable(g)) {
+      expiredSessions += remaining;
+      continue;
+    }
     if (!g.tutorId) {
       anyTutorRemaining += remaining;
       continue;
@@ -45,6 +56,7 @@ export async function GET() {
     balances: [...byTutor.values()].sort((a, b) => a.tutorName.localeCompare(b.tutorName)),
     anyTutorRemaining,
     totalRemaining: [...byTutor.values()].reduce((s, r) => s + r.remaining, 0) + anyTutorRemaining,
+    expiredSessions,
     tutors: tutors.map((t) => ({
       id: String(t._id),
       name: t.name,
@@ -63,6 +75,8 @@ export async function GET() {
       packId: g.packId,
       amountPaidCents: g.amountPaidCents,
       onlineFeeCents: g.onlineFeeCents || 0,
+      expiresAt: g.expiresAt,
+      extendedAt: g.extendedAt,
       paid: Boolean(g.stripePaymentIntentId),
       createdAt: g.createdAt,
     })),
@@ -122,6 +136,9 @@ export async function POST(request) {
         onlineFeeCents: String(pack.onlineFeeCents || 0),
         amountCents: String(pack.amountCents),
         packName: pack.name,
+        // The window is fixed at purchase. Repricing the package later must not
+        // move the expiry on sessions a family already owns.
+        validMonths: String(pack.validMonths ?? ''),
       },
       description: `Dotori School — ${pack.name} with ${tutor.name}`,
       receipt_email: user.email || undefined,
@@ -136,6 +153,7 @@ export async function POST(request) {
         sessions: pack.sessions,
         priceCents: pack.amountCents,
         onlineFeeCents: pack.onlineFeeCents || 0,
+        validMonths: pack.validMonths ?? null,
       },
       tutor: { id: String(tutor._id), name: tutor.name },
     });

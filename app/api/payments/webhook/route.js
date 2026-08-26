@@ -3,6 +3,7 @@ import Enrollment from '@/lib/models/Enrollment';
 import Order from '@/lib/models/Order';
 import SessionCredit from '@/lib/models/SessionCredit';
 import Invoice from '@/lib/models/Invoice';
+import { expiryFor } from '@/lib/pricing';
 import { nextChargeDate } from '@/lib/invoicing';
 import { getStripe } from '@/lib/stripe';
 import { sendOrderConfirmation } from '@/lib/mailer';
@@ -215,6 +216,9 @@ async function handleCreditPurchase(pi) {
       packId: pi.metadata.packId || '',
       amountPaidCents: pi.amount_received ?? pi.amount,
       onlineFeeCents: feeCents,
+      // Counted from when the money landed, not from when the family started
+      // checking out.
+      expiresAt: expiryFor(Number(pi.metadata.validMonths) || null),
     });
     console.log(`Granted ${sessions} credits for intent ${pi.id}`);
   } catch (err) {

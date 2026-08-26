@@ -9,6 +9,7 @@ import {
   PAYMENT_ADJUSTMENT,
   defaultOnlineFeeCents,
   formatUsd,
+  validityLabel,
 } from '@/lib/pricing';
 
 // Where the office prices each tutor. Session credits are per tutor: a family
@@ -35,6 +36,12 @@ function toRow(rate) {
     sessions: rate?.sessions === undefined || rate?.sessions === null ? '' : String(rate.sessions),
     ratePerHour:
       rate?.ratePerHour === undefined || rate?.ratePerHour === null ? '' : String(rate.ratePerHour),
+    // Blank is a real setting, not a missing one: it means the package never
+    // lapses, which is what every credit granted before expiry existed carries.
+    validMonths:
+      rate?.validMonths === undefined || rate?.validMonths === null
+        ? ''
+        : String(rate.validMonths),
     tag: rate?.tag || '',
   };
 }
@@ -45,7 +52,7 @@ function rowTotalCents(row) {
   const sessions = Number(row.sessions);
   const ratePerHour = Number(row.ratePerHour);
   if (!Number.isFinite(sessions) || !Number.isFinite(ratePerHour)) return null;
-  if (sessions <= 0 || ratePerHour < 0) return null;
+  if (sessions <= 0 || ratePerHour <= 0) return null;
   return Math.round(ratePerHour * HOURS_PER_SESSION * sessions * 100);
 }
 
@@ -106,11 +113,18 @@ export default function AdminRatesPage() {
     // one-session package on sale at this rate instead of dropping the row the
     // way the hint below promises.
     const rates = rows
-      .map((r) => ({
-        sessions: Math.round(Number(r.sessions)),
-        ratePerHour: Number(r.ratePerHour),
-        tag: r.tag.trim(),
-      }))
+      .map((r) => {
+        // Blank — or anything that is not a whole month — is "never lapses",
+        // sent as an explicit null. Never 0: Number('') is 0, and a 0-month
+        // window would read as a package that expires the moment it is bought.
+        const months = Math.round(Number(r.validMonths));
+        return {
+          sessions: Math.round(Number(r.sessions)),
+          ratePerHour: Number(r.ratePerHour),
+          validMonths: Number.isFinite(months) && months >= 1 ? months : null,
+          tag: r.tag.trim(),
+        };
+      })
       .filter(
         (r) =>
           Number.isFinite(r.sessions) &&
@@ -256,7 +270,7 @@ export default function AdminRatesPage() {
                     <span key={p.id}>
                       {i > 0 ? ' · ' : ''}
                       {p.name} — {p.sessions} session{p.sessions === 1 ? '' : 's'},{' '}
-                      {formatUsd(p.amountCents)}
+                      {formatUsd(p.amountCents)} ({validityLabel(p.validMonths)})
                     </span>
                   ))}
                   . Add rates below to replace that list for this tutor.
@@ -276,6 +290,7 @@ export default function AdminRatesPage() {
                         <th>Sessions</th>
                         <th>Rate per hour</th>
                         <th>Label</th>
+                        <th>Valid for</th>
                         <th style={{ textAlign: 'right' }}>Family pays</th>
                         <th aria-label="Remove" />
                       </tr>
@@ -330,6 +345,25 @@ export default function AdminRatesPage() {
                                 style={{ width: '11rem' }}
                               />
                             </td>
+                            <td>
+                              <div style={{ display: 'flex', alignItems: 'baseline', gap: '0.4rem' }}>
+                                <input
+                                  className="input"
+                                  type="number"
+                                  min="1"
+                                  step="1"
+                                  inputMode="numeric"
+                                  placeholder="no expiry"
+                                  aria-label={`Months this package stays usable, for ${tutor.name}`}
+                                  value={row.validMonths}
+                                  onChange={(e) =>
+                                    setRow(tutor._id, row.key, 'validMonths', e.target.value)
+                                  }
+                                  style={{ width: '7rem' }}
+                                />
+                                <span className="muted small nowrap">months</span>
+                              </div>
+                            </td>
                             <td className="num">
                               <span className="strong">{cents === null ? '—' : formatUsd(cents)}</span>
                               {feeCents > 0 ? (
@@ -358,7 +392,10 @@ export default function AdminRatesPage() {
                 <div className="hint">
                   One session is {HOURS_PER_SESSION} hours, so what a family pays is rate per hour ×{' '}
                   {HOURS_PER_SESSION} × sessions. A row needs both a session count and a rate above
-                  $0 to be saved.
+                  $0 to be saved. &ldquo;Valid for&rdquo; is how long the sessions stay usable after
+                  a family buys them — leave it blank and the package never expires. Give a bigger
+                  package a longer window: forty weekly sessions cannot be used up inside three
+                  months.
                 </div>
               </div>
 

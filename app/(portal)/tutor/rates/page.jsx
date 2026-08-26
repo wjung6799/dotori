@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
 
-import { formatUsd } from '@/lib/pricing';
+import { formatUsd, validityLabel } from '@/lib/pricing';
 
 // An instructor prices their own session credits. Credits are per instructor —
 // a family picks who they want first and is then quoted THIS list — so these
@@ -36,6 +36,12 @@ function toRow(rate) {
     ratePerHour:
       rate?.ratePerHour === undefined || rate?.ratePerHour === null ? '' : String(rate.ratePerHour),
     tag: rate?.tag || '',
+    // Blank is a real answer here, not a missing one: null months means the
+    // package never lapses, and an empty box is how a tutor types that.
+    validMonths:
+      rate?.validMonths === undefined || rate?.validMonths === null
+        ? ''
+        : String(rate.validMonths),
   };
 }
 
@@ -112,6 +118,9 @@ export default function TutorRatesPage() {
             sessions: r.sessions,
             ratePerHour: r.ratePerHour,
             tag: r.tag.trim(),
+            // Blank means "never lapses", so send null — a 0 would read as a
+            // package that has already expired by the time it is paid for.
+            validMonths: (r.validMonths || '').trim() === '' ? null : r.validMonths,
           })),
         }),
       });
@@ -225,6 +234,7 @@ export default function TutorRatesPage() {
                       <th>Sessions</th>
                       <th>Rate per hour</th>
                       <th>Label</th>
+                      <th>Valid for (months)</th>
                       {/* table.data styles td.num, not th.num — align this one by hand */}
                       <th style={{ textAlign: 'right' }}>Families pay</th>
                       <th aria-label="Remove" />
@@ -273,6 +283,20 @@ export default function TutorRatesPage() {
                               style={{ width: '11rem' }}
                             />
                           </td>
+                          <td>
+                            <input
+                              className="input"
+                              type="number"
+                              min="1"
+                              step="1"
+                              inputMode="numeric"
+                              placeholder="no expiry"
+                              aria-label="Months this package stays usable (blank for no expiry)"
+                              value={row.validMonths}
+                              onChange={(e) => setRow(row.key, 'validMonths', e.target.value)}
+                              style={{ width: '7rem' }}
+                            />
+                          </td>
                           <td className="num">
                             <span className="strong">{cents === null ? '—' : formatUsd(cents)}</span>
                           </td>
@@ -301,6 +325,9 @@ export default function TutorRatesPage() {
                 {Number.isFinite(hoursPerSession) ? hoursPerSession : 2} × sessions. A row needs
                 both a session count and a rate above $0 to be saved — anything less is dropped
                 when you save. Save with no rows at all and you go back to the school defaults.
+                Leave “Valid for” blank and that package never expires; fill it in and it is how
+                many months a family has to use the sessions. A bigger package needs a longer
+                window — forty weekly sessions cannot be used inside three months.
               </div>
             </div>
 
@@ -322,6 +349,13 @@ export default function TutorRatesPage() {
                 {saving ? 'Saving…' : 'Save rates'}
               </button>
             </div>
+
+            {/* The obvious worry when an expiry column appears on a live price list. */}
+            <p className="muted small" style={{ margin: '0.9rem 0 0', maxWidth: '62ch' }}>
+              An expiry is stamped onto a package when it is bought, so a window you change here
+              only applies to packages bought from now on. Sessions a family already holds keep the
+              expiry they were sold with.
+            </p>
 
             {outstanding > 0 ? (
               <p className="muted small" style={{ margin: '0.9rem 0 0', maxWidth: '62ch' }}>
@@ -376,7 +410,8 @@ export default function TutorRatesPage() {
                     {formatUsd(p.amountCents)}
                   </div>
                   <p className="muted small" style={{ margin: '0.15rem 0 0.6rem' }}>
-                    ${p.ratePerHour}/hour · {p.sessions} session{plural(p.sessions)}
+                    ${p.ratePerHour}/hour · {p.sessions} session{plural(p.sessions)} ·{' '}
+                    {validityLabel(p.validMonths)}
                   </p>
 
                   {(p.lines || []).length > 0 ? (

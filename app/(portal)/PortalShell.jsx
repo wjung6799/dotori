@@ -54,6 +54,7 @@ const ADMIN_NAV = [
     links: [
       { href: '/admin/invoices', label: 'Invoices', icon: '🧾' },
       { href: '/admin/rates', label: 'Tutor rates', icon: '🏷' },
+      { href: '/admin/credits', label: 'Session credits', icon: '🎟' },
     ],
   },
   {
