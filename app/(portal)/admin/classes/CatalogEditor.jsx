@@ -43,6 +43,7 @@ const BLANK = {
   schedule: '',
   description: '',
   price: '',
+  materialsFee: '',
   earlyBirdPrice: '',
   priceMax: '',
   onlineFee: '',
@@ -111,6 +112,9 @@ export default function CatalogEditor({ literacySlots }) {
       schedule: c.schedule || '',
       description: c.description || '',
       price: c.price ?? '',
+      // 0 shows as blank: "no materials fee" and "no fee entered" are the same
+      // thing here, and a literal 0 in the box is noise on every other class.
+      materialsFee: c.materialsFee ? c.materialsFee : '',
       earlyBirdPrice: c.earlyBirdPrice ?? '',
       priceMax: c.priceMax ?? '',
       onlineFee: c.onlineFeeCents === null || c.onlineFeeCents === undefined ? '' : c.onlineFeeCents / 100,
@@ -131,6 +135,7 @@ export default function CatalogEditor({ literacySlots }) {
     const payload = {
       ...form,
       price: form.price === '' ? 0 : Number(form.price),
+      materialsFee: form.materialsFee === '' ? 0 : Number(form.materialsFee),
       // Blank means "use the automatic 3%"; the API recomputes it from the price.
       onlineFeeCents: form.onlineFee === '' ? '' : Math.round(Number(form.onlineFee) * 100),
       capacity: Number(form.capacity) || 1,
@@ -354,6 +359,22 @@ export default function CatalogEditor({ literacySlots }) {
               </div>
               ) : null}
               <div className="field">
+                <label htmlFor="cl-materials">Materials ($)</label>
+                <input
+                  id="cl-materials"
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  value={form.materialsFee}
+                  onChange={(e) => set('materialsFee', e.target.value)}
+                  placeholder="none"
+                />
+                <p className="hint">
+                  Billed as its own line on the invoice, the way the tuition sheet quotes it.
+                  Leave blank when books are included.
+                </p>
+              </div>
+              <div className="field">
                 <label htmlFor="cl-early">Early-bird ($)</label>
                 <input
                   id="cl-early"
@@ -402,6 +423,14 @@ export default function CatalogEditor({ literacySlots }) {
                   {literacySlots.map((s) => (
                     <option key={s.key} value={s.key}>{s.label}</option>
                   ))}
+                  {/* A class from a term whose slot has since been retired keeps
+                      its key here. Without this the select would show blank and
+                      the next save would quietly wipe the link. */}
+                  {form.scheduleKey && !literacySlots.some((s) => s.key === form.scheduleKey) ? (
+                    <option value={form.scheduleKey}>
+                      {form.scheduleKey} (not on this term&apos;s schedule)
+                    </option>
+                  ) : null}
                 </select>
                 <p className="hint">Feeds the live seat count on the public Programs page.</p>
               </div>
@@ -500,6 +529,9 @@ export default function CatalogEditor({ literacySlots }) {
                           <>
                             {money(c.price)}
                             {c.priceMax ? <span className="muted">–{money(c.priceMax)}</span> : null}
+                            {c.materialsFee > 0 ? (
+                              <div className="muted small">+{money(c.materialsFee)} materials</div>
+                            ) : null}
                             {c.earlyBirdPrice ? (
                               <div className="muted small">early {money(c.earlyBirdPrice)}</div>
                             ) : null}

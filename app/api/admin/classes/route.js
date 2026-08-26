@@ -62,6 +62,9 @@ export async function POST(request) {
       // than 0 — 0 would render as a real $0 price on the catalog.
       earlyBirdPrice: numOrNull(body?.earlyBirdPrice),
       priceMax: numOrNull(body?.priceMax),
+      // Unlike the two above, blank here means 0 and not "unset": every class
+      // charges a materials fee, and for almost all of them the fee is nothing.
+      materialsFee: Math.max(0, Number(body?.materialsFee) || 0),
       // Every class gets an online card fee the moment it is priced, so nobody
       // has to remember a second field. It is a fixed dollar figure derived once
       // from the tuition, and the admin can overwrite it.

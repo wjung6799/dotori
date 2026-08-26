@@ -50,6 +50,7 @@ export async function POST(request) {
         schedule: c.schedule,
         description: c.description,
         price: c.price,
+        materialsFee: c.materialsFee,
         priceMax: c.priceMax,
         earlyBirdPrice: c.earlyBirdPrice,
         onlineFeeCents: c.onlineFeeCents,

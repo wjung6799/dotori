@@ -16,19 +16,26 @@ export async function PUT(request, { params }) {
       if (body[k] !== undefined) update[k] = body[k];
     }
     // Session-credit rates for this tutor. Sanitised here because the family
-    // side derives real prices from these two numbers.
+    // side derives real prices from these numbers. Every field the editor can
+    // set has to be carried through: a field that is read but not written back
+    // is wiped the first time anyone saves the row for an unrelated reason.
     if (body.rates !== undefined) {
       update.rates = (Array.isArray(body.rates) ? body.rates : [])
         .map((r) => {
           const sessions = Math.round(Number(r?.sessions));
           const ratePerHour = Number(r?.ratePerHour);
           const months = Math.round(Number(r?.validMonths));
+          // Blank means "the school's session length"; the quarter-hour floor
+          // stops a typo pricing a lesson at a cent.
+          const hours = Number(r?.hoursPerSession);
           return {
             // NaN rather than a coerced 1: a blank session count is a
             // half-filled row, and Math.max(1, …) would turn it into a real
             // one-session package nobody meant to sell.
             sessions,
             ratePerHour,
+            hoursPerSession: Number.isFinite(hours) && hours >= 0.25 ? hours : null,
+            name: (r?.name || '').toString().trim().slice(0, 60),
             tag: (r?.tag || '').toString().trim().slice(0, 40),
             // Blank means the package never lapses.
             validMonths: Number.isFinite(months) && months >= 1 ? months : null,

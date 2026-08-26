@@ -1,7 +1,7 @@
 import dbConnect from '@/lib/db';
 import Tutor from '@/lib/models/Tutor';
 import SessionCredit from '@/lib/models/SessionCredit';
-import { packsForTutor, CREDIT_PACKS, HOURS_PER_SESSION } from '@/lib/pricing';
+import { packsForTutor, tutorPackId, CREDIT_PACKS, HOURS_PER_SESSION, hoursForRate } from '@/lib/pricing';
 import { getTutorOrAdmin, unauthorized } from '@/lib/auth-helpers';
 import { getMyTutor, notTutor } from '@/lib/tutor-helpers';
 
@@ -44,6 +44,11 @@ export async function GET() {
     rates: (tutor.rates || []).map((r) => ({
       sessions: r.sessions,
       ratePerHour: r.ratePerHour,
+      // null = this package uses the school-wide session length. Same reasoning
+      // as validMonths below: send the null so the editor round-trips it instead
+      // of writing a length nobody chose.
+      hoursPerSession: r.hoursPerSession ?? null,
+      name: r.name || '',
       tag: r.tag || '',
       // null = this package never lapses. Send it through as null rather than
       // omitting the field: the editor treats a missing value as "no expiry"
@@ -65,7 +70,7 @@ export async function GET() {
   });
 }
 
-// PUT /api/tutor/rates  body { rates: [{ sessions, ratePerHour, tag, validMonths }] }
+// PUT /api/tutor/rates  body { rates: [{ sessions, ratePerHour, hoursPerSession, name, tag, validMonths }] }
 // An empty list hands this tutor back to the school-wide defaults.
 export async function PUT(request) {
   if (!(await getTutorOrAdmin())) return unauthorized();
@@ -89,15 +94,27 @@ export async function PUT(request) {
     // it silently would let a blank session count become a live 1-session pack.
     if (!Number.isFinite(sessions) || sessions < 1) continue;
     if (!Number.isFinite(ratePerHour) || ratePerHour <= 0) continue;
-    // Two packages with the same session count would be indistinguishable to a
-    // family, and their generated ids would collide.
-    if (seen.has(sessions)) {
+    // Blank / absent means "the school's session length", so it stores as null.
+    // A quarter-hour floor keeps a typo like 0.01 from pricing a lesson at a
+    // cent while still allowing a 30-minute package.
+    const rawHours = Number(r?.hoursPerSession);
+    const hoursPerSession = Number.isFinite(rawHours) && rawHours >= 0.25 ? rawHours : null;
+    const hours = hoursForRate({ hoursPerSession });
+
+    // Two packages a family could not tell apart, and whose generated ids would
+    // collide, so one would redeem against the other's price. Size alone is not
+    // the test any more: twelve 60-minute 1:1 lessons and twelve 90-minute
+    // semi-private ones are both "12 sessions" and are two different products.
+    const id = tutorPackId(sessions, ratePerHour, hours);
+    if (seen.has(id)) {
       return Response.json(
-        { error: `You have two packages of ${sessions} session${sessions === 1 ? '' : 's'}. Give each a different size.` },
+        {
+          error: `You have two identical packages of ${sessions} session${sessions === 1 ? '' : 's'} at $${ratePerHour}/hour. Change the size, the rate or the session length on one of them.`,
+        },
         { status: 400 },
       );
     }
-    seen.add(sessions);
+    seen.add(id);
     // Blank / absent means the package never lapses, so it stores as null — a 0
     // would read as a package that expired the moment it was paid for. Carried
     // through here because the editor sends it: dropping it would silently wipe
@@ -106,12 +123,16 @@ export async function PUT(request) {
     cleaned.push({
       sessions,
       ratePerHour,
+      hoursPerSession,
+      name: (r?.name || '').toString().trim().slice(0, 60),
       tag: (r?.tag || '').toString().trim().slice(0, 40),
       validMonths: Number.isFinite(months) && months >= 1 ? months : null,
     });
   }
 
-  cleaned.sort((a, b) => a.sessions - b.sessions);
+  // Same order the family is quoted in: each lesson length's ladder read top to
+  // bottom, rather than two formats interleaved by session count.
+  cleaned.sort((a, b) => hoursForRate(a) - hoursForRate(b) || a.sessions - b.sessions);
 
   await dbConnect();
   tutor.rates = cleaned;

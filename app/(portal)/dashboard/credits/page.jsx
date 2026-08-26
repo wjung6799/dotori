@@ -5,7 +5,7 @@ import Link from 'next/link';
 
 import LocalTime from '../../LocalTime';
 import PayPanel from '../../PayPanel';
-import { expiryFor, formatUsd, validityLabel } from '@/lib/pricing';
+import { expiryFor, formatUsd, lengthLabel, validityLabel } from '@/lib/pricing';
 
 // Session credits (수업 크레딧) are PER INSTRUCTOR: every tutor sets their own
 // rates, so a credit bought for one tutor books that tutor. That is why this page
@@ -333,6 +333,10 @@ export default function CreditsPage() {
                           </div>
                           <p className="muted small" style={{ margin: '0.15rem 0 0.75rem' }}>
                             ${p.ratePerHour}/hour · {p.sessions} session{plural(p.sessions)}
+                            {/* Length matters the moment an instructor sells two
+                                of them: "12 sessions" alone cannot tell a
+                                60-minute quarter from a 90-minute one. */}
+                            {p.hoursPerSession ? ` × ${lengthLabel(p.hoursPerSession)}` : ''}
                           </p>
 
                           <ul

@@ -32,6 +32,11 @@ export async function PUT(request, { params }) {
         ? null
         : Number(body.priceMax);
     }
+    // Blank is 0 here rather than null: a class with no materials fee charges
+    // nothing for materials, which is a real answer, not a missing one.
+    if (body?.materialsFee !== undefined) {
+      update.materialsFee = Math.max(0, Number(body.materialsFee) || 0);
+    }
     // Blanking the fee means "go back to the automatic 3%", recomputed against
     // whatever price is being saved — not silently kept at the old figure.
     if (body?.onlineFeeCents !== undefined) {

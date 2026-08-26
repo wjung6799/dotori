@@ -197,6 +197,9 @@ const T = {
     koreanClass: 'Korean Phonics (Hangeul) Lev.3',
     grades: { k1: 'K–1', g23: 'Gr. 2–3', g45: 'Gr. 4–5', g68: 'Gr. 6–8' },
     tutorNote: 'w/ Mrs. Jung',
+    semiPrivateNote: 'w/ Mrs. Jung · 2:1',
+    maxStudents: (n) => `${n} student${n === 1 ? '' : 's'} max`,
+    blocksNote: '90-minute blocks',
     seatsLeft: (n) => `${n} spot${n === 1 ? '' : 's'} left`,
     seatsFull: 'Full',
   },
@@ -295,46 +298,56 @@ const T = {
     koreanClass: 'Korean Phonics (한글) Lev.3',
     grades: { k1: 'K–1', g23: '2–3학년', g45: '4–5학년', g68: '6–8학년' },
     tutorNote: 'Mrs. Jung 담당',
+    semiPrivateNote: 'Mrs. Jung 담당 · 2:1',
+    maxStudents: (n) => `정원 ${n}명`,
+    blocksNote: '90분 수업',
     seatsLeft: (n) => `${n}자리 남음`,
     seatsFull: '마감',
   },
 };
 
-// Weekly schedule data. Class names stay the same in both languages except the
-// Korean class (t.koreanClass), grade badges (t.grades), and the tutor note
-// (t.tutorNote). Index 0 = Monday.
+// Weekly schedule data — the Fall Quarter 2026 sheet. Class names stay the same
+// in both languages except the Korean class (t.koreanClass), grade badges
+// (t.grades), and the tutor note (t.tutorNote). Index 0 = Monday.
+//
+// `max` is the published class size, which is a promise the school makes rather
+// than a detail: "5 students max" is why a family picks a small school. It is
+// stated whether or not a Class doc exists to report live seats, so the number
+// never disappears from the timetable because a term has not been set up yet.
 const WEEK = [
   [
-    { title: 'Core Literacy', level: 'Acorn', grade: 'k1', time: '4:30–5:50', lv: 'acorn', classKey: 'mon-core-acorn' },
-    { title: 'Book Club', level: 'Sapling', grade: 'g45', time: '6:00–7:20', lv: 'sapling', classKey: 'mon-book-sapling' },
+    { title: 'Core Literacy', level: 'Acorn', grade: 'k1', time: '4:30–5:50', max: 4, lv: 'acorn', classKey: 'mon-core-acorn' },
+    { title: 'Book Club', level: 'Sapling', grade: 'g45', time: '6:00–7:20', max: 5, lv: 'sapling', classKey: 'mon-book-sapling' },
     { title: '1:1 Private', tutor: true, time: '7:30–8:30', lv: 'neutral' },
   ],
   [
-    { title: 'Core Literacy', level: 'Sprout', grade: 'g23', time: '4:30–5:50', lv: 'sprout', classKey: 'tue-core-sprout' },
-    { title: 'Core Literacy', level: 'Sapling', grade: 'g45', time: '6:00–7:20', lv: 'sapling', classKey: 'tue-core-sapling' },
+    { title: 'Core Literacy', level: 'Sprout', grade: 'g23', time: '4:30–5:50', max: 5, lv: 'sprout', classKey: 'tue-core-sprout' },
+    { title: 'Core Literacy', level: 'Sapling', grade: 'g45', time: '6:00–7:20', max: 5, lv: 'sapling', classKey: 'tue-core-sapling' },
     { title: '1:1 Private', tutor: true, time: '7:30–8:30', lv: 'neutral' },
   ],
   [
-    { korean: true, grade: 'k1', time: '2:30–3:50', lv: 'korean', classKey: 'wed-korean-lev3' },
-    { title: 'K–1 Phonics', time: '4:00–5:20', lv: 'phonics', classKey: 'wed-kinder-phonics' },
-    { title: "Writer's Workshop", time: '5:30–7:20', lv: 'workshop', classKey: 'wed-writers-workshop' },
+    { korean: true, grade: 'k1', time: '2:30–3:50', max: 4, lv: 'korean', classKey: 'wed-korean-lev3' },
+    { title: 'Book Club', level: 'Sprout', grade: 'g23', time: '4:00–5:20', max: 5, lv: 'sprout', classKey: 'wed-book-sprout' },
+    { title: 'Book Club', level: 'Sapling', grade: 'g45', time: '6:00–7:20', max: 5, lv: 'sapling', classKey: 'wed-book-sapling' },
     { title: '1:1 Private', tutor: true, time: '7:30–8:30', lv: 'neutral' },
   ],
   [
-    { title: 'Book Club', level: 'Sprout', grade: 'g23', time: '4:30–5:50', lv: 'sprout', classKey: 'thu-book-sprout' },
-    { title: 'Core Literacy', level: 'Oak', grade: 'g68', time: '6:00–7:20', lv: 'oak', classKey: 'thu-core-oak' },
+    { title: 'Book Club', level: 'Sprout', grade: 'g23', time: '4:30–5:50', max: 5, lv: 'sprout', classKey: 'thu-book-sprout' },
+    { title: 'Core Literacy', level: 'Oak', grade: 'g68', time: '6:00–7:20', max: 5, lv: 'oak', classKey: 'thu-core-oak' },
     { title: '1:1 Private', tutor: true, time: '7:30–8:30', lv: 'neutral' },
   ],
   [
-    { title: 'Book Club', level: 'Acorn', grade: 'k1', time: '4:30–5:50', lv: 'acorn', classKey: 'fri-book-acorn' },
-    { title: 'Book Club', level: 'Oak', grade: 'g68', time: '6:00–7:20', lv: 'oak', classKey: 'fri-book-oak' },
+    { title: 'Book Club', level: 'Acorn', grade: 'k1', time: '4:30–5:50', max: 4, lv: 'acorn', classKey: 'fri-book-acorn' },
+    { title: 'Book Club', level: 'Oak', grade: 'g68', time: '6:00–7:20', max: 5, lv: 'oak', classKey: 'fri-book-oak' },
     { title: '1:1 Private', tutor: true, time: '7:30–8:30', lv: 'neutral' },
   ],
   [
     {
-      title: '1:1 or Semi-Private Lessons',
+      title: '1:1 or Semi-Private',
       tutor: true,
+      semiPrivate: true,
       times: ['9:00–10:30', '10:30–12:00', '1:00–2:30', '2:30–4:00', '4:00–5:30'],
+      blocks: true,
       lv: 'neutral',
     },
   ],
@@ -407,6 +420,7 @@ export default function LiteracyClient() {
     .lit-class .lit-c-grade { color: #a08430; font-size: 0.72rem; font-weight: 700; white-space: nowrap; }
     .lit-class .lit-c-note { color: #a08430; font-size: 0.74rem; font-weight: 600; margin-top: 0.05rem; }
     .lit-class .lit-c-time { color: #6b5b47; font-size: 0.78rem; margin-top: 0.2rem; }
+    .lit-class .lit-c-max { color: #a0906f; font-size: 0.72rem; margin-top: 0.25rem; }
     .lit-class .lit-c-seats { color: #1e7a40; font-size: 0.74rem; font-weight: 700; margin-top: 0.25rem; }
 `,
         }}
@@ -513,7 +527,9 @@ export default function LiteracyClient() {
                       {c.level ? ` (${c.level})` : ''}
                       {c.grade ? <span className="lit-c-grade"> {t.grades[c.grade]}</span> : null}
                     </div>
-                    {c.tutor ? <div className="lit-c-note">{t.tutorNote}</div> : null}
+                    {c.tutor ? (
+                      <div className="lit-c-note">{c.semiPrivate ? t.semiPrivateNote : t.tutorNote}</div>
+                    ) : null}
                     {c.times ? (
                       c.times.map((time) => (
                         <div className="lit-c-time" key={time}>{time}</div>
@@ -521,6 +537,12 @@ export default function LiteracyClient() {
                     ) : (
                       <div className="lit-c-time">{c.time}</div>
                     )}
+                    {/* The published cap, then the live count. The cap is the
+                        promise ("5 students max"); the count is how much of it
+                        is left, and only exists once a Class doc for the term
+                        does — so the cap is stated on its own until then. */}
+                    {c.max ? <div className="lit-c-max">{t.maxStudents(c.max)}</div> : null}
+                    {c.blocks ? <div className="lit-c-max">{t.blocksNote}</div> : null}
                     {c.classKey && seats[c.classKey] ? (
                       <div
                         className="lit-c-seats"

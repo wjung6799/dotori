@@ -3,20 +3,21 @@
 import { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
 
-import { formatUsd, validityLabel } from '@/lib/pricing';
+import { formatUsd, lengthLabel, validityLabel } from '@/lib/pricing';
 
 // An instructor prices their own session credits. Credits are per instructor —
 // a family picks who they want first and is then quoted THIS list — so these
 // numbers are the only prices anyone booking this instructor ever sees.
 //
-// Only two figures are stored per package (session count and hourly rate); the
-// package name and the total a family pays are derived from them. That is why
-// the total column recomputes as you type instead of being something you fill
-// in: it is the whole point of the screen, and a tutor should never have to do
-// the multiplication in their head to find out what they just priced.
+// The total a family pays is never stored — it is derived from the size, the
+// hourly rate and how long one lesson runs. That is why the total column
+// recomputes as you type instead of being something you fill in: it is the whole
+// point of the screen, and a tutor should never have to do the multiplication in
+// their head to find out what they just priced.
 //
-// HOURS_PER_SESSION is not imported here — the API sends it, so the arithmetic
-// on screen can never drift from the arithmetic the server saves against.
+// The default session length is not imported here — the API sends it, so the
+// arithmetic on screen can never drift from the arithmetic the server saves
+// against.
 
 const plural = (n) => (n === 1 ? '' : 's');
 
@@ -35,6 +36,13 @@ function toRow(rate) {
       rate?.sessions === undefined || rate?.sessions === null ? '' : String(rate.sessions),
     ratePerHour:
       rate?.ratePerHour === undefined || rate?.ratePerHour === null ? '' : String(rate.ratePerHour),
+    // Typed in MINUTES, the unit a timetable is written in. Blank means the
+    // school's own session length, so a package that never set one is unchanged.
+    minutes:
+      rate?.hoursPerSession === undefined || rate?.hoursPerSession === null
+        ? ''
+        : String(Math.round(rate.hoursPerSession * 60)),
+    name: rate?.name || '',
     tag: rate?.tag || '',
     // Blank is a real answer here, not a missing one: null months means the
     // package never lapses, and an empty box is how a tutor types that.
@@ -45,15 +53,23 @@ function toRow(rate) {
   };
 }
 
+// Minutes as typed → hours as stored. Null for a blank or nonsense box, which
+// is this row saying "use the school's session length".
+function rowHours(row) {
+  const mins = Number(row.minutes);
+  return Number.isFinite(mins) && mins >= 15 ? mins / 60 : null;
+}
+
 // What a family pays for this row, in cents — null while the row is still blank
 // or nonsense, so the cell can say "—" rather than a misleading $0.
 function rowTotalCents(row, hoursPerSession) {
-  if (!Number.isFinite(hoursPerSession)) return null;
+  const hours = rowHours(row) ?? hoursPerSession;
+  if (!Number.isFinite(hours) || hours <= 0) return null;
   const sessions = Number(row.sessions);
   const ratePerHour = Number(row.ratePerHour);
   if (!Number.isFinite(sessions) || !Number.isFinite(ratePerHour)) return null;
   if (sessions <= 0 || ratePerHour <= 0) return null;
-  return Math.round(ratePerHour * hoursPerSession * sessions * 100);
+  return Math.round(ratePerHour * hours * sessions * 100);
 }
 
 export default function TutorRatesPage() {
@@ -117,6 +133,10 @@ export default function TutorRatesPage() {
           rates: rows.map((r) => ({
             sessions: r.sessions,
             ratePerHour: r.ratePerHour,
+            // Blank means "the school's session length", sent as null so a
+            // package that never set one is left exactly as it was.
+            hoursPerSession: rowHours(r),
+            name: r.name.trim(),
             tag: r.tag.trim(),
             // Blank means "never lapses", so send null — a 0 would read as a
             // package that has already expired by the time it is paid for.
@@ -231,7 +251,9 @@ export default function TutorRatesPage() {
                 <table className="data">
                   <thead>
                     <tr>
+                      <th>Package name</th>
                       <th>Sessions</th>
+                      <th>Each</th>
                       <th>Rate per hour</th>
                       <th>Label</th>
                       <th>Valid for (months)</th>
@@ -248,6 +270,18 @@ export default function TutorRatesPage() {
                           <td>
                             <input
                               className="input"
+                              type="text"
+                              maxLength={60}
+                              placeholder={`${row.sessions || 'N'}-Session Package`}
+                              aria-label="Name families see for this package"
+                              value={row.name}
+                              onChange={(e) => setRow(row.key, 'name', e.target.value)}
+                              style={{ width: '13rem' }}
+                            />
+                          </td>
+                          <td>
+                            <input
+                              className="input"
                               type="number"
                               min="1"
                               step="1"
@@ -257,6 +291,25 @@ export default function TutorRatesPage() {
                               onChange={(e) => setRow(row.key, 'sessions', e.target.value)}
                               style={{ width: '6rem' }}
                             />
+                          </td>
+                          <td>
+                            <div style={{ display: 'flex', alignItems: 'baseline', gap: '0.35rem' }}>
+                              <input
+                                className="input"
+                                type="number"
+                                min="15"
+                                step="5"
+                                inputMode="numeric"
+                                placeholder={String(
+                                  Math.round((Number.isFinite(hoursPerSession) ? hoursPerSession : 2) * 60),
+                                )}
+                                aria-label="Minutes in one session of this package"
+                                value={row.minutes}
+                                onChange={(e) => setRow(row.key, 'minutes', e.target.value)}
+                                style={{ width: '5.5rem' }}
+                              />
+                              <span className="muted small nowrap">min</span>
+                            </div>
                           </td>
                           <td>
                             <input
@@ -320,14 +373,18 @@ export default function TutorRatesPage() {
 
             <div className="field" style={{ marginTop: '0.6rem', marginBottom: '0.9rem' }}>
               <div className="hint">
-                One session is {Number.isFinite(hoursPerSession) ? hoursPerSession : 2} hours, so
-                what a family pays is rate per hour ×{' '}
-                {Number.isFinite(hoursPerSession) ? hoursPerSession : 2} × sessions. A row needs
-                both a session count and a rate above $0 to be saved — anything less is dropped
-                when you save. Save with no rows at all and you go back to the school defaults.
-                Leave “Valid for” blank and that package never expires; fill it in and it is how
-                many months a family has to use the sessions. A bigger package needs a longer
-                window — forty weekly sessions cannot be used inside three months.
+                What a family pays is rate per hour × session length × sessions. Leave
+                “Each” blank and one session is{' '}
+                {lengthLabel(Number.isFinite(hoursPerSession) ? hoursPerSession : 2)}, the school
+                default; fill it in if your lessons are shorter, or if you sell more than one length
+                — 60-minute weekday 1:1 alongside 90-minute Saturday blocks. The package name is
+                what families see, and it is worth writing when two packages are the same size at
+                different lengths; blank falls back to “12-Session Package”. A row needs both a
+                session count and a rate above $0 to be saved — anything less is dropped when you
+                save. Save with no rows at all and you go back to the school defaults. Leave “Valid
+                for” blank and that package never expires; fill it in and it is how many months a
+                family has to use the sessions. A bigger package needs a longer window — forty
+                weekly sessions cannot be used inside three months.
               </div>
             </div>
 
@@ -410,7 +467,8 @@ export default function TutorRatesPage() {
                     {formatUsd(p.amountCents)}
                   </div>
                   <p className="muted small" style={{ margin: '0.15rem 0 0.6rem' }}>
-                    ${p.ratePerHour}/hour · {p.sessions} session{plural(p.sessions)} ·{' '}
+                    ${p.ratePerHour}/hour · {p.sessions} session{plural(p.sessions)}
+                    {p.hoursPerSession ? ` × ${lengthLabel(p.hoursPerSession)}` : ''} ·{' '}
                     {validityLabel(p.validMonths)}
                   </p>
 

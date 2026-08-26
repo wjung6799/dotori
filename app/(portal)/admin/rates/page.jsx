@@ -9,6 +9,9 @@ import {
   PAYMENT_ADJUSTMENT,
   defaultOnlineFeeCents,
   formatUsd,
+  hoursForRate,
+  lengthLabel,
+  tutorPackId,
   validityLabel,
 } from '@/lib/pricing';
 
@@ -36,6 +39,14 @@ function toRow(rate) {
     sessions: rate?.sessions === undefined || rate?.sessions === null ? '' : String(rate.sessions),
     ratePerHour:
       rate?.ratePerHour === undefined || rate?.ratePerHour === null ? '' : String(rate.ratePerHour),
+    // Typed in MINUTES, which is the unit a schedule is written in. Blank means
+    // the school-wide session length, so an existing row that never had one
+    // keeps behaving exactly as it did.
+    minutes:
+      rate?.hoursPerSession === undefined || rate?.hoursPerSession === null
+        ? ''
+        : String(Math.round(rate.hoursPerSession * 60)),
+    name: rate?.name || '',
     // Blank is a real setting, not a missing one: it means the package never
     // lapses, which is what every credit granted before expiry existed carries.
     validMonths:
@@ -46,6 +57,13 @@ function toRow(rate) {
   };
 }
 
+// Minutes as typed → hours as stored. Null for a blank or nonsense box, which
+// is how a row says "use the school's session length".
+function rowHours(row) {
+  const mins = Number(row.minutes);
+  return Number.isFinite(mins) && mins >= 15 ? mins / 60 : null;
+}
+
 // What a family pays for this row, in cents. Null while the row is still blank
 // or nonsense, so the cell can say "—" instead of "$0".
 function rowTotalCents(row) {
@@ -53,7 +71,7 @@ function rowTotalCents(row) {
   const ratePerHour = Number(row.ratePerHour);
   if (!Number.isFinite(sessions) || !Number.isFinite(ratePerHour)) return null;
   if (sessions <= 0 || ratePerHour <= 0) return null;
-  return Math.round(ratePerHour * HOURS_PER_SESSION * sessions * 100);
+  return Math.round(ratePerHour * hoursForRate({ hoursPerSession: rowHours(row) }) * sessions * 100);
 }
 
 export default function AdminRatesPage() {
@@ -121,6 +139,10 @@ export default function AdminRatesPage() {
         return {
           sessions: Math.round(Number(r.sessions)),
           ratePerHour: Number(r.ratePerHour),
+          // Blank = the school's session length, sent as an explicit null so a
+          // row that never had one keeps behaving as it always did.
+          hoursPerSession: rowHours(r),
+          name: r.name.trim(),
           validMonths: Number.isFinite(months) && months >= 1 ? months : null,
           tag: r.tag.trim(),
         };
@@ -133,18 +155,21 @@ export default function AdminRatesPage() {
           r.ratePerHour > 0,
       );
 
-    // packsForTutor() keys a package as `t<sessions>x<rate rounded to dollars>`
-    // and findTutorPack() resolves a family's purchase by that id. Two rows that
-    // collapse to the same key (10 @ $70.20 and 10 @ $70.40, or a duplicated
-    // row) would leave the family charged the FIRST row's price whichever card
-    // they picked, so refuse the save rather than ship an ambiguous price list.
-    const ids = rates.map((r) => `t${r.sessions}x${Math.round(r.ratePerHour)}`);
+    // packsForTutor() keys a package by its size, rate and lesson length, and
+    // findTutorPack() resolves a family's purchase by that id. Two rows that
+    // collapse to the same key would leave the family charged the FIRST row's
+    // price whichever card they picked, so refuse the save rather than ship an
+    // ambiguous price list. Length is part of the key, which is what lets a
+    // 60-minute 1:1 quarter and a 90-minute semi-private one both be "12".
+    const ids = rates.map((r) =>
+      tutorPackId(r.sessions, r.ratePerHour, hoursForRate({ hoursPerSession: r.hoursPerSession })),
+    );
     if (ids.some((id, i) => ids.indexOf(id) !== i)) {
       setMsgById((prev) => ({
         ...prev,
         [tutor._id]: {
           type: 'err',
-          text: 'Two rows have the same session count and the same hourly rate to the dollar. A family would be charged the first of them whichever one they picked, so change or remove one.',
+          text: 'Two rows are the same package — same session count, same hourly rate and same lesson length. A family would be charged the first of them whichever one they picked, so change or remove one.',
         },
       }));
       return;
@@ -287,7 +312,9 @@ export default function AdminRatesPage() {
                   <table className="data">
                     <thead>
                       <tr>
+                        <th>Package name</th>
                         <th>Sessions</th>
+                        <th>Each</th>
                         <th>Rate per hour</th>
                         <th>Label</th>
                         <th>Valid for</th>
@@ -306,6 +333,18 @@ export default function AdminRatesPage() {
                             <td>
                               <input
                                 className="input"
+                                type="text"
+                                maxLength={60}
+                                placeholder={`${row.sessions || 'N'}-Session Package`}
+                                aria-label={`Package name for ${tutor.name}`}
+                                value={row.name}
+                                onChange={(e) => setRow(tutor._id, row.key, 'name', e.target.value)}
+                                style={{ width: '13rem' }}
+                              />
+                            </td>
+                            <td>
+                              <input
+                                className="input"
                                 type="number"
                                 min="1"
                                 step="1"
@@ -317,6 +356,25 @@ export default function AdminRatesPage() {
                                 }
                                 style={{ width: '6rem' }}
                               />
+                            </td>
+                            <td>
+                              <div style={{ display: 'flex', alignItems: 'baseline', gap: '0.35rem' }}>
+                                <input
+                                  className="input"
+                                  type="number"
+                                  min="15"
+                                  step="5"
+                                  inputMode="numeric"
+                                  placeholder={String(HOURS_PER_SESSION * 60)}
+                                  aria-label={`Minutes in one session, for ${tutor.name}`}
+                                  value={row.minutes}
+                                  onChange={(e) =>
+                                    setRow(tutor._id, row.key, 'minutes', e.target.value)
+                                  }
+                                  style={{ width: '5.5rem' }}
+                                />
+                                <span className="muted small nowrap">min</span>
+                              </div>
                             </td>
                             <td>
                               <input
@@ -390,12 +448,17 @@ export default function AdminRatesPage() {
 
               <div className="field" style={{ marginTop: '0.6rem', marginBottom: '0.9rem' }}>
                 <div className="hint">
-                  One session is {HOURS_PER_SESSION} hours, so what a family pays is rate per hour ×{' '}
-                  {HOURS_PER_SESSION} × sessions. A row needs both a session count and a rate above
-                  $0 to be saved. &ldquo;Valid for&rdquo; is how long the sessions stay usable after
-                  a family buys them — leave it blank and the package never expires. Give a bigger
-                  package a longer window: forty weekly sessions cannot be used up inside three
-                  months.
+                  What a family pays is rate per hour × session length × sessions. Leave
+                  &ldquo;Each&rdquo; blank and a session is the school default of{' '}
+                  {lengthLabel(HOURS_PER_SESSION)}; fill it in for an instructor whose lessons are
+                  shorter, or who sells more than one length (60-minute weekday 1:1 alongside
+                  90-minute Saturday blocks). Name the package and that name is what the family
+                  sees — blank falls back to &ldquo;12-Session Package&rdquo;, which reads wrong
+                  when two packages are the same size and a different length. A row needs both a
+                  session count and a rate above $0 to be saved. &ldquo;Valid for&rdquo; is how long
+                  the sessions stay usable after a family buys them — leave it blank and the package
+                  never expires. Give a bigger package a longer window: forty weekly sessions cannot
+                  be used up inside three months.
                 </div>
               </div>
 
