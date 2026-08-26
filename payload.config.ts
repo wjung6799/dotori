@@ -363,7 +363,10 @@ export default buildConfig({
   // `User` model also uses `users`).
   db: mongooseAdapter({
     url: process.env.MONGODB_URI || '',
-    connectOptions: { dbName: 'dotori_cms' },
+    // Overridable so a staging deploy gets its own CMS database instead of
+    // editing the live site's content. MONGODB_URI already carries the app
+    // database in its path; this is the one that has to be named explicitly.
+    connectOptions: { dbName: process.env.PAYLOAD_DB_NAME || 'dotori_cms' },
   }),
 
   secret: process.env.PAYLOAD_SECRET || '',
