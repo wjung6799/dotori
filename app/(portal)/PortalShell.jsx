@@ -91,7 +91,10 @@ const TUTOR_NAV = [
   },
   {
     section: 'Money',
-    links: [{ href: '/tutor/rates', label: 'My rates', icon: '🏷' }],
+    links: [
+      { href: '/tutor/credits', label: 'Session tokens', icon: '🎟' },
+      { href: '/tutor/rates', label: 'My rates', icon: '🏷' },
+    ],
   },
 ];
 

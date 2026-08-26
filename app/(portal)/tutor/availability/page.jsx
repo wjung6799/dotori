@@ -5,10 +5,10 @@ import { useCallback, useEffect, useState } from 'react';
 import AvailabilityCalendar from '@/components/AvailabilityCalendar';
 import LocalTime from '../../LocalTime';
 
-// When you teach, and who has sessions to spend on it. These were two separate
-// tabs on the old marketing-site dashboard ("My Availability" and "Add
-// Sessions"), but they are one job: opening the week up, then making sure the
-// families you teach have the balance to book into it.
+// When you teach: the weekly grid, and the one-off sessions layered on top of
+// it. Granting session tokens used to share this page and now lives at
+// /tutor/credits, because a family's balance has nothing to do with your
+// timetable.
 //
 // Every /api/tutor/* route resolves the instructor from the session, so nothing
 // on this page ever sends an instructor id.
@@ -136,189 +136,14 @@ export default function TutorAvailabilityPage() {
             )}
           </div>
 
-          {data ? (
-            <SessionsCard />
-          ) : (
-            <div className="card">
-              <div className="card-head">
-                <h2>Add sessions</h2>
-              </div>
-              <div className="empty">
-                <span className="ico">🎟</span>
-                <p>{loadError ? 'Your families could not be loaded.' : 'Loading your families…'}</p>
-              </div>
-            </div>
-          )}
+          {/* Granting session tokens moved to its own page — it is a money
+              job, not a timetable one, and it was unfindable down here. */}
+          <p className="muted small">
+            Paid you offline? <Link href="/tutor/credits">Add session tokens</Link> so the family
+            can book with them.
+          </p>
         </>
       )}
-    </>
-  );
-}
-
-// The old "Add Sessions" tab. Granting sessions is how a family who paid you
-// offline (Zelle, cash) gets a balance they can book with; the grant is scoped
-// to you, so it only ever buys time with you.
-function SessionsCard() {
-  const [families, setFamilies] = useState(null); // null while loading, [] when genuinely empty
-  const [grants, setGrants] = useState(null); // null while loading, [] when genuinely empty
-  const [userId, setUserId] = useState('');
-  const [sessions, setSessions] = useState('1');
-  const [note, setNote] = useState('');
-  const [msg, setMsg] = useState(null); // { ok, text }
-  const [busy, setBusy] = useState(false);
-
-  const loadGrants = useCallback(async () => {
-    try {
-      const res = await fetch('/api/tutor/credits', { cache: 'no-store' });
-      const d = await res.json().catch(() => ({}));
-      setGrants(d.credits || []);
-    } catch {
-      setGrants([]);
-    }
-  }, []);
-
-  useEffect(() => {
-    fetch('/api/tutor/families', { cache: 'no-store' })
-      .then((r) => r.json())
-      .then((d) => setFamilies(d.families || []))
-      .catch(() => setFamilies([]));
-    loadGrants();
-  }, [loadGrants]);
-
-  async function grant(e) {
-    e.preventDefault();
-    setMsg(null);
-    setBusy(true);
-    try {
-      const res = await fetch('/api/tutor/credits', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId, sessions: Number(sessions), note }),
-      });
-      const d = await res.json().catch(() => ({}));
-      if (!res.ok) {
-        setMsg({ ok: false, text: d.error || 'Failed.' });
-      } else {
-        setMsg({ ok: true, text: 'Sessions added.' });
-        setNote('');
-        loadGrants();
-      }
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  async function remove(id) {
-    if (!window.confirm('Remove this session grant?')) return;
-    await fetch(`/api/tutor/credits/${id}`, { method: 'DELETE' });
-    loadGrants();
-  }
-
-  return (
-    <>
-      <div className="card">
-        <div className="card-head">
-          <h2>Add sessions</h2>
-        </div>
-
-        {/* A full-width select across a 1160px console column is unreadable, and
-            portal.css has no width utility — hence the one inline cap. */}
-        <form onSubmit={grant} style={{ maxWidth: 520 }}>
-          <div className="field">
-            <label htmlFor="grant-family">Family</label>
-            <select
-              id="grant-family"
-              value={userId}
-              onChange={(e) => setUserId(e.target.value)}
-              required
-            >
-              <option value="">Select a family…</option>
-              {(families || []).map((f) => (
-                <option key={f._id} value={f._id}>
-                  {famName(f)} ({f.email})
-                </option>
-              ))}
-            </select>
-            {families && families.length === 0 ? (
-              <p className="hint">No families on the books yet.</p>
-            ) : null}
-          </div>
-
-          <div className="field">
-            <label htmlFor="grant-sessions">Sessions to add</label>
-            <input
-              id="grant-sessions"
-              type="number"
-              min="1"
-              value={sessions}
-              onChange={(e) => setSessions(e.target.value)}
-              required
-            />
-          </div>
-
-          <div className="field">
-            <label htmlFor="grant-note">Note</label>
-            <input
-              id="grant-note"
-              value={note}
-              onChange={(e) => setNote(e.target.value)}
-              placeholder="e.g. Paid via Zelle"
-            />
-            <p className="hint">Shows on the family&rsquo;s credit history, so say how they paid.</p>
-          </div>
-
-          <button className="btn btn-accent" disabled={busy || !userId}>
-            {busy ? 'Adding…' : 'Add sessions'}
-          </button>
-
-          {msg ? (
-            <div className={msg.ok ? 'notice ok' : 'notice err'} style={{ margin: '1rem 0 0' }}>
-              {msg.text}
-            </div>
-          ) : null}
-        </form>
-      </div>
-
-      <div className="card">
-        <div className="card-head">
-          <h2>Sessions you&rsquo;ve granted</h2>
-        </div>
-
-        {grants === null ? (
-          <div className="empty">
-            <span className="ico">🎟</span>
-            <p>Loading your grants…</p>
-          </div>
-        ) : grants.length === 0 ? (
-          <div className="empty">
-            <span className="ico">🎟</span>
-            <p>No grants yet. Anything you add above shows up here.</p>
-          </div>
-        ) : (
-          <div className="stack">
-            {grants.map((g) => (
-              <div className="row" key={g._id}>
-                <div className="main">
-                  <span className="strong">{famName(g.userId)}</span>{' '}
-                  <span className={g.remainingSessions > 0 ? 'pill ok' : 'pill mute'}>
-                    {g.remainingSessions} of {g.totalSessions} left
-                  </span>
-                  {g.createdAt || g.note ? (
-                    <div className="meta">
-                      {g.createdAt ? <LocalTime iso={g.createdAt} format="date" /> : null}
-                      {g.createdAt && g.note ? ' · ' : null}
-                      {g.note || null}
-                    </div>
-                  ) : null}
-                </div>
-                <button type="button" className="btn btn-ghost btn-sm" onClick={() => remove(g._id)}>
-                  Remove
-                </button>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
     </>
   );
 }

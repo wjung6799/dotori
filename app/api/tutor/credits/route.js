@@ -28,7 +28,7 @@ export async function POST(request) {
   if (!tutor) return notTutor();
 
   try {
-    const { userId, sessions, note } = (await request.json()) || {};
+    const { userId, sessions, note, validMonths } = (await request.json()) || {};
     const n = parseInt(sessions);
     if (!userId || !n || n < 1) {
       return Response.json({ error: 'A family and a positive session count are required.' }, { status: 400 });
@@ -41,7 +41,7 @@ export async function POST(request) {
       // Optional: a hand-granted pack can carry the same window a bought one
       // does. Omitted means it never lapses, which is how every grant behaved
       // before expiry existed.
-      expiresAt: expiryFor(Number(body?.validMonths) || null),
+      expiresAt: expiryFor(Number(validMonths) || null),
       remainingSessions: n,
       note: note || '',
       grantedBy: tutor.name,
