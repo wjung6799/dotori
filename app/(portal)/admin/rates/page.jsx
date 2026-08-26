@@ -54,6 +54,10 @@ function toRow(rate) {
         ? ''
         : String(rate.validMonths),
     tag: rate?.tag || '',
+    // Semi-private or private. These are separate products at separate rates,
+    // so a package has to say which one it is; unset rows are the group room,
+    // which is what every rate on file before kinds existed was.
+    sessionType: rate?.sessionType === 'private' ? 'private' : 'semi_private',
   };
 }
 
@@ -144,6 +148,7 @@ export default function AdminRatesPage() {
           hoursPerSession: rowHours(r),
           name: r.name.trim(),
           validMonths: Number.isFinite(months) && months >= 1 ? months : null,
+          sessionType: r.sessionType === 'private' ? 'private' : 'semi_private',
           tag: r.tag.trim(),
         };
       })
@@ -312,6 +317,7 @@ export default function AdminRatesPage() {
                   <table className="data">
                     <thead>
                       <tr>
+                        <th>Kind</th>
                         <th>Package name</th>
                         <th>Sessions</th>
                         <th>Each</th>
@@ -330,6 +336,23 @@ export default function AdminRatesPage() {
                         const feeCents = FEES_ON && cents !== null ? defaultOnlineFeeCents(cents) : 0;
                         return (
                           <tr key={row.key}>
+                            <td>
+                              {/* Which product this package is. A family buying
+                                  private credits can only book slots opened as
+                                  private, so this has to match what the tutor
+                                  actually offers. */}
+                              <select
+                                value={row.sessionType}
+                                aria-label={`Session kind for ${tutor.name}`}
+                                onChange={(e) =>
+                                  setRow(tutor._id, row.key, 'sessionType', e.target.value)
+                                }
+                                style={{ width: '9rem' }}
+                              >
+                                <option value="semi_private">Semi-private</option>
+                                <option value="private">Private (1:1)</option>
+                              </select>
+                            </td>
                             <td>
                               <input
                                 className="input"

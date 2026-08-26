@@ -2,7 +2,8 @@ import mongoose from 'mongoose';
 import dbConnect from '@/lib/db';
 import SessionCredit from '@/lib/models/SessionCredit';
 import Tutor from '@/lib/models/Tutor';
-import { packsForTutor, findTutorPack } from '@/lib/pricing';
+import { packsForTutor, findTutorPack, sessionTypesForTutor } from '@/lib/pricing';
+import { sessionTypeLabel } from '@/lib/sessionTypes';
 import { getStripe } from '@/lib/stripe';
 import { getCurrentUser, unauthorized } from '@/lib/auth-helpers';
 
@@ -31,6 +32,11 @@ export async function GET() {
     (g.remainingSessions || 0) > 0 && (!g.expiresAt || new Date(g.expiresAt) >= now);
 
   const byTutor = new Map();
+  // The credits that work with anybody are split by kind for the same reason the
+  // per-tutor rows are: a semi-private credit cannot book a private slot, so one
+  // combined "usable with anybody" figure promises sessions booking will refuse.
+  // A null kind is its own row and stays spelled out as "any session type".
+  const byAnyTutor = new Map();
   let anyTutorRemaining = 0;
   let expiredSessions = 0;
   for (const g of grants) {
@@ -44,17 +50,40 @@ export async function GET() {
     }
     if (!g.tutorId) {
       anyTutorRemaining += remaining;
+      const anyKey = g.sessionType || 'any';
+      const anyRow = byAnyTutor.get(anyKey) || {
+        sessionType: g.sessionType || null,
+        sessionTypeLabel: g.sessionType ? sessionTypeLabel(g.sessionType) : 'Any session type',
+        remaining: 0,
+      };
+      anyRow.remaining += remaining;
+      byAnyTutor.set(anyKey, anyRow);
       continue;
     }
     const id = String(g.tutorId._id ?? g.tutorId);
-    const row = byTutor.get(id) || { tutorId: id, tutorName: g.tutorId.name || 'Instructor', remaining: 0 };
+    // Keyed by kind as well, because a private credit cannot book a
+    // semi-private slot and a combined figure would promise sessions the family
+    // cannot actually use.
+    const type = g.sessionType || 'any';
+    const key = id + '|' + type;
+    const row = byTutor.get(key) || {
+      tutorId: id,
+      tutorName: g.tutorId.name || 'Instructor',
+      sessionType: g.sessionType || null,
+      sessionTypeLabel: g.sessionType ? sessionTypeLabel(g.sessionType) : 'Any session type',
+      remaining: 0,
+    };
     row.remaining += remaining;
-    byTutor.set(id, row);
+    byTutor.set(key, row);
   }
 
   return Response.json({
     balances: [...byTutor.values()].sort((a, b) => a.tutorName.localeCompare(b.tutorName)),
     anyTutorRemaining,
+    // Untyped first: those are the ones that book anything.
+    anyTutorBalances: [...byAnyTutor.values()].sort((a, b) =>
+      a.sessionType === b.sessionType ? 0 : a.sessionType ? 1 : -1,
+    ),
     totalRemaining: [...byTutor.values()].reduce((s, r) => s + r.remaining, 0) + anyTutorRemaining,
     expiredSessions,
     tutors: tutors.map((t) => ({
@@ -63,6 +92,13 @@ export async function GET() {
       specialty: t.specialty || '',
       // Falls back to the school-wide list when nobody has priced this tutor yet.
       usesDefaultRates: (t.rates || []).length === 0,
+      // Only the kinds this tutor has actually priced. Offering "Private" from
+      // someone who has not set a private rate would quote the group price.
+      sessionTypes: sessionTypesForTutor(t).map((type) => ({
+        type,
+        label: sessionTypeLabel(type),
+        packs: packsForTutor(t, type),
+      })),
       packs: packsForTutor(t),
     })),
     grants: grants.map((g) => ({
@@ -75,6 +111,8 @@ export async function GET() {
       packId: g.packId,
       amountPaidCents: g.amountPaidCents,
       onlineFeeCents: g.onlineFeeCents || 0,
+      sessionType: g.sessionType || null,
+      sessionTypeLabel: g.sessionType ? sessionTypeLabel(g.sessionType) : 'Any session type',
       expiresAt: g.expiresAt,
       extendedAt: g.extendedAt,
       paid: Boolean(g.stripePaymentIntentId),
@@ -136,6 +174,8 @@ export async function POST(request) {
         onlineFeeCents: String(pack.onlineFeeCents || 0),
         amountCents: String(pack.amountCents),
         packName: pack.name,
+        // Stamped on the grant by the webhook: this is what the credit may book.
+        sessionType: pack.sessionType || 'semi_private',
         // The window is fixed at purchase. Repricing the package later must not
         // move the expiry on sessions a family already owns.
         validMonths: String(pack.validMonths ?? ''),
@@ -154,6 +194,7 @@ export async function POST(request) {
         priceCents: pack.amountCents,
         onlineFeeCents: pack.onlineFeeCents || 0,
         validMonths: pack.validMonths ?? null,
+        sessionType: pack.sessionType || 'semi_private',
       },
       tutor: { id: String(tutor._id), name: tutor.name },
     });

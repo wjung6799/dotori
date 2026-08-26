@@ -4,6 +4,13 @@ import { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
 
 import { formatUsd, lengthLabel, validityLabel } from '@/lib/pricing';
+import {
+  PRIVATE,
+  SEMI_PRIVATE,
+  SESSION_TYPES,
+  SESSION_TYPE_BLURB,
+  sessionTypeLabel,
+} from '@/lib/sessionTypes';
 
 // An instructor prices their own session credits. Credits are per instructor —
 // a family picks who they want first and is then quoted THIS list — so these
@@ -18,6 +25,12 @@ import { formatUsd, lengthLabel, validityLabel } from '@/lib/pricing';
 // The default session length is not imported here — the API sends it, so the
 // arithmetic on screen can never drift from the arithmetic the server saves
 // against.
+//
+// Each package sells ONE kind of session, semi-private or private. They are
+// separate products at separate rates, so a tutor is really maintaining two
+// price ladders here; the editor keeps them in one table (a package is a package)
+// but the live price list below is split by kind, because a family is only ever
+// shown one ladder at a time and interleaving them hides what was priced.
 
 const plural = (n) => (n === 1 ? '' : 's');
 
@@ -42,6 +55,11 @@ function toRow(rate) {
       rate?.hoursPerSession === undefined || rate?.hoursPerSession === null
         ? ''
         : String(Math.round(rate.hoursPerSession * 60)),
+    // Which product this package sells. Semi-private is the default for a new
+    // row and for a rate written before kinds existed — the same fallback the
+    // API and packsForTutor use, so the editor never shows a kind the server
+    // would not have stored.
+    sessionType: rate?.sessionType === PRIVATE ? PRIVATE : SEMI_PRIVATE,
     name: rate?.name || '',
     tag: rate?.tag || '',
     // Blank is a real answer here, not a missing one: null months means the
@@ -70,6 +88,19 @@ function rowTotalCents(row, hoursPerSession) {
   if (!Number.isFinite(sessions) || !Number.isFinite(ratePerHour)) return null;
   if (sessions <= 0 || ratePerHour <= 0) return null;
   return Math.round(ratePerHour * hours * sessions * 100);
+}
+
+// The live price list, split into the ladders a family is actually shown. A pack
+// with no kind on it came from a rate written before kinds existed, and is
+// stored and sold as semi-private everywhere else — so it reads as semi-private
+// here rather than becoming a third, nameless group. Empty ladders are dropped:
+// a tutor who only sells semi-private should see one heading, not an empty
+// "Private" shelf implying they offer something they have not priced.
+function packsByType(packs) {
+  return SESSION_TYPES.map((type) => ({
+    type,
+    list: (packs || []).filter((p) => (p?.sessionType === PRIVATE ? PRIVATE : SEMI_PRIVATE) === type),
+  })).filter((group) => group.list.length > 0);
 }
 
 export default function TutorRatesPage() {
@@ -133,6 +164,10 @@ export default function TutorRatesPage() {
           rates: rows.map((r) => ({
             sessions: r.sessions,
             ratePerHour: r.ratePerHour,
+            // Which product this package sells. The route only accepts the two
+            // known kinds and falls back to semi-private, so a row is never
+            // saved as a kind nothing can book.
+            sessionType: r.sessionType,
             // Blank means "the school's session length", sent as null so a
             // package that never set one is left exactly as it was.
             hoursPerSession: rowHours(r),
@@ -184,6 +219,7 @@ export default function TutorRatesPage() {
   const hoursPerSession = Number(data?.hoursPerSession);
   const defaults = data?.defaults || [];
   const packs = data?.packs || [];
+  const packGroups = packsByType(packs);
   const outstanding = data?.outstandingCredits || 0;
 
   return (
@@ -251,6 +287,7 @@ export default function TutorRatesPage() {
                 <table className="data">
                   <thead>
                     <tr>
+                      <th>Kind</th>
                       <th>Package name</th>
                       <th>Sessions</th>
                       <th>Each</th>
@@ -267,6 +304,25 @@ export default function TutorRatesPage() {
                       const cents = rowTotalCents(row, hoursPerSession);
                       return (
                         <tr key={row.key}>
+                          <td>
+                            {/* Every kind the school sells, listed from the one
+                                place the vocabulary is defined — a hard-coded
+                                pair here would go stale the day a third appears.
+                                .input is width:100%, so this needs a width. */}
+                            <select
+                              className="input"
+                              aria-label="Kind of session this package sells"
+                              value={row.sessionType}
+                              onChange={(e) => setRow(row.key, 'sessionType', e.target.value)}
+                              style={{ width: '9.5rem' }}
+                            >
+                              {SESSION_TYPES.map((t) => (
+                                <option key={t} value={t}>
+                                  {sessionTypeLabel(t)}
+                                </option>
+                              ))}
+                            </select>
+                          </td>
                           <td>
                             <input
                               className="input"
@@ -386,6 +442,21 @@ export default function TutorRatesPage() {
                 family has to use the sessions. A bigger package needs a longer window — forty
                 weekly sessions cannot be used inside three months.
               </div>
+              {/* Kept as its own paragraph: the trap below is the one thing on
+                  this screen a tutor can get wrong without seeing an error. */}
+              <div className="hint">
+                “Kind” is which product the package sells, and the two are priced
+                separately. <strong>Semi-private</strong> is the small-group room — a few
+                students share the slot, each on their own plan. <strong>Private</strong> is
+                one student for the whole slot. A family who buys private credits can only
+                spend them on slots you have opened as private, so pricing a private
+                package without opening any private slots sells something nobody can book.
+                Open them in{' '}
+                <Link className="link" href="/tutor/availability">
+                  My availability
+                </Link>
+                .
+              </div>
             </div>
 
             <div style={{ display: 'flex', gap: '0.55rem', flexWrap: 'wrap' }}>
@@ -451,40 +522,53 @@ export default function TutorRatesPage() {
             <p className="muted small" style={{ margin: '0 0 0.9rem', maxWidth: '62ch' }}>
               Saved prices only — a row you are still typing shows up here after you save.
             </p>
-            <div className="grid">
-              {packs.map((p) => (
-                <div
-                  className="card"
-                  key={p.id}
-                  style={{ margin: 0, boxShadow: 'none', background: 'var(--surface-2)' }}
-                >
-                  <div className="card-head" style={{ marginBottom: '0.5rem' }}>
-                    <h2>{p.name}</h2>
-                    {p.tag ? <span className="pill mute">{p.tag}</span> : null}
-                  </div>
-
-                  <div className="strong" style={{ fontSize: '1.6rem', fontWeight: 800, lineHeight: 1.2 }}>
-                    {formatUsd(p.amountCents)}
-                  </div>
-                  <p className="muted small" style={{ margin: '0.15rem 0 0.6rem' }}>
-                    ${p.ratePerHour}/hour · {p.sessions} session{plural(p.sessions)}
-                    {p.hoursPerSession ? ` × ${lengthLabel(p.hoursPerSession)}` : ''} ·{' '}
-                    {validityLabel(p.validMonths)}
-                  </p>
-
-                  {(p.lines || []).length > 0 ? (
-                    <ul
-                      className="small muted"
-                      style={{ listStyle: 'none', margin: 0, padding: 0, display: 'grid', gap: '0.3rem' }}
+            {/* One ladder per kind, in the order the vocabulary lists them, so a
+                tutor selling both reads their semi-private prices top to bottom
+                and then their private ones — not the two interleaved by size. */}
+            {packGroups.map((group) => (
+              <div key={group.type} style={{ marginBottom: '1.2rem' }}>
+                <h3 style={{ fontSize: '0.95rem', fontWeight: 700 }}>
+                  {sessionTypeLabel(group.type)}
+                </h3>
+                <p className="muted small" style={{ margin: '0.15rem 0 0.7rem' }}>
+                  {SESSION_TYPE_BLURB[group.type]}
+                </p>
+                <div className="grid">
+                  {group.list.map((p) => (
+                    <div
+                      className="card"
+                      key={p.id}
+                      style={{ margin: 0, boxShadow: 'none', background: 'var(--surface-2)' }}
                     >
-                      {p.lines.map((line) => (
-                        <li key={line}>· {line}</li>
-                      ))}
-                    </ul>
-                  ) : null}
+                      <div className="card-head" style={{ marginBottom: '0.5rem' }}>
+                        <h2>{p.name}</h2>
+                        {p.tag ? <span className="pill mute">{p.tag}</span> : null}
+                      </div>
+
+                      <div className="strong" style={{ fontSize: '1.6rem', fontWeight: 800, lineHeight: 1.2 }}>
+                        {formatUsd(p.amountCents)}
+                      </div>
+                      <p className="muted small" style={{ margin: '0.15rem 0 0.6rem' }}>
+                        ${p.ratePerHour}/hour · {p.sessions} session{plural(p.sessions)}
+                        {p.hoursPerSession ? ` × ${lengthLabel(p.hoursPerSession)}` : ''} ·{' '}
+                        {validityLabel(p.validMonths)}
+                      </p>
+
+                      {(p.lines || []).length > 0 ? (
+                        <ul
+                          className="small muted"
+                          style={{ listStyle: 'none', margin: 0, padding: 0, display: 'grid', gap: '0.3rem' }}
+                        >
+                          {p.lines.map((line) => (
+                            <li key={line}>· {line}</li>
+                          ))}
+                        </ul>
+                      ) : null}
+                    </div>
+                  ))}
                 </div>
-              ))}
-            </div>
+              </div>
+            ))}
           </>
         )}
       </div>

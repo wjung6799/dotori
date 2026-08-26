@@ -45,6 +45,9 @@ export async function POST(request) {
       userId,
       tutorId: tutorId || null,
       totalSessions: n,
+      // Which kind these sessions book. Defaults to semi-private, which is what
+      // every grant made before types existed effectively was.
+      sessionType: body?.sessionType === 'private' ? 'private' : 'semi_private',
       // Optional: a hand-granted pack can carry the same window a bought one
       // does. Omitted means it never lapses, which is how every grant behaved
       // before expiry existed.

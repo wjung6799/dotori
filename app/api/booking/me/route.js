@@ -57,7 +57,17 @@ export async function GET() {
       .sort({ expiresAt: -1 })
       .lean();
 
-    return Response.json({ totalRemaining, credits, expired, bookings, recurring });
+    // Grouped by tutor AND kind. A single total would tell a family they have
+    // sessions for a slot their credits cannot pay for.
+    const byTutorAndType = {};
+    for (const c of credits) {
+      const tid = c.tutorId ? String(c.tutorId._id ?? c.tutorId) : 'any';
+      const type = c.sessionType || 'any';
+      const key = `${tid}|${type}`;
+      byTutorAndType[key] = (byTutorAndType[key] || 0) + (c.remainingSessions || 0);
+    }
+
+    return Response.json({ totalRemaining, byTutorAndType, credits, expired, bookings, recurring });
   } catch (err) {
     console.error('Booking me error:', err);
     return Response.json({ error: 'Failed to load your bookings.' }, { status: 500 });

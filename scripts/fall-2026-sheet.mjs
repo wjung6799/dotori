@@ -21,6 +21,7 @@ import {
   formatUsd,
   packsForTutor,
 } from '../lib/pricing.js';
+import { PRIVATE, SEMI_PRIVATE } from '../lib/sessionTypes.js';
 
 const uri = process.env.MONGODB_URI;
 if (!uri) {
@@ -70,6 +71,10 @@ const RATES = LESSON_FORMATS.flatMap((format) =>
       name: `${format.name} · ${pkg.name}`,
       tag: pkg.blurb,
       validMonths: pkg.validMonths,
+      // Which product this package sells. The sheet prices the two formats
+      // separately, so the credits it grants have to be told apart too — a
+      // semi-private credit books a semi-private opening and nothing else.
+      sessionType: format.id === 'private' ? PRIVATE : SEMI_PRIVATE,
     };
   }),
 );
@@ -154,7 +159,8 @@ if (!tutor) {
         (cur.hoursPerSession ?? null) === r.hoursPerSession &&
         (cur.name || '') === r.name &&
         (cur.tag || '') === r.tag &&
-        (cur.validMonths ?? null) === r.validMonths
+        (cur.validMonths ?? null) === r.validMonths &&
+        (cur.sessionType || 'semi_private') === r.sessionType
       );
     });
 

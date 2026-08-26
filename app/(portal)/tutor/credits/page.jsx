@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import LocalTime from '../../LocalTime';
+import { SEMI_PRIVATE, SESSION_TYPES, SESSION_TYPE_BLURB, sessionTypeLabel } from '@/lib/sessionTypes';
 
 // Session tokens a family bought from you offline — Zelle, cash, a cheque — and
 // the balance they can book against. This lived inside the availability page for
@@ -21,12 +22,20 @@ const famName = (f) => {
   return kids ? `${base} (${kids})` : base;
 };
 
+// Which kind of session a grant buys. A grant with no sessionType was made
+// before kinds existed and still books either one, so it is described rather
+// than flagged — a blank or an error would read as a broken row.
+const kindLabel = (t) => (t ? sessionTypeLabel(t) : 'Any session type');
+
 export default function TutorCreditsPage() {
 
   const [families, setFamilies] = useState(null); // null while loading, [] when genuinely empty
   const [grants, setGrants] = useState(null); // null while loading, [] when genuinely empty
   const [userId, setUserId] = useState('');
   const [sessions, setSessions] = useState('1');
+  // Semi-private by default: it is the common product, and it is what every
+  // grant made before kinds existed effectively was.
+  const [sessionType, setSessionType] = useState(SEMI_PRIVATE);
   const [note, setNote] = useState('');
   // Months, as a string so a half-typed value survives a keystroke. Blank means
   // the tokens never lapse, which is how every grant behaved before expiry.
@@ -63,6 +72,7 @@ export default function TutorCreditsPage() {
         body: JSON.stringify({
           userId,
           sessions: Number(sessions),
+          sessionType,
           note,
           // null, never 0 — a 0 would read as tokens that expired on purchase.
           validMonths: validMonths.trim() === '' ? null : Number(validMonths),
@@ -125,6 +135,25 @@ export default function TutorCreditsPage() {
             {families && families.length === 0 ? (
               <p className="hint">No families on the books yet.</p>
             ) : null}
+          </div>
+
+          <div className="field">
+            <label htmlFor="grant-kind">Kind of session</label>
+            <select
+              id="grant-kind"
+              value={sessionType}
+              onChange={(e) => setSessionType(e.target.value)}
+            >
+              {SESSION_TYPES.map((t) => (
+                <option key={t} value={t}>
+                  {sessionTypeLabel(t)}
+                </option>
+              ))}
+            </select>
+            <p className="hint">
+              {SESSION_TYPE_BLURB[sessionType]} The family can only book slots of the kind you
+              grant, so this has to match what they are coming to you for.
+            </p>
           </div>
 
           <div className="field">
@@ -205,6 +234,9 @@ export default function TutorCreditsPage() {
                   <span className="strong">{famName(g.userId)}</span>{' '}
                   <span className={g.remainingSessions > 0 ? 'pill ok' : 'pill mute'}>
                     {g.remainingSessions} of {g.totalSessions} left
+                  </span>{' '}
+                  <span className={g.sessionType ? 'pill info' : 'pill mute'}>
+                    {kindLabel(g.sessionType)}
                   </span>
                   {g.createdAt || g.note ? (
                     <div className="meta">

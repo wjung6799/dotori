@@ -39,6 +39,8 @@ export async function PUT(request, { params }) {
             tag: (r?.tag || '').toString().trim().slice(0, 40),
             // Blank means the package never lapses.
             validMonths: Number.isFinite(months) && months >= 1 ? months : null,
+            // Semi-private unless the package explicitly says private.
+            sessionType: r?.sessionType === 'private' ? 'private' : 'semi_private',
           };
         })
         .filter((r) => Number.isFinite(r.sessions) && r.sessions >= 1 && Number.isFinite(r.ratePerHour) && r.ratePerHour > 0);

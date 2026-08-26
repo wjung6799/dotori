@@ -35,3 +35,9 @@ next-env.d.ts
 
 # Verification builds (see distDir in next.config.mjs)
 /.next-verify/
+
+# Local agent tooling scratch — not part of the app
+/.nitpicker/
+/.agents/
+/skills-lock.json
+/.next-dev/

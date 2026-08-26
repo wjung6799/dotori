@@ -208,6 +208,9 @@ async function handleCreditPurchase(pi) {
       // Scoped to the tutor whose rates were charged. lib/booking.js spends this
       // on that tutor first, and it is not usable with anyone else.
       tutorId: pi.metadata.tutorId || null,
+      // Which kind of session these credits may book. Read back from the intent
+      // rather than looked up again, because rates can change afterwards.
+      sessionType: pi.metadata.sessionType === 'private' ? 'private' : 'semi_private',
       totalSessions: sessions,
       remainingSessions: sessions,
       note: `${packName} purchased online`,

@@ -6,12 +6,22 @@ import Link from 'next/link';
 import LocalTime from '../../LocalTime';
 import PayPanel from '../../PayPanel';
 import { expiryFor, formatUsd, lengthLabel, validityLabel } from '@/lib/pricing';
+import { SESSION_TYPE_BLURB, sessionTypeLabel } from '@/lib/sessionTypes';
 
 // Session credits (수업 크레딧) are PER INSTRUCTOR: every tutor sets their own
 // rates, so a credit bought for one tutor books that tutor. That is why this page
 // never adds the balances together into one number — they are not
 // interchangeable, and a single "12 credits" figure would promise a family
 // sessions they cannot actually book.
+//
+// They are also per KIND. Semi-private and private are separate products at
+// separate rates, so a credit bought for one cannot book the other: a balance is
+// a tutor AND a kind, and buying asks who first, then which kind, then which
+// package — because a package only exists inside one kind's price list.
+//
+// A credit whose kind is null was granted before that distinction existed and
+// still books either kind. That is a promise the school already made, not a hole
+// in the data, so it is always spelled out rather than left blank.
 //
 // Booking already knows how to fall back to a credit that works with anybody, so
 // nothing here has to explain that; families just see what they hold with whom.
@@ -47,10 +57,19 @@ function ExpiryPill({ iso }) {
   return null;
 }
 
+// The kind a balance or a grant is for, in words. The API already names it, so
+// this only has to hold the line on null: null is "either kind", and rendering
+// it as blank or as an error would tell a family a credit they hold is broken.
+function kindLabel(row) {
+  if (row?.sessionTypeLabel) return row.sessionTypeLabel;
+  return row?.sessionType ? sessionTypeLabel(row.sessionType) : 'Any session type';
+}
+
 export default function CreditsPage() {
   const [data, setData] = useState(null);
   const [error, setError] = useState('');
   const [tutorId, setTutorId] = useState(''); // '' = nobody picked yet
+  const [sessionType, setSessionType] = useState(''); // '' = no kind picked yet
   const [packId, setPackId] = useState('');
   const [justPaid, setJustPaid] = useState(false);
 
@@ -83,12 +102,26 @@ export default function CreditsPage() {
   const loading = !data && !error;
   const balances = data?.balances || [];
   const anyTutorRemaining = data?.anyTutorRemaining || 0;
+  // Credits usable with anybody, split by kind — because "usable with anybody"
+  // was never a statement about the kind, and a semi-private credit still only
+  // books semi-private slots.
+  const anyTutorBalances = data?.anyTutorBalances || [];
   const tutors = data?.tutors || [];
   const grants = data?.grants || [];
   const expiredSessions = data?.expiredSessions || 0;
 
   const tutor = tutors.find((t) => t.id === tutorId) || null;
-  const packs = tutor?.packs || [];
+
+  // Only the kinds this instructor has actually priced: showing "Private" for
+  // someone who never set a private rate would quote them the group price.
+  const kinds = tutor?.sessionTypes || [];
+  // Derived, not stored, for two reasons: an instructor who sells one kind never
+  // has to click the only option there is, and switching instructors cannot
+  // leave a kind selected that the new one does not sell.
+  const kind = kinds.find((k) => k.type === sessionType) || (kinds.length === 1 ? kinds[0] : null);
+  const showKindPicker = kinds.length > 1;
+  // Packages live inside one kind's price list; there is no combined list.
+  const packs = kind?.packs || [];
   const pack = packs.find((p) => p.id === packId) || null;
 
   const packTotal = pack ? pack.amountCents + (pack.onlineFeeCents || 0) : 0;
@@ -101,9 +134,18 @@ export default function CreditsPage() {
   const payable = pack && packTotal >= 50;
 
   // A tutor's packs are their own list; switching instructor invalidates the
-  // chosen pack outright rather than carrying a stale id across price lists.
+  // chosen kind and pack outright rather than carrying stale ids across price
+  // lists.
   function pickTutor(id) {
     setTutorId((prev) => (prev === id ? '' : id));
+    setSessionType('');
+    setPackId('');
+  }
+
+  // The same reasoning one level down: a pack id belongs to one kind's list, so
+  // changing kind cannot keep the selection.
+  function pickKind(type) {
+    setSessionType((prev) => (prev === type ? '' : type));
     setPackId('');
   }
 
@@ -165,7 +207,7 @@ export default function CreditsPage() {
         </div>
       ) : null}
 
-      {/* ── Balances, one per instructor ─────────────────────────────────── */}
+      {/* ── Balances, one per instructor and kind ────────────────────────── */}
       <div className="grid" style={{ marginBottom: '1.1rem' }}>
         {loading ? (
           <div className="stat">
@@ -189,25 +231,53 @@ export default function CreditsPage() {
           </div>
         ) : (
           <>
+            {/* One row per instructor AND kind: they are not interchangeable,
+                and keying on the tutor alone would collide the moment a family
+                holds both kinds with the same instructor. */}
             {balances.map((b) => (
-              <div className="stat" key={b.tutorId}>
-                <div className="label">{b.tutorName}</div>
+              <div className="stat" key={b.tutorId + '|' + (b.sessionType || 'any')}>
+                <div className="label">
+                  {kindLabel(b)} with {b.tutorName}
+                </div>
                 <div className="value">{b.remaining}</div>
                 <div className="hint">
-                  session{plural(b.remaining)} with {b.tutorName}
+                  session{plural(b.remaining)} ·{' '}
+                  {b.sessionType
+                    ? `books ${kindLabel(b).toLowerCase()} slots only`
+                    : 'books either kind'}
                 </div>
               </div>
             ))}
 
-            {anyTutorRemaining > 0 ? (
-              <div className="stat">
-                <div className="label">Any instructor</div>
-                <div className="value">{anyTutorRemaining}</div>
-                <div className="hint">
-                  session{plural(anyTutorRemaining)} you can use with anybody
-                </div>
-              </div>
-            ) : null}
+            {/* Same rule one column over: a credit that works with anybody
+                still only books its own kind, so each kind gets its own row
+                rather than one figure that books less than it says. */}
+            {anyTutorBalances.length > 0
+              ? anyTutorBalances.map((b) => (
+                  <div className="stat" key={'any|' + (b.sessionType || 'any')}>
+                    {/* The untyped row keeps its old wording: "Any session type
+                        with any instructor" says the same thing twice. */}
+                    <div className="label">
+                      {b.sessionType ? `${kindLabel(b)} with any instructor` : 'Any instructor'}
+                    </div>
+                    <div className="value">{b.remaining}</div>
+                    <div className="hint">
+                      session{plural(b.remaining)} ·{' '}
+                      {b.sessionType
+                        ? `books ${kindLabel(b).toLowerCase()} slots with anybody`
+                        : 'books either kind, with anybody'}
+                    </div>
+                  </div>
+                ))
+              : anyTutorRemaining > 0 ? (
+                  <div className="stat">
+                    <div className="label">Any instructor</div>
+                    <div className="value">{anyTutorRemaining}</div>
+                    <div className="hint">
+                      session{plural(anyTutorRemaining)} you can use with anybody
+                    </div>
+                  </div>
+                ) : null}
           </>
         )}
       </div>
@@ -278,187 +348,254 @@ export default function CreditsPage() {
               <p className="muted small" style={{ margin: '1rem 0 0' }}>
                 Pick an instructor to see their rates.
               </p>
+            ) : kinds.length === 0 ? (
+              <div className="empty">
+                <span className="ico">🎟</span>
+                <p>
+                  {tutor.name} has no packages priced yet.{' '}
+                  <Link href="/contact">Contact the school</Link> and we will sort it out.
+                </p>
+              </div>
             ) : (
               <>
-                {/* Step 2 — which package, at this instructor's prices. */}
-                <p className="flabel" style={{ marginTop: '1.5rem' }}>
-                  2 · Choose a package with {tutor.name}
-                </p>
-
-                {packs.length === 0 ? (
-                  <div className="empty">
-                    <span className="ico">🎟</span>
-                    <p>
-                      {tutor.name} has no packages priced yet.{' '}
-                      <Link href="/contact">Contact the school</Link> and we will sort it out.
+                {/* Step 2 — which kind. Semi-private and private are separate
+                    products at separate rates, so this has to be answered before
+                    any price list exists. Shown only when it is a real choice:
+                    an instructor who sells one kind has it chosen already. */}
+                {showKindPicker ? (
+                  <>
+                    <p className="flabel" style={{ marginTop: '1.5rem' }}>
+                      2 · Choose a session type with {tutor.name}
                     </p>
-                  </div>
-                ) : (
-                  <div className="grid">
-                    {packs.map((p) => {
-                      const chosen = p.id === packId;
-                      return (
-                        <button
-                          key={p.id}
-                          type="button"
-                          className="card"
-                          aria-pressed={chosen}
-                          onClick={() => setPackId(chosen ? '' : p.id)}
-                          style={{
-                            margin: 0,
-                            font: 'inherit',
-                            textAlign: 'left',
-                            cursor: 'pointer',
-                            width: '100%',
-                            borderWidth: chosen || p.highlight ? 2 : 1,
-                            borderColor: chosen
-                              ? 'var(--brown-mid)'
-                              : p.highlight
-                                ? 'var(--accent)'
-                                : 'var(--line)',
-                          }}
-                        >
-                          <div className="card-head" style={{ marginBottom: '0.5rem' }}>
-                            <h2>{p.name}</h2>
-                            {p.tag ? (
-                              <span className={p.highlight ? 'pill warn' : 'pill mute'}>{p.tag}</span>
-                            ) : null}
-                          </div>
-
-                          <div
-                            className="strong"
-                            style={{ fontSize: '1.6rem', fontWeight: 800, lineHeight: 1.2 }}
-                          >
-                            {formatUsd(p.amountCents)}
-                          </div>
-                          <p className="muted small" style={{ margin: '0.15rem 0 0.75rem' }}>
-                            ${p.ratePerHour}/hour · {p.sessions} session{plural(p.sessions)}
-                            {/* Length matters the moment an instructor sells two
-                                of them: "12 sessions" alone cannot tell a
-                                60-minute quarter from a 90-minute one. */}
-                            {p.hoursPerSession ? ` × ${lengthLabel(p.hoursPerSession)}` : ''}
-                          </p>
-
-                          <ul
-                            className="small muted"
+                    <div className="grid grid-tight">
+                      {kinds.map((k) => {
+                        const chosen = k.type === kind?.type;
+                        return (
+                          <button
+                            key={k.type}
+                            type="button"
+                            className="card"
+                            aria-pressed={chosen}
+                            onClick={() => pickKind(k.type)}
                             style={{
-                              listStyle: 'none',
                               margin: 0,
-                              padding: 0,
-                              display: 'grid',
-                              gap: '0.3rem',
+                              font: 'inherit',
+                              textAlign: 'left',
+                              cursor: 'pointer',
+                              width: '100%',
+                              padding: '0.85rem 1rem',
+                              borderWidth: chosen ? 2 : 1,
+                              borderColor: chosen ? 'var(--brown-mid)' : 'var(--line)',
                             }}
                           >
-                            {(p.lines || []).map((line) => (
-                              <li key={line}>· {line}</li>
-                            ))}
-                          </ul>
-
-                          {/* A family weighing a 10-pack against a 40-pack is
-                              really weighing how long they have to use it, so
-                              the window belongs beside the price. */}
-                          <p className="muted small" style={{ margin: '0.6rem 0 0' }}>
-                            {validityLabel(p.validMonths)}
-                          </p>
-
-                          <p className="small strong" style={{ margin: '0.85rem 0 0' }}>
-                            {chosen ? '✓ Selected' : 'Choose this package'}
-                          </p>
-                        </button>
-                      );
-                    })}
-                  </div>
-                )}
-
-                {tutor.usesDefaultRates && packs.length > 0 ? (
-                  <p className="muted small" style={{ margin: '0.8rem 0 0' }}>
-                    These are the school&rsquo;s standard rates.
-                  </p>
+                            <span className="strong" style={{ display: 'block' }}>
+                              {k.label}
+                            </span>
+                            <span className="muted small">{SESSION_TYPE_BLURB[k.type] || ''}</span>
+                            <span
+                              className="small strong"
+                              style={{ display: 'block', marginTop: '0.4rem' }}
+                            >
+                              {chosen ? '✓ Selected' : 'See these packages'}
+                            </span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </>
                 ) : null}
 
-                {/* Step 3 — pay. Exactly one PayPanel is ever mounted, and both
-                    the instructor and the package are in its key so a change
-                    rebuilds the card form against the right amount. */}
-                {pack ? (
-                  <div style={{ marginTop: '1.35rem' }}>
-                    <p className="strong" style={{ margin: '0 0 0.15rem' }}>
-                      {pack.name} with {tutor.name}
-                    </p>
-                    <p className="muted small" style={{ margin: '0 0 0.7rem' }}>
-                      {pack.sessions} session{plural(pack.sessions)} with {tutor.name}, added to your
-                      balance once the payment clears.
-                      {packExpiry ? (
-                        <>
-                          {' '}
-                          These sessions would need to be used by{' '}
-                          <LocalTime iso={packExpiry.toISOString()} format="date" />.
-                        </>
-                      ) : null}
+                {!kind ? (
+                  <p className="muted small" style={{ margin: '1rem 0 0' }}>
+                    Pick a session type to see {tutor.name}&rsquo;s packages.
+                  </p>
+                ) : (
+                  <>
+                    {/* Then the packages, at this instructor's prices for this
+                        kind. Numbered 2 when the kind was never asked about, so
+                        the steps still read 1, 2, 3 either way. */}
+                    <p className="flabel" style={{ marginTop: '1.5rem' }}>
+                      {showKindPicker ? '3' : '2'} · Choose a {kind.label.toLowerCase()} package
+                      with {tutor.name}
                     </p>
 
-                    {/* Only shown when a fee actually moves the number — never a
-                        $0 row. Fees are off today, so this normally stays hidden. */}
-                    {pack.onlineFeeCents ? (
-                      <div
-                        style={{
-                          background: 'var(--surface-2)',
-                          border: '1px solid var(--line-soft)',
-                          borderRadius: 'var(--radius-sm)',
-                          padding: '0.85rem 1.05rem',
-                          marginBottom: '0.9rem',
-                        }}
-                      >
-                        <div className="row" style={{ background: 'none', border: 0, padding: 0 }}>
-                          <span className="main muted small">{pack.name}</span>
-                          <span className="small">{formatUsd(pack.amountCents)}</span>
-                        </div>
-                        <div
-                          className="row"
-                          style={{ background: 'none', border: 0, padding: '0.2rem 0 0' }}
-                        >
-                          <span className="main muted small">Online payment fee</span>
-                          <span className="small">{formatUsd(pack.onlineFeeCents)}</span>
-                        </div>
-                        <div
-                          className="row"
-                          style={{
-                            background: 'none',
-                            border: 0,
-                            borderTop: '1px solid var(--line)',
-                            marginTop: '0.45rem',
-                            padding: '0.45rem 0 0',
-                          }}
-                        >
-                          <span className="main strong">Total by card</span>
-                          <span className="strong" style={{ fontSize: '1.15rem' }}>
-                            {formatUsd(packTotal)}
-                          </span>
-                        </div>
+                    {packs.length === 0 ? (
+                      <div className="empty">
+                        <span className="ico">🎟</span>
+                        <p>
+                          {tutor.name} has no packages priced yet.{' '}
+                          <Link href="/contact">Contact the school</Link> and we will sort it out.
+                        </p>
                       </div>
-                    ) : null}
-
-                    {payable ? (
-                      <PayPanel
-                        key={tutor.id + ':' + pack.id}
-                        amountCents={packTotal}
-                        methods={['card']}
-                        createIntent={createIntent}
-                        returnUrl="/dashboard/credits?paid=1"
-                        label={'Pay ' + formatUsd(packTotal)}
-                      />
                     ) : (
-                      <div className="notice info" style={{ marginBottom: 0 }}>
-                        This package is not set up for card payment yet.{' '}
-                        <Link href="/contact">Contact the school</Link> and we will add the credits
-                        for you.
+                      <div className="grid">
+                        {packs.map((p) => {
+                          const chosen = p.id === packId;
+                          return (
+                            <button
+                              key={p.id}
+                              type="button"
+                              className="card"
+                              aria-pressed={chosen}
+                              onClick={() => setPackId(chosen ? '' : p.id)}
+                              style={{
+                                margin: 0,
+                                font: 'inherit',
+                                textAlign: 'left',
+                                cursor: 'pointer',
+                                width: '100%',
+                                borderWidth: chosen || p.highlight ? 2 : 1,
+                                borderColor: chosen
+                                  ? 'var(--brown-mid)'
+                                  : p.highlight
+                                    ? 'var(--accent)'
+                                    : 'var(--line)',
+                              }}
+                            >
+                              <div className="card-head" style={{ marginBottom: '0.5rem' }}>
+                                <h2>{p.name}</h2>
+                                {p.tag ? (
+                                  <span className={p.highlight ? 'pill warn' : 'pill mute'}>{p.tag}</span>
+                                ) : null}
+                              </div>
+
+                              <div
+                                className="strong"
+                                style={{ fontSize: '1.6rem', fontWeight: 800, lineHeight: 1.2 }}
+                              >
+                                {formatUsd(p.amountCents)}
+                              </div>
+                              <p className="muted small" style={{ margin: '0.15rem 0 0.75rem' }}>
+                                ${p.ratePerHour}/hour · {p.sessions} session{plural(p.sessions)}
+                                {/* Length matters the moment an instructor sells two
+                                    of them: "12 sessions" alone cannot tell a
+                                    60-minute quarter from a 90-minute one. */}
+                                {p.hoursPerSession ? ` × ${lengthLabel(p.hoursPerSession)}` : ''}
+                              </p>
+
+                              <ul
+                                className="small muted"
+                                style={{
+                                  listStyle: 'none',
+                                  margin: 0,
+                                  padding: 0,
+                                  display: 'grid',
+                                  gap: '0.3rem',
+                                }}
+                              >
+                                {(p.lines || []).map((line) => (
+                                  <li key={line}>· {line}</li>
+                                ))}
+                              </ul>
+
+                              {/* A family weighing a 10-pack against a 40-pack is
+                                  really weighing how long they have to use it, so
+                                  the window belongs beside the price. */}
+                              <p className="muted small" style={{ margin: '0.6rem 0 0' }}>
+                                {validityLabel(p.validMonths)}
+                              </p>
+
+                              <p className="small strong" style={{ margin: '0.85rem 0 0' }}>
+                                {chosen ? '✓ Selected' : 'Choose this package'}
+                              </p>
+                            </button>
+                          );
+                        })}
                       </div>
                     )}
-                  </div>
-                ) : packs.length > 0 ? (
-                  <p className="muted small" style={{ margin: '1rem 0 0' }}>
-                    Pick a package above to pay by card.
-                  </p>
-                ) : null}
+
+                    {tutor.usesDefaultRates && packs.length > 0 ? (
+                      <p className="muted small" style={{ margin: '0.8rem 0 0' }}>
+                        These are the school&rsquo;s standard rates.
+                      </p>
+                    ) : null}
+
+                    {/* Pay. Exactly one PayPanel is ever mounted, and the
+                        instructor, the session type and the package are all in its
+                        key, so changing any of them rebuilds the card form against
+                        the right amount. */}
+                    {pack ? (
+                      <div style={{ marginTop: '1.35rem' }}>
+                        <p className="strong" style={{ margin: '0 0 0.15rem' }}>
+                          {pack.name} with {tutor.name}
+                        </p>
+                        <p className="muted small" style={{ margin: '0 0 0.7rem' }}>
+                          {pack.sessions} session{plural(pack.sessions)} with {tutor.name}, added to your
+                          balance once the payment clears.
+                          {packExpiry ? (
+                            <>
+                              {' '}
+                              These sessions would need to be used by{' '}
+                              <LocalTime iso={packExpiry.toISOString()} format="date" />.
+                            </>
+                          ) : null}
+                        </p>
+
+                        {/* Only shown when a fee actually moves the number — never a
+                            $0 row. Fees are off today, so this normally stays hidden. */}
+                        {pack.onlineFeeCents ? (
+                          <div
+                            style={{
+                              background: 'var(--surface-2)',
+                              border: '1px solid var(--line-soft)',
+                              borderRadius: 'var(--radius-sm)',
+                              padding: '0.85rem 1.05rem',
+                              marginBottom: '0.9rem',
+                            }}
+                          >
+                            <div className="row" style={{ background: 'none', border: 0, padding: 0 }}>
+                              <span className="main muted small">{pack.name}</span>
+                              <span className="small">{formatUsd(pack.amountCents)}</span>
+                            </div>
+                            <div
+                              className="row"
+                              style={{ background: 'none', border: 0, padding: '0.2rem 0 0' }}
+                            >
+                              <span className="main muted small">Online payment fee</span>
+                              <span className="small">{formatUsd(pack.onlineFeeCents)}</span>
+                            </div>
+                            <div
+                              className="row"
+                              style={{
+                                background: 'none',
+                                border: 0,
+                                borderTop: '1px solid var(--line)',
+                                marginTop: '0.45rem',
+                                padding: '0.45rem 0 0',
+                              }}
+                            >
+                              <span className="main strong">Total by card</span>
+                              <span className="strong" style={{ fontSize: '1.15rem' }}>
+                                {formatUsd(packTotal)}
+                              </span>
+                            </div>
+                          </div>
+                        ) : null}
+
+                        {payable ? (
+                          <PayPanel
+                            key={tutor.id + ':' + kind.type + ':' + pack.id}
+                            amountCents={packTotal}
+                            methods={['card']}
+                            createIntent={createIntent}
+                            returnUrl="/dashboard/credits?paid=1"
+                            label={'Pay ' + formatUsd(packTotal)}
+                          />
+                        ) : (
+                          <div className="notice info" style={{ marginBottom: 0 }}>
+                            This package is not set up for card payment yet.{' '}
+                            <Link href="/contact">Contact the school</Link> and we will add the credits
+                            for you.
+                          </div>
+                        )}
+                      </div>
+                    ) : packs.length > 0 ? (
+                      <p className="muted small" style={{ margin: '1rem 0 0' }}>
+                        Pick a package above to pay by card.
+                      </p>
+                    ) : null}
+                  </>
+                )}
               </>
             )}
           </>
@@ -488,6 +625,7 @@ export default function CreditsPage() {
                 <tr>
                   <th>Date</th>
                   <th>Instructor</th>
+                  <th>Type</th>
                   <th>What</th>
                   <th>Sessions</th>
                   <th>Expires</th>
@@ -505,6 +643,9 @@ export default function CreditsPage() {
                       <LocalTime iso={g.createdAt} format="date" />
                     </td>
                     <td>{g.tutorName || 'Any instructor'}</td>
+                    {/* A grant from before kinds existed books either one, so
+                        it says so here rather than showing an empty cell. */}
+                    <td>{kindLabel(g)}</td>
                     <td>{g.note || 'Session credits'}</td>
                     <td className="nowrap">
                       {g.remainingSessions} of {g.totalSessions} left

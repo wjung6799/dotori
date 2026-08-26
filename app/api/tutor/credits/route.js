@@ -28,7 +28,7 @@ export async function POST(request) {
   if (!tutor) return notTutor();
 
   try {
-    const { userId, sessions, note, validMonths } = (await request.json()) || {};
+    const { userId, sessions, note, validMonths, sessionType } = (await request.json()) || {};
     const n = parseInt(sessions);
     if (!userId || !n || n < 1) {
       return Response.json({ error: 'A family and a positive session count are required.' }, { status: 400 });
@@ -38,6 +38,9 @@ export async function POST(request) {
       userId,
       tutorId: tutor._id,
       totalSessions: n,
+      // Which kind these sessions book. Defaults to semi-private, which is what
+      // every grant made before types existed effectively was.
+      sessionType: sessionType === 'private' ? 'private' : 'semi_private',
       // Optional: a hand-granted pack can carry the same window a bought one
       // does. Omitted means it never lapses, which is how every grant behaved
       // before expiry existed.

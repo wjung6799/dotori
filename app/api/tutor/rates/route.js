@@ -54,6 +54,7 @@ export async function GET() {
       // omitting the field: the editor treats a missing value as "no expiry"
       // too, but then saves that blank back over a window someone did set.
       validMonths: r.validMonths ?? null,
+      sessionType: r.sessionType || 'semi_private',
     })),
     usesDefaultRates: (tutor.rates || []).length === 0,
     // What a family is quoted right now, whether that comes from these rates or
@@ -100,12 +101,19 @@ export async function PUT(request) {
     const rawHours = Number(r?.hoursPerSession);
     const hoursPerSession = Number.isFinite(rawHours) && rawHours >= 0.25 ? rawHours : null;
     const hours = hoursForRate({ hoursPerSession });
+    // Which product this package sells: semi-private unless it explicitly says
+    // private. Resolved here, before the duplicate check, because the kind is
+    // part of a pack's identity.
+    const sessionType = r?.sessionType === 'private' ? 'private' : 'semi_private';
 
     // Two packages a family could not tell apart, and whose generated ids would
     // collide, so one would redeem against the other's price. Size alone is not
     // the test any more: twelve 60-minute 1:1 lessons and twelve 90-minute
     // semi-private ones are both "12 sessions" and are two different products.
-    const id = tutorPackId(sessions, ratePerHour, hours);
+    // The kind counts too: twelve private lessons and twelve semi-private ones
+    // at the same rate are two products with two ids, and rejecting the pair as
+    // identical would stop a tutor pricing both ladders at once.
+    const id = tutorPackId(sessions, ratePerHour, hours, sessionType);
     if (seen.has(id)) {
       return Response.json(
         {
@@ -127,6 +135,7 @@ export async function PUT(request) {
       name: (r?.name || '').toString().trim().slice(0, 60),
       tag: (r?.tag || '').toString().trim().slice(0, 40),
       validMonths: Number.isFinite(months) && months >= 1 ? months : null,
+      sessionType,
     });
   }
 
