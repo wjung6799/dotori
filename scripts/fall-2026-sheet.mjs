@@ -1,6 +1,7 @@
 // Apply the published "Dotori School Fall 2026 Schedule & Tuition" sheet to the
 // database: group class tuition and class sizes, the Wednesday timetable as the
-// sheet prints it, and Mrs. Jung's private / semi-private packages.
+// sheet prints it, Mrs. Jung's private / semi-private packages, and the
+// weekly openings the sheet prints for her lessons.
 //
 // Dry run (prints every change, writes nothing):
 //   node --env-file=.env.local scripts/fall-2026-sheet.mjs
@@ -13,6 +14,7 @@
 import mongoose from 'mongoose';
 import Class from '../lib/models/Class.js';
 import Tutor from '../lib/models/Tutor.js';
+import TutorSchedule from '../lib/models/TutorSchedule.js';
 import {
   GROUP_CLASS_TUITION,
   LESSON_FORMATS,
@@ -174,6 +176,47 @@ if (!tutor) {
     // is the actual checkout total and not a second calculation of it.
     for (const p of packsForTutor({ rates: RATES })) {
       note(`            ${p.name} — ${formatUsd(p.amountCents)} (${p.lines.join(' · ')})`);
+    }
+  }
+}
+
+// ── Mrs. Jung's weekly openings ──────────────────────────────────────
+// The sheet's "1:1 Private w/ Mrs. Jung 7:30–8:30" on every weekday, and the
+// Saturday column of five 90-minute blocks. Saturday is printed "1:1 or
+// Semi-Private · 2:1"; it is opened here as semi-private with two seats, which
+// is the product the 90-minute package is priced for — a 1:1 there would need
+// a 90-minute private lesson, and the private packages sell one-hour lessons.
+const t = (h, m = 0) => h * 60 + m;
+const OPENINGS = [
+  ...[1, 2, 3, 4, 5].map((dayOfWeek) => ({
+    dayOfWeek, startMinute: t(19, 30), durationMinutes: 60, capacity: 1,
+    sessionType: PRIVATE, subject: '1:1 Private',
+  })),
+  ...[t(9), t(10, 30), t(13), t(14, 30), t(16)].map((startMinute) => ({
+    dayOfWeek: 6, startMinute, durationMinutes: 90, capacity: 2,
+    sessionType: SEMI_PRIVATE, subject: 'Semi-Private (2:1)',
+  })),
+];
+
+if (tutor) {
+  const open = await TutorSchedule.find({ tutorId: tutor._id, kind: 'session', active: true });
+  for (const o of OPENINGS) {
+    const label = `${['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'][o.dayOfWeek]} ${String(Math.floor(o.startMinute / 60)).padStart(2, '0')}:${String(o.startMinute % 60).padStart(2, '0')}`;
+    const cur = open.find(
+      (x) => (x.recurrence || 'weekly') === 'weekly' && x.dayOfWeek === o.dayOfWeek && x.startMinute === o.startMinute,
+    );
+    if (!cur) {
+      note(`+ OPEN    ${tutor.name}: ${label} · ${o.subject} · ${o.durationMinutes} min · ${o.capacity} seat(s)`);
+      if (apply) await TutorSchedule.create({ ...o, tutorId: tutor._id, recurrence: 'weekly', kind: 'session', active: true });
+      continue;
+    }
+    const diffs = ['durationMinutes', 'capacity', 'sessionType', 'subject'].filter((k) => (cur[k] ?? null) !== o[k]);
+    if (diffs.length) {
+      note(`~ OPEN    ${tutor.name}: ${label} · ${diffs.map((k) => `${k} ${cur[k] ?? 'none'} → ${o[k]}`).join(', ')}`);
+      if (apply) {
+        for (const k of diffs) cur[k] = o[k];
+        await cur.save();
+      }
     }
   }
 }
