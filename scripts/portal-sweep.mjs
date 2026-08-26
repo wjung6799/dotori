@@ -16,7 +16,9 @@ const { default: dbConnect } = await import('@/lib/db.js');
 const { default: User } = await import('@/lib/models/User.js');
 
 const BASE = process.argv[2] || 'http://localhost:3100';
-const COOKIE = 'authjs.session-token';
+// Auth.js prefixes the cookie on https, and the JWT is salted with the cookie
+// name, so both have to follow the URL or every page redirects to /login.
+const COOKIE = BASE.startsWith('https:') ? '__Secure-authjs.session-token' : 'authjs.session-token';
 await dbConnect();
 
 // Discovered from the filesystem, so a new page is swept the day it is added
@@ -55,9 +57,12 @@ for (const [role, pages] of Object.entries(PAGES)) {
       const html = res.status < 400 ? await res.text() : '';
       // A client component that throws during SSR shows up as a digest, not a 500.
       const digest = /Application error|"digest":"|Internal Server Error/.test(html);
-      const ok = res.status < 400 && !digest;
+      // A bounce to /login means the page never rendered; that is a failure of
+      // the sweep, not a pass.
+      const bounced = res.status >= 300 && res.status < 400 && /\/login/.test(res.headers.get('location') || '');
+      const ok = res.status < 400 && !digest && !bounced;
       if (!ok) bad++;
-      line = `${ok ? 'ok  ' : 'BAD '} ${String(res.status).padEnd(3)} ${p}${digest ? '  <-- runtime error in the page' : ''}${res.status >= 300 && res.status < 400 ? `  -> ${res.headers.get('location')}` : ''}`;
+      line = `${ok ? 'ok  ' : 'BAD '} ${String(res.status).padEnd(3)} ${p}${digest ? '  <-- runtime error in the page' : ''}${bounced ? '  <-- not signed in' : ''}${res.status >= 300 && res.status < 400 ? `  -> ${res.headers.get('location')}` : ''}`;
     } catch (e) { bad++; line = `BAD err ${p}  ${e.message}`; }
     console.log('  ' + line);
   }
