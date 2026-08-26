@@ -7,7 +7,7 @@ import {
   PRIVATE,
   SEMI_PRIVATE,
   SESSION_TYPE_BLURB,
-  inferSlotType,
+  declaredSlotType,
   sessionTypeLabel,
 } from '@/lib/sessionTypes';
 
@@ -38,7 +38,14 @@ const plural = (n) => (n === 1 ? '' : 's');
 // the title-case heading form and carries the "(1:1)" gloss, which reads badly
 // inside a paragraph — and this matches the wording the booking API already
 // uses in its out-of-credits message, so the two never contradict each other.
-const kindNoun = (t) => (t === PRIVATE ? 'private' : 'semi-private');
+// Anything that is not a declared kind comes back empty rather than defaulting
+// to one of them: a slot the tutor never typed must not be called either.
+const kindNoun = (t) => (t === PRIVATE ? 'private' : t === SEMI_PRIVATE ? 'semi-private' : '');
+
+// The same word as the adjective in front of "session", or nothing at all when
+// the slot has no declared kind. "You have 3 sessions" is the honest sentence
+// there; "You have 3 semi-private sessions" would be a guess dressed as a fact.
+const kindAdj = (t) => (kindNoun(t) ? `${kindNoun(t)} ` : '');
 
 export default function BookingPage() {
   const [tutors, setTutors] = useState([]);
@@ -243,12 +250,15 @@ export default function BookingPage() {
     };
   }, [me, tutorId]);
 
-  // The kind of the slot being confirmed. inferSlotType covers a slot opened
-  // before slots carried a kind, so this is never null while a slot is picked.
-  const pickedType = picked ? inferSlotType(picked) : null;
+  // The kind the tutor declared for the slot being confirmed, or null. A slot
+  // opened before slots carried a kind stays null on purpose: the server lets
+  // any credit pay for it, so guessing a kind here would only ever narrow what
+  // the family is told they can spend.
+  const pickedType = picked ? declaredSlotType(picked) : null;
 
-  // Once a slot is picked the headline number is the one that slot would draw
-  // on; with nothing picked it is everything this instructor can take.
+  // With a declared slot picked the headline number is the one that slot would
+  // draw on; with nothing picked, or an undeclared slot picked, it is
+  // everything this instructor can take.
   const remaining = spendable ? (pickedType ? spendable.forType(pickedType) : spendable.total) : null;
 
   const balanceLabel = pickedType
@@ -257,8 +267,10 @@ export default function BookingPage() {
       ? `Sessions with ${selectedTutor.name} (남은 수업)`
       : 'Sessions remaining (남은 수업)';
 
-  // The line under the balance. With a slot picked it talks only about that
-  // slot's kind, because that is the only bucket the booking can spend from.
+  // The line under the balance. With a declared slot picked it talks only
+  // about that slot's kind, because that is the only bucket the booking can
+  // spend from. An undeclared slot reads like nothing is picked: every bucket
+  // counts, so the all-kinds wording is the right one.
   const balanceHint = (() => {
     if (!spendable) return '';
     if (pickedType) {
@@ -447,23 +459,29 @@ export default function BookingPage() {
                           // Semi-private and private are separate products at
                           // separate rates, so the kind has to be legible before
                           // the click — nobody should open a private slot
-                          // expecting the group price.
-                          const type = inferSlotType(s);
+                          // expecting the group price. Only a kind the tutor
+                          // actually declared is shown, though: a slot opened
+                          // before kinds existed takes any credit, and a tag
+                          // guessed from its capacity would be a promise the
+                          // grid cannot keep.
+                          const type = declaredSlotType(s);
                           const isPrivateSlot = type === PRIVATE;
                           return (
                             <button
                               key={`${s.scheduleId}-${s.dateKey}`}
                               type="button"
                               onClick={() => { setMsg(null); setPicked(s); }}
-                              title={`Book this ${kindNoun(type)} time`}
+                              title={type ? `Book this ${kindNoun(type)} time` : 'Book this time'}
                               style={isPrivateSlot ? privateChipStyle : chipStyle}
                             >
                               <span className="strong" style={{ fontSize: '0.78rem' }}>
                                 {s.timeLabel.split(' – ')[0]}
                               </span>
-                              <span style={kindTagStyle(isPrivateSlot)}>
-                                {isPrivateSlot ? 'Private' : 'Semi-private'}
-                              </span>
+                              {type && (
+                                <span style={kindTagStyle(isPrivateSlot)}>
+                                  {isPrivateSlot ? 'Private' : 'Semi-private'}
+                                </span>
+                              )}
                               {s.subject ? (
                                 <span className="muted" style={{ display: 'block', fontSize: '0.66rem' }}>{s.subject}</span>
                               ) : null}
@@ -494,18 +512,28 @@ export default function BookingPage() {
 
             {/* Which product this is, and which credit it comes out of. The two
                 kinds are priced separately, so both belong on the last screen
-                before the family commits. */}
+                before the family commits. A slot with no declared kind gets
+                neither: the server takes any credit for it, so the only honest
+                thing to say is that. */}
             <div style={{ margin: '0 0 1rem' }}>
-              <span className={`pill ${pickedType === PRIVATE ? 'info' : 'mute'}`}>
-                {sessionTypeLabel(pickedType)}
-              </span>
-              <span className="muted small" style={{ display: 'block', marginTop: '0.35rem' }}>
-                {SESSION_TYPE_BLURB[pickedType]}
-              </span>
-              <span className="small strong" style={{ display: 'block', marginTop: '0.15rem' }}>
-                Pays with a {kindNoun(pickedType)} credit
-                {spendable && spendable.either > 0 ? ' (your either-kind credits also work)' : ''}.
-              </span>
+              {pickedType ? (
+                <>
+                  <span className={`pill ${pickedType === PRIVATE ? 'info' : 'mute'}`}>
+                    {sessionTypeLabel(pickedType)}
+                  </span>
+                  <span className="muted small" style={{ display: 'block', marginTop: '0.35rem' }}>
+                    {SESSION_TYPE_BLURB[pickedType]}
+                  </span>
+                  <span className="small strong" style={{ display: 'block', marginTop: '0.15rem' }}>
+                    Pays with a {kindNoun(pickedType)} credit
+                    {spendable && spendable.either > 0 ? ' (your either-kind credits also work)' : ''}.
+                  </span>
+                </>
+              ) : (
+                <span className="muted small" style={{ display: 'block' }}>
+                  This time takes any of your sessions{selectedTutor ? ` with ${selectedTutor.name}` : ''}.
+                </span>
+              )}
             </div>
 
             <div className="field">
@@ -552,18 +580,20 @@ export default function BookingPage() {
             </label>
 
             {/* Counted against this slot's kind, not the grand total: a balance
-                of ten semi-private sessions buys nothing on a private slot. */}
+                of ten semi-private sessions buys nothing on a private slot.
+                An undeclared slot can spend from every bucket, so there the
+                number is the grand total and the sentence names no kind. */}
             {spendable && (
               <div className={`notice ${remaining > 0 ? 'info' : 'err'}`} style={{ margin: '0.9rem 0' }}>
                 {remaining > 0
                   ? privateSession
-                    ? `You have ${remaining} ${kindNoun(pickedType)} session${plural(remaining)}; a private session uses 2.${remaining < 2 ? ' You need at least 2.' : ''}`
+                    ? `You have ${remaining} ${kindAdj(pickedType)}session${plural(remaining)}; a private session uses 2.${remaining < 2 ? ' You need at least 2.' : ''}`
                     : recurring
-                      ? `You have ${remaining} ${kindNoun(pickedType)} session${plural(remaining)}. The next few weeks will be booked now, then one each week until they run out.`
-                      : `You have ${remaining} ${kindNoun(pickedType)} session${plural(remaining)}; one will be used.`
+                      ? `You have ${remaining} ${kindAdj(pickedType)}session${plural(remaining)}. The next few weeks will be booked now, then one each week until they run out.`
+                      : `You have ${remaining} ${kindAdj(pickedType)}session${plural(remaining)}; one will be used.`
                   : (
                     <>
-                      You have no {kindNoun(pickedType)} sessions left to use.{' '}
+                      You have no {kindAdj(pickedType)}sessions left to use.{' '}
                       <Link href="/dashboard/credits" className="strong">Buy more credits →</Link>
                     </>
                   )}

@@ -8,8 +8,9 @@ import LocalTime from '../../LocalTime';
 import {
   PRIVATE,
   SEMI_PRIVATE,
+  SESSION_TYPES,
   SESSION_TYPE_BLURB,
-  inferSlotType,
+  declaredSlotType,
   sessionTypeLabel,
 } from '@/lib/sessionTypes';
 import { sessionTypesForTutor } from '@/lib/pricing';
@@ -155,6 +156,24 @@ export default function TutorAvailabilityPage() {
     await loadMe();
   }
 
+  // Declare (or change) which kind a slot is. The row's select is the only way
+  // in: a slot opened before slots had a kind is undeclared, and an undeclared
+  // slot takes any token, so this is how a tutor makes an old row as strict as
+  // a new one. Only the kind goes over the wire — nothing else on the row moves.
+  async function setSlotKind(scheduleId, sessionType) {
+    setSlotError('');
+    const res = await fetch(`/api/tutor/schedules/${scheduleId}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ sessionType }),
+    });
+    if (!res.ok) {
+      const d = await res.json().catch(() => ({}));
+      setSlotError(d.error || 'That slot could not be updated.');
+    }
+    await loadMe();
+  }
+
   // /api/tutor/me answers 200 with tutor:null when the login has no instructor
   // profile attached — the page still has a head and an explanation, rather
   // than a calendar with nothing in it and no reason given.
@@ -162,12 +181,19 @@ export default function TutorAvailabilityPage() {
 
   // The grid hides deactivated rows, so the list beside it has to hide them too
   // — a slot the table swears you have open and the calendar has no block for
-  // is worse than not listing it at all. Every row gets a kind: inferSlotType
-  // reads a legacy row with no sessionType off its capacity, so "none" never
-  // reaches the screen as a blank or an error.
+  // is worse than not listing it at all. The kind is read with declaredSlotType,
+  // not inferSlotType: a row the tutor never declared is counted and shown as
+  // "not set", because a guess from its seat count would tell them a slot is
+  // private when the server will in fact let any token book it.
   const openSlots = (data?.schedules || []).filter((s) => s && s.active !== false);
-  const semiCount = openSlots.filter((s) => inferSlotType(s) === SEMI_PRIVATE).length;
-  const privateCount = openSlots.length - semiCount;
+  const paidSlots = openSlots.filter((s) => s.kind !== 'diagnostic');
+  const semiCount = paidSlots.filter((s) => declaredSlotType(s) === SEMI_PRIVATE).length;
+  const privateCount = paidSlots.filter((s) => declaredSlotType(s) === PRIVATE).length;
+  const unsetCount = paidSlots.length - semiCount - privateCount;
+  // The kinds a row's select offers: what this tutor sells, or both if they
+  // have priced nothing yet — a tutor with no packages still has to be able to
+  // label an old slot, and the label is what the booking page shows a family.
+  const kindOptions = kinds.length ? kinds.map((k) => k.type) : SESSION_TYPES;
 
   return (
     <>
@@ -242,6 +268,12 @@ export default function TutorAvailabilityPage() {
                 <>
                   <p className="muted small">
                     {semiCount} semi-private &middot; {privateCount} private
+                    {unsetCount ? (
+                      <>
+                        {' '}&middot; {unsetCount} not set &mdash; a slot with no kind takes any
+                        session token until you set one below.
+                      </>
+                    ) : null}
                   </p>
                   <div className="table-wrap">
                     <table className="data">
@@ -256,22 +288,69 @@ export default function TutorAvailabilityPage() {
                       </thead>
                       <tbody>
                         {openSlots.map((s) => {
-                          const type = inferSlotType(s);
+                          const type = declaredSlotType(s);
+                          const isDiagnostic = s.kind === 'diagnostic';
+                          // A declared kind stays in the list even if the tutor
+                          // no longer sells it — otherwise the select would
+                          // silently show the wrong kind as chosen.
+                          const options =
+                            type && !kindOptions.includes(type) ? [type, ...kindOptions] : kindOptions;
                           return (
                             <tr key={s._id}>
                               <td>{whenLabel(s)}</td>
                               <td className="nowrap">{timeLabel(s)}</td>
                               <td>
-                                <span className={`pill ${type === PRIVATE ? 'info' : 'mute'}`}>
-                                  {sessionTypeLabel(type)}
-                                </span>
-                                {/* A diagnostic slot still has a kind, but it
-                                    never charges a credit — worth saying beside
-                                    one, or the row reads as billable time. */}
-                                {s.kind === 'diagnostic' ? (
+                                {/* A diagnostic slot charges nothing, so its
+                                    kind is beside the point — it says so and
+                                    gets no select. A paid slot shows the kind
+                                    the tutor declared, or "Not set" when they
+                                    never did: never the seat-count guess, which
+                                    would call a slot private that the server
+                                    will let any token book. */}
+                                {isDiagnostic ? (
+                                  <span className="pill ok">Free diagnostic</span>
+                                ) : type ? (
+                                  <span className={`pill ${type === PRIVATE ? 'info' : 'mute'}`}>
+                                    {sessionTypeLabel(type)}
+                                  </span>
+                                ) : (
+                                  <span className="pill warn">Not set</span>
+                                )}
+                                {!isDiagnostic ? (
                                   <>
                                     {' '}
-                                    <span className="pill ok">Free diagnostic</span>
+                                    {/* .input is width:100%, so this needs a
+                                        width, like the one on the Rates page. */}
+                                    <select
+                                      className="input"
+                                      aria-label={
+                                        type
+                                          ? 'Change which kind of session this slot is'
+                                          : 'Set which kind of session this slot is'
+                                      }
+                                      value={type || ''}
+                                      onChange={(e) => {
+                                        if (e.target.value) setSlotKind(s._id, e.target.value);
+                                      }}
+                                      style={{
+                                        width: 'auto',
+                                        display: 'inline-block',
+                                        padding: '0.2rem 0.4rem',
+                                        fontSize: '0.8rem',
+                                      }}
+                                    >
+                                      {type ? null : <option value="">Set kind…</option>}
+                                      {options.map((t) => (
+                                        <option key={t} value={t}>
+                                          {sessionTypeLabel(t)}
+                                        </option>
+                                      ))}
+                                    </select>
+                                    {type ? null : (
+                                      <div className="muted small">
+                                        Takes any session token until you set it.
+                                      </div>
+                                    )}
                                   </>
                                 ) : null}
                               </td>

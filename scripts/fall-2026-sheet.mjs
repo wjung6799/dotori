@@ -22,6 +22,7 @@ import {
   TERM,
   formatUsd,
   packsForTutor,
+  sessionTypesForTutor,
 } from '../lib/pricing.js';
 import { PRIVATE, SEMI_PRIVATE } from '../lib/sessionTypes.js';
 
@@ -219,6 +220,26 @@ if (tutor) {
       }
     }
   }
+}
+
+// ── Openings that predate kinds ──────────────────────────────────────
+// A slot opened before kinds existed says nothing about which one it is, and
+// the portal has to guess from its seat count. For a tutor who sells exactly
+// one kind there is nothing to guess: every one of their openings is that kind.
+// (Mr. Jung sells semi-private only; a family wanting the whole slot takes it
+// for two semi-private sessions, which is the buyout the booking page offers.)
+// A tutor selling both kinds is left alone — only they can say which is which.
+for (const tt of await Tutor.find({ active: true })) {
+  const kinds = sessionTypesForTutor(tt);
+  if (kinds.length !== 1) continue;
+  const [only] = kinds;
+  const undeclared = await TutorSchedule.find({
+    tutorId: tt._id, kind: { $ne: 'diagnostic' }, active: true,
+    $or: [{ sessionType: null }, { sessionType: { $exists: false } }],
+  });
+  if (!undeclared.length) continue;
+  note(`~ KIND    ${tt.name}: ${undeclared.length} opening(s) with no kind → ${only} (the only kind they sell)`);
+  if (apply) await TutorSchedule.updateMany({ _id: { $in: undeclared.map((s) => s._id) } }, { $set: { sessionType: only } });
 }
 
 // ── Report ───────────────────────────────────────────────────────────
