@@ -56,6 +56,10 @@ export default function TutorDashboard() {
     await fetch(`/api/tutor/schedules/${scheduleId}`, { method: 'DELETE' });
     loadMe();
   }
+  async function stopSeries(scheduleId) {
+    await fetch(`/api/tutor/schedules/${scheduleId}/stop`, { method: 'POST' });
+    loadMe();
+  }
 
   return (
     <section style={{ maxWidth: 1000, margin: '40px auto', padding: '0 1rem' }}>
@@ -81,6 +85,7 @@ export default function TutorDashboard() {
               onAddSlot={addSlot}
               onCancelInstance={cancelInstance}
               onDeleteSeries={deleteSeries}
+              onStopSeries={stopSeries}
             />
           ) : 'Loading…'}
         </Card>
