@@ -197,6 +197,8 @@ const T = {
     koreanClass: 'Korean Phonics (Hangeul) Lev.3',
     grades: { k1: 'K–1', g23: 'Gr. 2–3', g45: 'Gr. 4–5', g68: 'Gr. 6–8' },
     tutorNote: 'w/ Mrs. Jung',
+    semiPrivateNote: 'w/ Mrs. Jung · 2:1',
+    blocksNote: '90-minute blocks',
     maxStudents: (n) => `${n} student${n === 1 ? '' : 's'} max`,
     seatsLeft: (n) => `${n} spot${n === 1 ? '' : 's'} left`,
     seatsFull: 'Full',
@@ -296,6 +298,8 @@ const T = {
     koreanClass: 'Korean Phonics (한글) Lev.3',
     grades: { k1: 'K–1', g23: '2–3학년', g45: '4–5학년', g68: '6–8학년' },
     tutorNote: 'Mrs. Jung 담당',
+    semiPrivateNote: 'Mrs. Jung 담당 · 2:1',
+    blocksNote: '90분 수업',
     maxStudents: (n) => `정원 ${n}명`,
     seatsLeft: (n) => `${n}자리 남음`,
     seatsFull: '마감',
@@ -341,7 +345,9 @@ const WEEK = [
     {
       title: 'Semi-Private Lessons',
       tutor: true,
+      semiPrivate: true,
       times: ['9:00–10:30', '10:30–12:00', '1:00–2:30', '2:30–4:00', '4:00–5:30'],
+      blocks: true,
       lv: 'neutral',
     },
   ],
@@ -522,7 +528,7 @@ export default function LiteracyClient() {
                       {c.grade ? <span className="lit-c-grade"> {t.grades[c.grade]}</span> : null}
                     </div>
                     {c.tutor ? (
-                      <div className="lit-c-note">{t.tutorNote}</div>
+                      <div className="lit-c-note">{c.semiPrivate ? t.semiPrivateNote : t.tutorNote}</div>
                     ) : null}
                     {c.times ? (
                       c.times.map((time) => (
@@ -536,6 +542,7 @@ export default function LiteracyClient() {
                         is left, and only exists once a Class doc for the term
                         does — so the cap is stated on its own until then. */}
                     {c.max ? <div className="lit-c-max">{t.maxStudents(c.max)}</div> : null}
+                    {c.blocks ? <div className="lit-c-max">{t.blocksNote}</div> : null}
                     {c.classKey && seats[c.classKey] ? (
                       <div
                         className="lit-c-seats"
