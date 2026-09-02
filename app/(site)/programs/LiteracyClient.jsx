@@ -193,7 +193,7 @@ const T = {
       { key: 'sapling', label: 'Sapling · Grades 4–5' },
       { key: 'oak', label: 'Oak · Grades 6–8' },
     ],
-    days: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'],
+    days: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri'],
     koreanClass: 'Korean Phonics (Hangeul) Lev.3',
     grades: { k1: 'K–1', g23: 'Gr. 2–3', g45: 'Gr. 4–5', g68: 'Gr. 6–8' },
     tutorNote: 'w/ Mrs. Jung',
@@ -291,7 +291,7 @@ const T = {
       { key: 'sapling', label: 'Sapling 묘목 · 4–5학년' },
       { key: 'oak', label: 'Oak 참나무 · 6–8학년' },
     ],
-    days: ['월', '화', '수', '목', '금', '토'],
+    days: ['월', '화', '수', '목', '금'],
     koreanClass: 'Korean Phonics (한글) Lev.3',
     grades: { k1: 'K–1', g23: '2–3학년', g45: '4–5학년', g68: '6–8학년' },
     tutorNote: 'Mrs. Jung 담당',
@@ -329,14 +329,6 @@ const WEEK = [
     { title: 'Book Club', level: 'Acorn', grade: 'k1', time: '4:30–5:50', lv: 'acorn', classKey: 'fri-book-acorn' },
     { title: 'Book Club', level: 'Oak', grade: 'g68', time: '6:00–7:20', lv: 'oak', classKey: 'fri-book-oak' },
     { title: '1:1 Private', tutor: true, time: '7:30–8:30', lv: 'neutral' },
-  ],
-  [
-    {
-      title: '1:1 or Semi-Private Lessons',
-      tutor: true,
-      times: ['9:00–10:30', '10:30–12:00', '1:00–2:30', '2:30–4:00', '4:00–5:30'],
-      lv: 'neutral',
-    },
   ],
 ];
 
@@ -397,7 +389,7 @@ export default function LiteracyClient() {
     .lit-legend strong { color: #4a3c28; }
 
     .lit-week-wrap { overflow-x: auto; padding-bottom: 0.5rem; }
-    .lit-week { display: grid; grid-template-columns: repeat(6, 1fr); gap: 0.5rem; min-width: 860px; }
+    .lit-week { display: grid; grid-template-columns: repeat(5, 1fr); gap: 0.5rem; min-width: 720px; }
     .lit-day-head { background: #5d4a35; color: #fff; text-align: center; font-weight: 600; font-size: 0.88rem; padding: 0.55rem 0; border-radius: 10px 10px 0 0; }
     .lit-class {
         background: #fff; border-left: 4px solid #cfc6b8; border-radius: 8px;
