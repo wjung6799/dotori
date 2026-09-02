@@ -182,22 +182,16 @@ if (!tutor) {
 }
 
 // ── Mrs. Jung's weekly openings ──────────────────────────────────────
-// The sheet's "1:1 Private w/ Mrs. Jung 7:30–8:30" on every weekday, and the
-// Saturday column of five 90-minute blocks. Saturday is printed "1:1 or
-// Semi-Private · 2:1"; it is opened here as semi-private with two seats, which
-// is the product the 90-minute package is priced for — a 1:1 there would need
-// a 90-minute private lesson, and the private packages sell one-hour lessons.
+// The sheet's "1:1 Private w/ Mrs. Jung 7:30–8:30" on every weekday. The
+// printed sheet also had a Saturday column of five 90-minute blocks, but the
+// owner dropped Saturday sessions entirely (2026-09-02, "토요일 세션 없앴어"),
+// so this script no longer opens them — note it also never *closes* anything,
+// so Saturday rows already applied to a database have to be retired by hand.
 const t = (h, m = 0) => h * 60 + m;
-const OPENINGS = [
-  ...[1, 2, 3, 4, 5].map((dayOfWeek) => ({
-    dayOfWeek, startMinute: t(19, 30), durationMinutes: 60, capacity: 1,
-    sessionType: PRIVATE, subject: '1:1 Private',
-  })),
-  ...[t(9), t(10, 30), t(13), t(14, 30), t(16)].map((startMinute) => ({
-    dayOfWeek: 6, startMinute, durationMinutes: 90, capacity: 2,
-    sessionType: SEMI_PRIVATE, subject: 'Semi-Private (2:1)',
-  })),
-];
+const OPENINGS = [1, 2, 3, 4, 5].map((dayOfWeek) => ({
+  dayOfWeek, startMinute: t(19, 30), durationMinutes: 60, capacity: 1,
+  sessionType: PRIVATE, subject: '1:1 Private',
+}));
 
 if (tutor) {
   const open = await TutorSchedule.find({ tutorId: tutor._id, kind: 'session', active: true });
