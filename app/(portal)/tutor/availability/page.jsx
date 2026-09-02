@@ -156,6 +156,18 @@ export default function TutorAvailabilityPage() {
     await loadMe();
   }
 
+  // Stop offering a series from now on, keeping every session already booked
+  // on it — the gentle sibling of deleteSeries (which cancels and refunds).
+  async function stopSeries(scheduleId) {
+    setSlotError('');
+    const res = await fetch(`/api/tutor/schedules/${scheduleId}/stop`, { method: 'POST' });
+    if (!res.ok) {
+      const d = await res.json().catch(() => ({}));
+      setSlotError(d.error || 'That series could not be stopped.');
+    }
+    await loadMe();
+  }
+
   // Declare (or change) which kind a slot is. The row's select is the only way
   // in: a slot opened before slots had a kind is undeclared, and an undeclared
   // slot takes any token, so this is how a tutor makes an old row as strict as
@@ -244,6 +256,7 @@ export default function TutorAvailabilityPage() {
                 onAddSlot={addSlot}
                 onCancelInstance={cancelInstance}
                 onDeleteSeries={deleteSeries}
+                onStopSeries={stopSeries}
               />
             ) : (
               // Skeleton, not null: the card keeps its place on the page while

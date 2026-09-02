@@ -239,6 +239,10 @@ function AvailabilityTab() {
     await fetch(`/api/admin/schedules/${scheduleId}`, { method: 'DELETE' });
     load();
   }
+  async function stopSeries(scheduleId) {
+    await fetch(`/api/admin/schedules/${scheduleId}/stop`, { method: 'POST' });
+    load();
+  }
 
   return (
     <Card>
@@ -253,6 +257,7 @@ function AvailabilityTab() {
           onAddSlot={addSlot}
           onCancelInstance={cancelInstance}
           onDeleteSeries={deleteSeries}
+          onStopSeries={stopSeries}
         />
       ) : <Empty>Add an instructor first.</Empty>}
     </Card>

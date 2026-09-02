@@ -50,6 +50,7 @@ export default function AvailabilityCalendar({
   onAddSlot,        // async ({ mode:'recurring'|'oneoff', dayOfWeek, specificDate, startMinute, durationMinutes, capacity, sessionType, subject })
   onCancelInstance, // async (scheduleId, dateKey)
   onDeleteSeries,   // async (scheduleId)
+  onStopSeries,     // async (scheduleId) — stop future openings, keep booked sessions
   // The kinds a paid slot may open as: [{ type, label, hint }]. The tutor page
   // derives this from the packages the tutor actually sells, so a slot can only
   // be opened as something a family can buy a credit for. Left out (the admin
@@ -248,6 +249,27 @@ export default function AvailabilityCalendar({
               {' · '}{minuteLabel(picked.startMinute)}–{minuteLabel(picked.startMinute + (picked.durationMinutes || 60))}
               {picked.subject ? ` · ${picked.subject}` : ''}
             </div>
+            {!picked.specificDate && onStopSeries && (
+              <>
+                <p style={{ color: '#9b8b77', fontSize: '0.84rem', marginTop: 0 }}>
+                  Stop offering this time from now on. Sessions families have already booked stay
+                  on the calendar exactly as they are — nothing is cancelled or refunded — but no
+                  new sessions can be booked into it.
+                </p>
+                <div style={{ display: 'grid', gap: 8, marginBottom: 14 }}>
+                  <button
+                    onClick={async () => {
+                      if (confirm('Stop this repeating series? Already-booked sessions are kept.')) {
+                        await onStopSeries(picked._id); setPicked(null);
+                      }
+                    }}
+                    style={btn()}
+                  >
+                    Stop future openings (keep booked sessions)
+                  </button>
+                </div>
+              </>
+            )}
             <p style={{ color: '#9b8b77', fontSize: '0.84rem', marginTop: 0 }}>
               Any session already booked for the removed time(s) will be cancelled and the family&apos;s session refunded.
             </p>
