@@ -5,7 +5,6 @@ import SessionCredit from '@/lib/models/SessionCredit';
 import Invoice from '@/lib/models/Invoice';
 import User from '@/lib/models/User';
 import { expiryFor } from '@/lib/pricing';
-import { nextChargeDate } from '@/lib/invoicing';
 import { getStripe } from '@/lib/stripe';
 import { sendCreditPurchaseFailed, sendInvoicePaymentFailed, sendOrderConfirmation } from '@/lib/mailer';
 import { createPrintfulOrder } from '@/lib/printful';
@@ -40,7 +39,7 @@ export async function POST(request) {
       } else if (source === 'credits') {
         await handleCreditPurchase(pi);
       } else if (source === 'invoice') {
-        await settleInvoice(pi, stripe);
+        await settleInvoice(pi);
       } else {
         await Enrollment.findOneAndUpdate(
           { stripePaymentIntentId: pi.id },
@@ -124,21 +123,13 @@ export async function POST(request) {
         const inv = await Invoice.findById(pi.metadata.invoiceId);
         if (inv && inv.status !== 'paid') {
           inv.lastPaymentError = message;
-          if (inv.plan?.status === 'active' && (inv.plan.chargedCount || 0) > 0) {
-            // A plan that has already taken money must not fall back to "open" —
-            // that would invite the family to pay the whole thing again.
-            inv.plan.lastError = message;
-            inv.plan.failedAttempts = (inv.plan.failedAttempts || 0) + 1;
-            if (inv.plan.failedAttempts >= 3) inv.plan.status = 'failed';
-          } else {
-            inv.status = 'open';
-          }
+          inv.status = 'open';
           await inv.save();
 
           // A card decline happens with the family at the keyboard; a bank
           // transfer bounces days later with nobody watching. Only the latter
           // needs chasing by email.
-          if (pi.metadata.method === 'ach' && !(inv.plan?.chargedCount > 0)) {
+          if (pi.metadata.method === 'ach') {
             const user = await User.findById(inv.userId).select('email firstName name').catch(() => null);
             if (user?.email) {
               try {
@@ -166,17 +157,14 @@ export async function POST(request) {
   return Response.json({ received: true });
 }
 
-// A charge against an invoice landed. Handles both a single payment and one
-// installment of a monthly plan.
+// A charge against an invoice landed.
 //
 // Idempotency is the $ne guard on the payments array: a redelivered event finds
 // its own intent id already recorded and matches nothing, so it cannot be
 // counted twice.
-async function settleInvoice(pi, stripe) {
+async function settleInvoice(pi) {
   const amountCents = pi.amount_received ?? pi.amount;
   const feeCents = Number(pi.metadata.feeCents || 0);
-  const installments = Number(pi.metadata.installments || 0) || null;
-  const installmentNumber = Number(pi.metadata.installmentNumber || 0) || null;
 
   const invoice = await Invoice.findOneAndUpdate(
     { _id: pi.metadata.invoiceId, 'payments.stripePaymentIntentId': { $ne: pi.id } },
@@ -187,7 +175,6 @@ async function settleInvoice(pi, stripe) {
           amountCents,
           feeCents,
           stripePaymentIntentId: pi.id,
-          installmentNumber,
         },
       },
       $inc: { totalPaidCents: amountCents },
@@ -200,66 +187,21 @@ async function settleInvoice(pi, stripe) {
     return;
   }
 
-  const planned = invoice.plan?.installments || installments;
-
-  if (!planned) {
-    invoice.status = 'paid';
-    invoice.paidAt = new Date();
-    await invoice.save();
-  } else {
-    const chargedCount = invoice.payments.length;
-    invoice.plan.installments = planned;
-    invoice.plan.chargedCount = chargedCount;
-    invoice.plan.lastError = '';
-    invoice.plan.failedAttempts = 0;
-
-    // Keep the card for the remaining installments. Only worth doing on the first
-    // charge — later ones already used the stored method.
-    if (pi.payment_method && !invoice.plan.stripePaymentMethodId) {
-      invoice.plan.stripePaymentMethodId =
-        typeof pi.payment_method === 'string' ? pi.payment_method : pi.payment_method.id;
-      if (pi.customer) invoice.plan.stripeCustomerId = pi.customer;
-      try {
-        const pm = await stripe.paymentMethods.retrieve(invoice.plan.stripePaymentMethodId);
-        invoice.plan.cardBrand = pm.card?.brand || '';
-        invoice.plan.cardLast4 = pm.card?.last4 || '';
-      } catch {
-        /* cosmetic only — the plan still charges without the brand */
-      }
-    }
-
-    if (chargedCount >= planned) {
-      invoice.status = 'paid';
-      invoice.paidAt = new Date();
-      invoice.plan.status = 'complete';
-      invoice.plan.nextChargeAt = null;
-    } else {
-      // Partly paid is its own state: the family owes nothing today but the
-      // invoice is not settled, so it must not read as either.
-      invoice.status = 'processing';
-      invoice.plan.status = 'active';
-      invoice.plan.nextChargeAt = nextChargeDate(invoice, chargedCount);
-    }
-    await invoice.save();
-  }
+  invoice.status = 'paid';
+  invoice.paidAt = new Date();
+  await invoice.save();
 
   if (invoice.enrollmentId) {
-    // The seat is settled only when the invoice is, which for a plan means every
-    // installment has landed. amountPaid tracks tuition actually received.
-    const tuitionPaidCents =
-      invoice.status === 'paid'
-        ? invoice.subtotalCents
-        : Math.max(0, (invoice.totalPaidCents || 0) - (invoice.payments || []).reduce((sum, p) => sum + (p.feeCents || 0), 0));
-
+    // amountPaid tracks tuition actually received — the card fee is processing
+    // cost, never revenue.
     await Enrollment.findByIdAndUpdate(invoice.enrollmentId, {
-      amountPaid: tuitionPaidCents / 100,
-      ...(invoice.status === 'paid' ? { paymentStatus: 'paid', paidAt: new Date() } : {}),
+      amountPaid: invoice.subtotalCents / 100,
+      paymentStatus: 'paid',
+      paidAt: new Date(),
     });
   }
 
-  console.log(
-    `Invoice ${invoice.number}: ${invoice.payments.length}/${planned || 1} charged, status ${invoice.status}`,
-  );
+  console.log(`Invoice ${invoice.number} paid, status ${invoice.status}`);
 }
 
 // A family bought a session-credit pack in the portal. The grant is created here

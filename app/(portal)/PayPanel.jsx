@@ -14,18 +14,12 @@ import Script from 'next/script';
 //   methods            Stripe payment_method_types, e.g. ['card'] or
 //                      ['us_bank_account']. Must match what the server route
 //                      creates the intent with, or Stripe rejects the confirm.
-//   saveCard           true when the intent is created with setup_future_usage,
-//                      i.e. a monthly plan whose later payments run off-session.
-//                      In deferred-intent mode EVERY such option has to be
-//                      mirrored here; Stripe compares them at confirm and
-//                      refuses on any mismatch.
 //   createIntent       async () => ({ clientSecret }); throw with a message
 //   returnUrl          absolute-path Stripe redirects back to
 //   label, disabled, onError
 export default function PayPanel({
   amountCents,
   methods = ['card'],
-  saveCard = false,
   createIntent,
   returnUrl,
   label = 'Pay now',
@@ -54,9 +48,9 @@ export default function PayPanel({
   // over the same DOM id.
   const domId = 'pay-el-' + useId().replace(/:/g, '');
   // Any option baked into the Element needs a remount when it changes, because
-  // Stripe will not let paymentMethodTypes or setupFutureUsage be updated in
-  // place on an existing Element.
-  const methodKey = methods.join(',') + (saveCard ? '|save' : '');
+  // Stripe will not let paymentMethodTypes be updated in place on an existing
+  // Element.
+  const methodKey = methods.join(',');
 
   // Belt and braces: if the tag is present but still downloading when this panel
   // mounts, neither onLoad nor the initial check fires, so watch for the global.
@@ -113,7 +107,6 @@ export default function PayPanel({
           ...(methods.includes('us_bank_account')
             ? { paymentMethodOptions: { us_bank_account: { verification_method: 'instant' } } }
             : {}),
-          ...(saveCard ? { setupFutureUsage: 'off_session' } : {}),
           appearance: { theme: 'stripe', variables: { colorPrimary: '#6b5b47' } },
         });
         elementsRef.current = elements;

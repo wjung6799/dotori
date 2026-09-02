@@ -15,8 +15,7 @@ export async function GET() {
   await dbConnect();
   const invoices = await Invoice.find({ userId: user._id }).sort({ issuedAt: -1 }).lean();
 
-  // Anything the family can act on first, then newest. A monthly plan is one
-  // invoice now, so there is no in-plan ordering left to preserve.
+  // Anything the family can act on first, then newest.
   const rank = { open: 0, processing: 1, paid: 2, void: 3 };
   invoices.sort(
     (a, b) =>
