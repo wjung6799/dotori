@@ -98,6 +98,19 @@ const TUTOR_NAV = [
   },
 ];
 
+// Some staff also teach — an admin whose account is linked to a Tutor profile
+// (Tutor.userId) gets the whole instructor console as one extra sidebar
+// section. Every /tutor API already admits admins (getTutorOrAdmin) and the
+// middleware lets them through; the sidebar was the only thing hiding it. An
+// admin with no linked profile sees nothing extra, because those links would
+// only lead to "no tutor profile is linked" notices.
+const TEACHING_FOR_ADMINS = [
+  {
+    section: 'My teaching',
+    links: TUTOR_NAV.flatMap((g) => g.links),
+  },
+];
+
 function navFor(role) {
   if (role === 'admin') return ADMIN_NAV;
   if (role === 'tutor') return TUTOR_NAV;
@@ -128,9 +141,12 @@ function titleFor(pathname, nav) {
 export default function PortalShell({ user, children }) {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
-  const nav = navFor(user?.role);
   const isAdmin = user?.role === 'admin';
   const [pendingRequests, setPendingRequests] = useState(0);
+  // Whether this admin also has a Tutor profile linked; decides if the
+  // instructor section joins their sidebar.
+  const [teachesToo, setTeachesToo] = useState(false);
+  const nav = isAdmin && teachesToo ? [...ADMIN_NAV, ...TEACHING_FOR_ADMINS] : navFor(user?.role);
 
   // Admin only, and once per shell mount: enough to notice a queue has filled up
   // without putting a request on every navigation.
@@ -141,6 +157,21 @@ export default function PortalShell({ user, children }) {
       .then((r) => (r.ok ? r.json() : null))
       .then((d) => {
         if (!cancelled && d) setPendingRequests(d.pendingCount || 0);
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [isAdmin]);
+
+  // Once per shell mount, like the badge above: does this admin also teach?
+  useEffect(() => {
+    if (!isAdmin) return undefined;
+    let cancelled = false;
+    fetch('/api/tutor/me')
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => {
+        if (!cancelled && d?.tutor) setTeachesToo(true);
       })
       .catch(() => {});
     return () => {
