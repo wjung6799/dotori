@@ -32,9 +32,9 @@ function money(cents) {
 
 const METHOD_LABEL = { ach: 'bank transfer (ACH)', card: 'card', offline: 'Zelle or check' };
 
-// Card is the only method the online channel offers — see ONLINE_METHODS in
-// lib/pricing.js. Anyone who would rather not pay the fee uses Zelle or a check.
-const ONLINE_METHOD = 'card';
+// What Stripe calls each method when the Payment Element is built. Must match
+// what the pay route creates the intent with, or the confirm is refused.
+const METHOD_TYPES = { card: ['card'], ach: ['us_bank_account'] };
 
 // Mirrors MAX_INSTALLMENTS in lib/invoicing.js. Not imported: that module pulls
 // in the Mongo models and the mailer, neither of which belongs in a client
@@ -77,7 +77,10 @@ export default function BillingPage() {
   const [invoiceData, setInvoiceData] = useState(null);
   const [history, setHistory] = useState(null);
   const [error, setError] = useState('');
-  const [justPaid, setJustPaid] = useState(false);
+  // 'ok' | 'pending' | 'attention' — what the return from Stripe actually said,
+  // not a blanket success: an ACH confirm comes back 'processing', and a
+  // microdeposit verification or a decline must not be congratulated.
+  const [returnStatus, setReturnStatus] = useState('');
 
   // Only one invoice may have a Payment Element mounted at a time — Stripe gives
   // us one Element per set of payment_method_types, and two live panels fight
@@ -124,8 +127,10 @@ export default function BillingPage() {
   // build time, so read the query string here instead. The webhook — not this
   // page — settles the invoice, so re-read once and the page usually self-heals.
   useEffect(() => {
-    if (new URLSearchParams(window.location.search).get('paid') !== '1') return undefined;
-    setJustPaid(true);
+    const q = new URLSearchParams(window.location.search);
+    if (q.get('paid') !== '1') return undefined;
+    const rs = q.get('redirect_status');
+    setReturnStatus(!rs || rs === 'succeeded' ? 'ok' : rs === 'processing' ? 'pending' : 'attention');
     const timer = setTimeout(load, 4000);
     return () => clearTimeout(timer);
   }, [load]);
@@ -167,7 +172,9 @@ export default function BillingPage() {
     ...invoiceRows,
   ].sort((a, b) => new Date(b.at) - new Date(a.at));
 
-  const methodFor = () => ONLINE_METHOD;
+  // ACH is the default because it is the fee-free option; picking the cheaper
+  // way to pay should never be the extra step.
+  const methodFor = (id) => methodById[id] || 'ach';
   const planFor = (id) => planById[id] || 1;
 
   function choose(id, method) {
@@ -178,12 +185,19 @@ export default function BillingPage() {
       return;
     }
     setMethodById((prev) => ({ ...prev, [id]: method }));
+    // Plans run on a card, so stepping over to bank transfer lets the plan go.
+    // Without this, a monthly choice made earlier would silently revive on the
+    // next tap of the card button and charge a first installment the button
+    // never mentioned.
+    if (method === 'ach') setPlanById((prev) => ({ ...prev, [id]: 1 }));
     setActiveId(id);
   }
 
   function choosePlan(id, installments) {
     if (planFor(id) === installments) return;
     setPlanById((prev) => ({ ...prev, [id]: installments }));
+    // A plan keeps a card on file, so choosing one IS choosing card.
+    if (installments > 1) setMethodById((prev) => ({ ...prev, [id]: 'card' }));
     // The Payment Element is built for one fixed amount, so a plan change has to
     // tear an open panel down rather than quietly confirm the old figure.
     if (activeId === id) setActiveId('');
@@ -218,11 +232,25 @@ export default function BillingPage() {
         </div>
       </div>
 
-      {justPaid ? (
+      {returnStatus === 'ok' ? (
         <div className="notice ok">
           <strong>Your payment went through — thank you.</strong> A card payment shows as paid
           within a few seconds. If you chose to pay monthly, the first payment is done and we take
           the rest from the same card ourselves. This page refreshes itself in a moment.
+        </div>
+      ) : null}
+      {returnStatus === 'pending' ? (
+        <div className="notice info">
+          <strong>Your bank transfer is on its way.</strong> It takes 3–5 business days to clear;
+          the invoice shows as processing until the money lands, and nothing more is needed from
+          you.
+        </div>
+      ) : null}
+      {returnStatus === 'attention' ? (
+        <div className="notice warn">
+          <strong>That payment did not finish.</strong> If you chose to verify your bank account
+          with micro-deposits, follow the instructions Stripe emailed you and the payment completes
+          from there. Otherwise the invoice below is still open — you can simply try again.
         </div>
       ) : null}
 
@@ -290,10 +318,15 @@ export default function BillingPage() {
         const planFailed = inv.plan?.status === 'failed';
 
         // Every part has to clear Stripe's floor, or the plan is a dead button.
-        const canPlan = Math.floor(quote.totalCents / MAX_INSTALLMENTS) >= STRIPE_MIN_CENTS;
+        // Plans keep a card on file for the later charges, so the plan is always
+        // priced off the CARD quote — visible even while bank transfer is the
+        // chosen method, because hiding it until a family commits to card would
+        // bury the option; choosing it flips the method to card.
+        const cardQuote = inv.quotes?.card || quote;
+        const canPlan = Math.floor(cardQuote.totalCents / MAX_INSTALLMENTS) >= STRIPE_MIN_CENTS;
         const plan = canPlan ? planFor(inv.id) : 1;
         // On a plan only the first payment is taken now; the cron takes the rest.
-        const chargeCents = plan > 1 ? splitCents(quote.totalCents, plan)[0] : quote.totalCents;
+        const chargeCents = plan > 1 ? splitCents(cardQuote.totalCents, plan)[0] : quote.totalCents;
 
         return (
           <div className="card" key={inv.id}>
@@ -465,13 +498,13 @@ export default function BillingPage() {
                                   $424.00 bill. Quote the real first payment instead. */}
                               {n === 1
                                 ? money(quote.totalCents)
-                                : money(splitCents(quote.totalCents, n)[0]) + ' / mo'}
+                                : money(splitCents(cardQuote.totalCents, n)[0]) + ' / mo'}
                             </div>
                             <p className="muted small" style={{ margin: '0.2rem 0 0' }}>
                               {n === 1
                                 ? 'One payment, today.'
-                                : `First of ${n} monthly payments, charged today. Same total — ` +
-                                  money(quote.totalCents) +
+                                : `First of ${n} monthly card payments, charged today. Same total — ` +
+                                  money(cardQuote.totalCents) +
                                   '.'}
                             </p>
                           </button>
@@ -481,51 +514,72 @@ export default function BillingPage() {
 
                     {plan > 1 ? (
                       <p className="muted small" style={{ margin: '0.6rem 0 0' }}>
-                        {scheduleText(quote.totalCents, plan)}. We keep your card for the later ones
-                        and email you each time.
+                        {scheduleText(cardQuote.totalCents, plan)}. We keep your card for the later
+                        ones and email you each time.
                       </p>
                     ) : null}
                   </>
                 ) : null}
 
                 {!isActive ? (
-                  <button
-                    type="button"
-                    className="btn btn-primary"
-                    style={{ marginTop: '1rem' }}
-                    onClick={() => choose(inv.id, ONLINE_METHOD)}
-                  >
-                    {plan > 1
-                      ? 'Pay ' + money(chargeCents) + ' now by card'
-                      : 'Pay ' + money(quote.totalCents) + ' by card'}
-                  </button>
+                  <div style={{ display: 'flex', gap: '0.6rem', flexWrap: 'wrap', marginTop: '1rem' }}>
+                    <button
+                      type="button"
+                      className="btn btn-primary"
+                      onClick={() => choose(inv.id, 'ach')}
+                    >
+                      {'Pay ' + money((inv.quotes?.ach || quote).totalCents) + ' by bank transfer'}
+                    </button>
+                    <button
+                      type="button"
+                      className="btn btn-ghost"
+                      onClick={() => choose(inv.id, 'card')}
+                    >
+                      {plan > 1
+                        ? 'Pay ' + money(chargeCents) + ' now by card'
+                        : 'Pay ' + money((inv.quotes?.card || quote).totalCents) + ' by card'}
+                    </button>
+                  </div>
                 ) : (
                   <div style={{ marginTop: '1.25rem' }}>
                     <p className="strong" style={{ margin: '0 0 0.15rem' }}>
-                      Paying {money(chargeCents)} by card
+                      Paying {money(chargeCents)} by {METHOD_LABEL[method]}
                     </p>
                     <p className="muted small" style={{ margin: '0 0 0.6rem' }}>
-                      {plan > 1
-                        ? 'This is payment 1 of ' +
-                          plan +
-                          '. Your card is charged now and kept for the rest — nothing else to do.'
-                        : 'Your card is charged now and the invoice is marked paid within seconds.'}
+                      {method === 'ach'
+                        ? 'Your bank account is debited now. Transfers take 3–5 business days to clear, and the invoice shows as processing until the money lands.'
+                        : plan > 1
+                          ? 'This is payment 1 of ' +
+                            plan +
+                            '. Your card is charged now and kept for the rest — nothing else to do.'
+                          : 'Your card is charged now and the invoice is marked paid within seconds.'}
                     </p>
-                    {/* Keyed on the plan as well as the invoice: the Element is
-                        built for one amount, so switching plans has to build a
-                        fresh panel rather than reuse the last one. */}
+                    {/* Keyed on the method and the plan as well as the invoice:
+                        the Element is built for one method set and one amount,
+                        so switching either has to build a fresh panel rather
+                        than reuse the last one. */}
                     <PayPanel
-                      key={inv.id + ':' + ONLINE_METHOD + ':' + plan}
+                      key={inv.id + ':' + method + ':' + plan}
                       amountCents={chargeCents}
-                      methods={['card']}
+                      methods={METHOD_TYPES[method]}
                       // A plan keeps the card for the later payments, so the
                       // Element has to be built for that too or Stripe refuses
                       // the confirm on a setup_future_usage mismatch.
                       saveCard={plan > 1}
-                      createIntent={createIntentFor(inv.id, ONLINE_METHOD, plan)}
+                      createIntent={createIntentFor(inv.id, method, plan)}
                       returnUrl="/dashboard/billing?paid=1"
                       label={'Pay ' + money(chargeCents)}
                     />
+                    <button
+                      type="button"
+                      className="btn btn-ghost btn-sm"
+                      style={{ marginTop: '0.7rem' }}
+                      onClick={() => choose(inv.id, method === 'ach' ? 'card' : 'ach')}
+                    >
+                      {method === 'ach'
+                        ? 'Pay by card instead (' + money((inv.quotes?.card || quote).totalCents) + ')'
+                        : 'Pay by bank transfer instead (' + money((inv.quotes?.ach || quote).totalCents) + ')'}
+                    </button>
                   </div>
                 )}
               </>
@@ -582,7 +636,8 @@ export default function BillingPage() {
               <div className="notice info" style={{ margin: '1rem 0 0' }}>
                 <strong>We have your {METHOD_LABEL[inv.paymentMethod] || 'payment'} for {money(inFlightCents)}.</strong>{' '}
                 Bank transfers take 3–5 business days to clear. Nothing more is needed from you — the
-                invoice flips to paid on its own, and we will email you if the bank turns it back.
+                invoice flips to paid on its own. If the bank turns the transfer back, the invoice
+                reopens here with what went wrong so you can pay another way.
               </div>
             )}
           </div>

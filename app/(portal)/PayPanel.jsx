@@ -105,6 +105,14 @@ export default function PayPanel({
           amount: amountCents,
           currency: 'usd',
           paymentMethodTypes: methods,
+          // Mirrored from the pay routes: bank accounts verify instantly, with
+          // no microdeposit fallback (that path parks the intent at
+          // requires_action for days with nobody watching). In deferred-intent
+          // mode every such option has to match the intent or Stripe refuses
+          // the confirm.
+          ...(methods.includes('us_bank_account')
+            ? { paymentMethodOptions: { us_bank_account: { verification_method: 'instant' } } }
+            : {}),
           ...(saveCard ? { setupFutureUsage: 'off_session' } : {}),
           appearance: { theme: 'stripe', variables: { colorPrimary: '#6b5b47' } },
         });

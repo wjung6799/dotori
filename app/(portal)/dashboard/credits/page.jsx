@@ -5,7 +5,7 @@ import Link from 'next/link';
 
 import LocalTime from '../../LocalTime';
 import PayPanel from '../../PayPanel';
-import { expiryFor, formatUsd, lengthLabel, validityLabel } from '@/lib/pricing';
+import { expiryFor, formatUsd, lengthLabel, quoteFor, validityLabel } from '@/lib/pricing';
 import { SESSION_TYPE_BLURB, sessionTypeLabel } from '@/lib/sessionTypes';
 
 // Session credits (수업 크레딧) are PER INSTRUCTOR: every tutor sets their own
@@ -71,7 +71,11 @@ export default function CreditsPage() {
   const [tutorId, setTutorId] = useState(''); // '' = nobody picked yet
   const [sessionType, setSessionType] = useState(''); // '' = no kind picked yet
   const [packId, setPackId] = useState('');
-  const [justPaid, setJustPaid] = useState(false);
+  // 'ok' | 'pending' | 'attention' — what the return from Stripe actually said.
+  const [returnStatus, setReturnStatus] = useState('');
+  // ACH is the default because it is the fee-free option; picking the cheaper
+  // way to pay should never be the extra step.
+  const [method, setMethod] = useState('ach');
 
   const load = useCallback(async () => {
     try {
@@ -93,8 +97,10 @@ export default function CreditsPage() {
   // The webhook usually lands within a couple of seconds: re-read once so the
   // page heals itself instead of asking the family to reload.
   useEffect(() => {
-    if (new URLSearchParams(window.location.search).get('paid') !== '1') return undefined;
-    setJustPaid(true);
+    const q = new URLSearchParams(window.location.search);
+    if (q.get('paid') !== '1') return undefined;
+    const rs = q.get('redirect_status');
+    setReturnStatus(!rs || rs === 'succeeded' ? 'ok' : rs === 'processing' ? 'pending' : 'attention');
     const timer = setTimeout(load, 4000);
     return () => clearTimeout(timer);
   }, [load]);
@@ -124,7 +130,10 @@ export default function CreditsPage() {
   const packs = kind?.packs || [];
   const pack = packs.find((p) => p.id === packId) || null;
 
-  const packTotal = pack ? pack.amountCents + (pack.onlineFeeCents || 0) : 0;
+  // The same quote the server recomputes at intent time — one function, same
+  // inputs, so the button can never promise a figure the route will not charge.
+  const quote = pack ? quoteFor(pack.amountCents, method, pack.onlineFeeCents) : null;
+  const packTotal = quote ? quote.totalCents : 0;
   // The window starts when the payment clears, i.e. today — so this is quoted
   // from the current clock rather than frozen at mount. null months = no expiry,
   // and then there is no date to promise and the sentence is dropped entirely.
@@ -153,7 +162,7 @@ export default function CreditsPage() {
     const res = await fetch('/api/family/credits', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ tutorId: tutor.id, packId: pack.id }),
+      body: JSON.stringify({ tutorId: tutor.id, packId: pack.id, method }),
     });
     const payload = await res.json().catch(() => ({}));
     if (!res.ok || !payload.clientSecret) {
@@ -181,11 +190,25 @@ export default function CreditsPage() {
         </div>
       </div>
 
-      {justPaid ? (
+      {returnStatus === 'ok' ? (
         <div className="notice ok">
-          <strong>Payment went through — thank you.</strong> Your credits appear here as soon as
-          Stripe confirms the charge, which usually takes a few seconds. If the balance below has
-          not moved yet, give it a moment — this page checks again on its own.
+          <strong>Payment went through — thank you.</strong> Card payments confirm within a few
+          seconds and your credits appear right away. If the balance below has not moved yet, give
+          it a moment — this page checks again on its own.
+        </div>
+      ) : null}
+      {returnStatus === 'pending' ? (
+        <div className="notice info">
+          <strong>Your bank transfer is on its way.</strong> It takes 3–5 business days to clear,
+          and the sessions land in your balance the moment it does — we email your receipt then. If
+          it cannot be completed, we email you that too, and nothing is charged.
+        </div>
+      ) : null}
+      {returnStatus === 'attention' ? (
+        <div className="notice warn">
+          <strong>That payment did not finish.</strong> If you chose to verify your bank account
+          with micro-deposits, follow the instructions Stripe emailed you and the purchase completes
+          from there. Otherwise nothing was charged — you can simply try again.
         </div>
       ) : null}
 
@@ -531,9 +554,37 @@ export default function CreditsPage() {
                           ) : null}
                         </p>
 
+                        {/* Method picker: bank transfer at face value, card with
+                            its processing fee. One line each, totals up front. */}
+                        <div style={{ display: 'flex', gap: '0.6rem', flexWrap: 'wrap', marginBottom: '0.9rem' }}>
+                          {[
+                            ['ach', 'Bank transfer', quoteFor(pack.amountCents, 'ach', pack.onlineFeeCents).totalCents],
+                            ['card', 'Card', quoteFor(pack.amountCents, 'card', pack.onlineFeeCents).totalCents],
+                          ].map(([m, mLabel, mTotal]) => (
+                            <button
+                              key={m}
+                              type="button"
+                              aria-pressed={method === m}
+                              onClick={() => setMethod(m)}
+                              style={{
+                                font: 'inherit',
+                                cursor: 'pointer',
+                                border: '1px solid ' + (method === m ? 'var(--brown-mid)' : 'var(--line)'),
+                                borderWidth: method === m ? 2 : 1,
+                                background: method === m ? 'var(--surface-2)' : 'transparent',
+                                borderRadius: 'var(--radius-sm)',
+                                padding: '0.5rem 0.9rem',
+                              }}
+                            >
+                              <span className="strong">{mLabel}</span>{' '}
+                              <span className="muted small">{formatUsd(mTotal)}</span>
+                            </button>
+                          ))}
+                        </div>
+
                         {/* Only shown when a fee actually moves the number — never a
-                            $0 row. Fees are off today, so this normally stays hidden. */}
-                        {pack.onlineFeeCents ? (
+                            $0 row, so the bank-transfer view stays a single figure. */}
+                        {quote.adjustmentCents ? (
                           <div
                             style={{
                               background: 'var(--surface-2)',
@@ -551,8 +602,8 @@ export default function CreditsPage() {
                               className="row"
                               style={{ background: 'none', border: 0, padding: '0.2rem 0 0' }}
                             >
-                              <span className="main muted small">Online payment fee</span>
-                              <span className="small">{formatUsd(pack.onlineFeeCents)}</span>
+                              <span className="main muted small">{quote.adjustmentLabel}</span>
+                              <span className="small">{formatUsd(quote.adjustmentCents)}</span>
                             </div>
                             <div
                               className="row"
@@ -574,16 +625,16 @@ export default function CreditsPage() {
 
                         {payable ? (
                           <PayPanel
-                            key={tutor.id + ':' + kind.type + ':' + pack.id}
+                            key={tutor.id + ':' + kind.type + ':' + pack.id + ':' + method}
                             amountCents={packTotal}
-                            methods={['card']}
+                            methods={method === 'ach' ? ['us_bank_account'] : ['card']}
                             createIntent={createIntent}
                             returnUrl="/dashboard/credits?paid=1"
                             label={'Pay ' + formatUsd(packTotal)}
                           />
                         ) : (
                           <div className="notice info" style={{ marginBottom: 0 }}>
-                            This package is not set up for card payment yet.{' '}
+                            This package is not set up for online payment yet.{' '}
                             <Link href="/contact">Contact the school</Link> and we will add the credits
                             for you.
                           </div>
@@ -591,7 +642,7 @@ export default function CreditsPage() {
                       </div>
                     ) : packs.length > 0 ? (
                       <p className="muted small" style={{ margin: '1rem 0 0' }}>
-                        Pick a package above to pay by card.
+                        Pick a package above to pay online.
                       </p>
                     ) : null}
                   </>
@@ -648,7 +699,9 @@ export default function CreditsPage() {
                     <td>{kindLabel(g)}</td>
                     <td>{g.note || 'Session credits'}</td>
                     <td className="nowrap">
-                      {g.remainingSessions} of {g.totalSessions} left
+                      {g.pending
+                        ? `${g.totalSessions} on the way`
+                        : `${g.remainingSessions} of ${g.totalSessions} left`}
                     </td>
                     <td className="nowrap">
                       {g.expiresAt ? (
@@ -665,8 +718,10 @@ export default function CreditsPage() {
                       )}
                     </td>
                     <td>
-                      {g.paid ? (
-                        <span className="pill ok">Card</span>
+                      {g.pending ? (
+                        <span className="pill info">Bank transfer clearing</span>
+                      ) : g.paid ? (
+                        <span className="pill ok">Paid online</span>
                       ) : (
                         <span className="pill mute">Recorded by the school</span>
                       )}

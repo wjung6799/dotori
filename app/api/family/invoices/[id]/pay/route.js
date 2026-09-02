@@ -9,9 +9,9 @@ import { getCurrentUser, unauthorized } from '@/lib/auth-helpers';
 
 export const dynamic = 'force-dynamic';
 
-// Card is the only method the online channel offers — see ONLINE_METHODS in
-// lib/pricing.js for why. Bank transfer stays in the map so re-enabling it is a
-// one-line change, but a request for it is refused until it is listed there.
+// The online channel offers what ONLINE_METHODS in lib/pricing.js lists — ACH
+// and card today. A method in this map but not in that list is refused, so the
+// pricing module stays the single switch.
 const METHODS = {
   card: { types: ['card'], label: 'card' },
   ach: { types: ['us_bank_account'], label: 'bank transfer' },
@@ -86,6 +86,15 @@ export async function POST(request, { params }) {
     return Response.json({ error: 'This invoice is already on a payment plan.' }, { status: 409 });
   }
 
+  // A plan keeps the payment method on file and charges it off-session monthly,
+  // which this project only does with cards. Bank transfer pays in full.
+  if (installments && method !== 'card') {
+    return Response.json(
+      { error: 'Monthly plans are card-only. Pay in full by bank transfer, or choose card for a plan.' },
+      { status: 400 },
+    );
+  }
+
   const schedule = installments ? installmentSchedule(invoice, installments) : null;
   const chargeCents = schedule ? schedule[0].amountCents : totals.totalCents;
 
@@ -115,6 +124,12 @@ export async function POST(request, { params }) {
       amount: chargeCents,
       currency: 'usd',
       payment_method_types: METHODS[method].types,
+      // Instant verification only. The micro-deposit fallback strands the
+      // payment in requires_action days from now with nobody at the keyboard;
+      // a bank it cannot verify instantly should pay by card instead.
+      ...(method === 'ach'
+        ? { payment_method_options: { us_bank_account: { verification_method: 'instant' } } }
+        : {}),
       description: installments
         ? `Dotori School invoice ${invoice.number} — payment 1 of ${installments}`
         : `Dotori School invoice ${invoice.number}`,

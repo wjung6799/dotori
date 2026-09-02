@@ -3,10 +3,11 @@ import Enrollment from '@/lib/models/Enrollment';
 import Order from '@/lib/models/Order';
 import SessionCredit from '@/lib/models/SessionCredit';
 import Invoice from '@/lib/models/Invoice';
+import User from '@/lib/models/User';
 import { expiryFor } from '@/lib/pricing';
 import { nextChargeDate } from '@/lib/invoicing';
 import { getStripe } from '@/lib/stripe';
-import { sendOrderConfirmation } from '@/lib/mailer';
+import { sendCreditPurchaseFailed, sendInvoicePaymentFailed, sendOrderConfirmation } from '@/lib/mailer';
 import { createPrintfulOrder } from '@/lib/printful';
 import { createLuluJob } from '@/lib/luluClient';
 
@@ -58,11 +59,65 @@ export async function POST(request) {
           { status: 'processing', lastPaymentError: '' },
         );
         console.log(`Invoice ${pi.metadata.invoiceNumber} bank transfer processing (${pi.id})`);
+      } else if (source === 'credits') {
+        // A clearing bank transfer gets a visible pending row with ZERO
+        // remaining sessions — the family sees their purchase is on its way,
+        // and nothing can book against money that has not arrived. Activated on
+        // .succeeded, deleted on .payment_failed. The unique index on
+        // stripePaymentIntentId makes a redelivery a no-op.
+        await dbConnect();
+        try {
+          await SessionCredit.create({
+            userId: pi.metadata.userId,
+            tutorId: pi.metadata.tutorId || null,
+            sessionType: pi.metadata.sessionType === 'private' ? 'private' : 'semi_private',
+            pending: true,
+            totalSessions: Number(pi.metadata.sessions || 0),
+            remainingSessions: 0,
+            note: `${pi.metadata.packName || 'Session pack'} — bank transfer clearing`,
+            grantedBy: 'stripe',
+            stripePaymentIntentId: pi.id,
+            packId: pi.metadata.packId || '',
+            amountPaidCents: pi.amount,
+            onlineFeeCents: Number(pi.metadata.onlineFeeCents || 0),
+            expiresAt: null, // the window starts when the money lands
+          });
+          console.log(`Credit purchase pending (bank transfer) for intent ${pi.id}`);
+        } catch (err) {
+          if (err && err.code === 11000) {
+            console.log(`Pending credit row for intent ${pi.id} already exists; skipping.`);
+          } else {
+            throw err;
+          }
+        }
       }
     } else if (event.type === 'payment_intent.payment_failed') {
       // A bank debit can fail days later (insufficient funds, closed account),
       // which is exactly why nothing is marked paid before this point.
-      if (source === 'invoice') {
+      if (source === 'credits') {
+        // Nothing active exists to unwind — sessions are only granted on
+        // success. Remove the pending row (it held zero bookable sessions) and
+        // tell the family, because they left believing they had bought
+        // sessions and a silent vanish is indistinguishable from theft.
+        await dbConnect();
+        await SessionCredit.deleteOne({ stripePaymentIntentId: pi.id, pending: true });
+        const user = await User.findById(pi.metadata.userId).select('email firstName name').catch(() => null);
+        if (user?.email) {
+          try {
+            await sendCreditPurchaseFailed({
+              to: user.email,
+              parentName: user.firstName || user.name || 'there',
+              packName: pi.metadata.packName || 'your session package',
+              amountCents: pi.amount,
+              reason: pi.last_payment_error?.message || '',
+              siteUrl: process.env.SITE_URL || 'https://www.dotorischool.org',
+            });
+          } catch (mailErr) {
+            console.error('Credit-purchase failure email failed:', mailErr?.message || mailErr);
+          }
+        }
+        console.log(`Credit purchase failed for intent ${pi.id}`);
+      } else if (source === 'invoice') {
         await dbConnect();
         const message =
           pi.last_payment_error?.message || 'The payment did not go through. Please try again.';
@@ -79,6 +134,27 @@ export async function POST(request) {
             inv.status = 'open';
           }
           await inv.save();
+
+          // A card decline happens with the family at the keyboard; a bank
+          // transfer bounces days later with nobody watching. Only the latter
+          // needs chasing by email.
+          if (pi.metadata.method === 'ach' && !(inv.plan?.chargedCount > 0)) {
+            const user = await User.findById(inv.userId).select('email firstName name').catch(() => null);
+            if (user?.email) {
+              try {
+                await sendInvoicePaymentFailed({
+                  to: user.email,
+                  parentName: user.firstName || user.name || 'there',
+                  invoiceNumber: inv.number,
+                  amountCents: pi.amount,
+                  reason: message,
+                  siteUrl: process.env.SITE_URL || 'https://www.dotorischool.org',
+                });
+              } catch (mailErr) {
+                console.error('Invoice bounce email failed:', mailErr?.message || mailErr);
+              }
+            }
+          }
         }
         console.log(`Invoice payment failed for intent ${pi.id}: ${message}`);
       }
@@ -225,9 +301,30 @@ async function handleCreditPurchase(pi) {
     });
     console.log(`Granted ${sessions} credits for intent ${pi.id}`);
   } catch (err) {
-    // 11000 = duplicate key, i.e. this webhook already ran. Anything else is real.
+    // 11000 = duplicate key: either a redelivered event (no-op) or the pending
+    // row a clearing bank transfer created — which is now activated. Filtering
+    // on pending:true keeps the redelivery a no-op even here: an already-active
+    // grant matches nothing, so a family's spent sessions can never be topped
+    // back up by Stripe retrying the event.
     if (err && err.code === 11000) {
-      console.log(`Credit grant for intent ${pi.id} already exists; skipping.`);
+      const activated = await SessionCredit.findOneAndUpdate(
+        { stripePaymentIntentId: pi.id, pending: true },
+        {
+          $set: {
+            pending: false,
+            totalSessions: sessions,
+            remainingSessions: sessions,
+            note: `${packName} purchased online`,
+            amountPaidCents: pi.amount_received ?? pi.amount,
+            expiresAt: expiryFor(Number(pi.metadata.validMonths) || null),
+          },
+        },
+      );
+      console.log(
+        activated
+          ? `Activated pending credit grant for intent ${pi.id}`
+          : `Credit grant for intent ${pi.id} already exists; skipping.`,
+      );
       return;
     }
     throw err;

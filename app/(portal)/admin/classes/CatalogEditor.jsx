@@ -6,7 +6,9 @@ import { defaultOnlineFeeCents, PAYMENT_ADJUSTMENT } from '@/lib/pricing';
 // While fees are switched off there is nothing to set and nothing to show, so
 // the field and the column note stay out of the way rather than sitting there
 // at $0 inviting someone to fill them in.
-const FEES_ON = PAYMENT_ADJUSTMENT.mode !== 'none';
+// The per-class fixed fee is convenience-fee machinery; the percentage modes
+// price at quoteFor() time and must not resurrect stored figures here.
+const FEES_ON = PAYMENT_ADJUSTMENT.mode === 'convenience_fee';
 import ClassRoster from './ClassRoster';
 
 const QUARTERS = [

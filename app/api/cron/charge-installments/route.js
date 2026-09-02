@@ -1,7 +1,7 @@
 import dbConnect from '@/lib/db';
 import Invoice from '@/lib/models/Invoice';
 import User from '@/lib/models/User';
-import { nextInstallmentAmount } from '@/lib/invoicing';
+import { installmentSchedule } from '@/lib/invoicing';
 import { getStripe } from '@/lib/stripe';
 import { sendInstallmentCharged, sendInstallmentFailed } from '@/lib/mailer';
 
@@ -58,6 +58,7 @@ export async function GET(request) {
     // the invoice flows into whatever has not been charged yet.
     const schedule = installmentSchedule(invoice, n);
     const step = schedule[already];
+    const amountCents = step.amountCents;
     if (amountCents < 50) {
       // Nothing meaningful left to take — the balance is covered, so close the
       // plan rather than attempting a charge Stripe would reject anyway.
@@ -93,7 +94,7 @@ export async function GET(request) {
           method: 'card',
           installments: String(n),
           installmentNumber: String(already + 1),
-          feeCents: '0',
+          feeCents: String(step.feeCents),
         },
       });
 

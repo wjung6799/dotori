@@ -2,7 +2,7 @@ import mongoose from 'mongoose';
 import dbConnect from '@/lib/db';
 import SessionCredit from '@/lib/models/SessionCredit';
 import Tutor from '@/lib/models/Tutor';
-import { packsForTutor, findTutorPack, sessionTypesForTutor } from '@/lib/pricing';
+import { packsForTutor, findTutorPack, sessionTypesForTutor, quoteFor, ONLINE_METHODS } from '@/lib/pricing';
 import { sessionTypeLabel } from '@/lib/sessionTypes';
 import { getStripe } from '@/lib/stripe';
 import { getCurrentUser, unauthorized } from '@/lib/auth-helpers';
@@ -111,6 +111,7 @@ export async function GET() {
       packId: g.packId,
       amountPaidCents: g.amountPaidCents,
       onlineFeeCents: g.onlineFeeCents || 0,
+      pending: Boolean(g.pending),
       sessionType: g.sessionType || null,
       sessionTypeLabel: g.sessionType ? sessionTypeLabel(g.sessionType) : 'Any session type',
       expiresAt: g.expiresAt,
@@ -121,10 +122,15 @@ export async function GET() {
   });
 }
 
-// POST /api/family/credits  body { tutorId, packId }
-// Starts a card purchase for one of that tutor's packages. The credits are
-// granted by the webhook once the payment actually succeeds, so an abandoned
-// checkout grants nothing.
+// Stripe's name for each method we offer. Must match what PayPanel builds its
+// Element with, or Stripe rejects the confirm outright.
+const METHOD_TYPES = { card: ['card'], ach: ['us_bank_account'] };
+
+// POST /api/family/credits  body { tutorId, packId, method? }
+// Starts an online purchase (card or ACH) of one of that tutor's packages. The
+// credits are granted by the webhook once the payment actually succeeds, so an
+// abandoned checkout grants nothing — and an ACH purchase grants only when the
+// transfer clears, days later.
 export async function POST(request) {
   const user = await getCurrentUser();
   if (!user) return unauthorized();
@@ -152,7 +158,21 @@ export async function POST(request) {
   const pack = findTutorPack(tutor, body?.packId);
   if (!pack) return Response.json({ error: 'Unknown package.' }, { status: 400 });
 
-  const totalCents = pack.amountCents + (pack.onlineFeeCents || 0);
+  // The page always sends the method. Requiring it means a checkout tab opened
+  // before this deploy fails with a clear message instead of quietly charging
+  // 3% more than the stale page displayed.
+  const method = String(body?.method || '');
+  if (!METHOD_TYPES[method] || !ONLINE_METHODS.includes(method)) {
+    return Response.json(
+      { error: 'That payment method is not available online. Please contact the school to pay by Zelle or check.' },
+      { status: 400 },
+    );
+  }
+
+  // Recomputed server-side from the tutor's stored rate — never from anything
+  // the client sent, so a fee cannot be talked down by the browser.
+  const quote = quoteFor(pack.amountCents, method, pack.onlineFeeCents);
+  const totalCents = quote.totalCents;
   if (totalCents < 50) {
     return Response.json({ error: 'That package is not purchasable right now.' }, { status: 400 });
   }
@@ -162,16 +182,21 @@ export async function POST(request) {
     const paymentIntent = await stripe.paymentIntents.create({
       amount: totalCents,
       currency: 'usd',
-      // Must match what PayPanel builds its Element with, or Stripe rejects the
-      // confirm outright.
-      payment_method_types: ['card'],
+      payment_method_types: METHOD_TYPES[method],
+      // Instant verification only — see the invoice pay route for why.
+      ...(method === 'ach'
+        ? { payment_method_options: { us_bank_account: { verification_method: 'instant' } } }
+        : {}),
       metadata: {
         source: 'credits',
         userId: user._id.toString(),
         tutorId: String(tutor._id),
         packId: pack.id,
         sessions: String(pack.sessions),
-        onlineFeeCents: String(pack.onlineFeeCents || 0),
+        method,
+        // The adjustment actually charged on top of the pack price (0 for ACH),
+        // recorded on the grant by the webhook under this same name.
+        onlineFeeCents: String(quote.adjustmentCents),
         amountCents: String(pack.amountCents),
         packName: pack.name,
         // Stamped on the grant by the webhook: this is what the credit may book.
@@ -187,6 +212,9 @@ export async function POST(request) {
     return Response.json({
       clientSecret: paymentIntent.client_secret,
       amountCents: totalCents,
+      method,
+      adjustmentCents: quote.adjustmentCents,
+      adjustmentLabel: quote.adjustmentLabel,
       pack: {
         id: pack.id,
         name: pack.name,
@@ -204,7 +232,7 @@ export async function POST(request) {
     return Response.json(
       {
         error: missingKey
-          ? 'Card payments are not switched on yet. Please contact the school.'
+          ? 'Online payments are not switched on yet. Please contact the school.'
           : 'Could not start the payment. Please try again.',
       },
       { status: missingKey ? 503 : 500 },
