@@ -154,7 +154,13 @@ function LoginInner() {
           </button>
         </form>
 
-        <p style={{ textAlign: 'center', marginTop: '1.5rem', color: '#888' }}>
+        <p style={{ textAlign: 'center', marginTop: '1rem' }}>
+          <Link href="/forgot-password" style={{ color: '#6b5b47', fontWeight: 600, fontSize: '0.92rem' }}>
+            Forgot your password?
+          </Link>
+        </p>
+
+        <p style={{ textAlign: 'center', marginTop: '0.75rem', color: '#888' }}>
           Don&apos;t have an account?{' '}
           <Link href="/signup" style={{ color: '#6b5b47', fontWeight: 600 }}>
             Sign up

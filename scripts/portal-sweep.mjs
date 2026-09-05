@@ -46,7 +46,12 @@ for (const [role, pages] of Object.entries(PAGES)) {
   const u = await User.findOne(role === 'family' ? { $or: [{ role: 'family' }, { role: { $exists: false } }] } : { role }).lean();
   if (!u) { console.log(`\n${role}: no such user in this db — skipped`); continue; }
   const jwt = await encode({
-    token: { id: String(u._id), sub: String(u._id), role, name: u.name || role, email: u.email },
+    // pwt/pwck mirror what auth.js stamps at sign-in; without them the
+    // password-change recheck would kill this forged session on first use.
+    token: {
+      id: String(u._id), sub: String(u._id), role, name: u.name || role, email: u.email,
+      pwt: u.passwordChangedAt ? new Date(u.passwordChangedAt).getTime() : 0, pwck: Date.now(),
+    },
     secret: process.env.AUTH_SECRET, salt: COOKIE, maxAge: 3600,
   });
   console.log(`\n${role}  (${u.email})`);

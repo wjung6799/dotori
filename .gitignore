@@ -41,3 +41,7 @@ next-env.d.ts
 /.agents/
 /skills-lock.json
 /.next-dev/
+
+# macOS Finder duplication artifacts ("name 2.ext") must never reach git
+* 2.*
+* 2/
