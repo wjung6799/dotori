@@ -412,8 +412,15 @@ function SurveyForm() {
             <div className="flabel">Family Handbook Acknowledgment{req}</div>
             <label style={choiceRow}>
               <input type="checkbox" style={box} checked={form.consentHandbook} onChange={(e) => set('consentHandbook', e.target.checked)} required />
-              I acknowledge that I have read and understood the Dotori School Family Handbook, and
-              I agree to comply with the school&rsquo;s policies and guidelines.
+              <span>
+                I acknowledge that I have read and understood the{' '}
+                {/* The handbook itself, one click away — nobody should have to
+                    attest to a document they were never handed. */}
+                <a href="/docs/family-handbook-2026-27.pdf" target="_blank" rel="noopener">
+                  Dotori School Family Handbook
+                </a>
+                , and I agree to comply with the school&rsquo;s policies and guidelines.
+              </span>
             </label>
           </div>
         </section>
