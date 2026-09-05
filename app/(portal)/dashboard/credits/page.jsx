@@ -8,7 +8,7 @@ import PayPanel from '../../PayPanel';
 import { expiryFor, formatUsd, lengthLabel, quoteFor, validityLabel } from '@/lib/pricing';
 import { SESSION_TYPE_BLURB, sessionTypeLabel } from '@/lib/sessionTypes';
 
-// Session credits (수업 크레딧) are PER INSTRUCTOR: every tutor sets their own
+// Session credits are PER INSTRUCTOR: every tutor sets their own
 // rates, so a credit bought for one tutor books that tutor. That is why this page
 // never adds the balances together into one number — they are not
 // interchangeable, and a single "12 credits" figure would promise a family
@@ -185,7 +185,7 @@ export default function CreditsPage() {
         <div>
           <h1>Session credits</h1>
           <p className="lede">
-            What you hold with each instructor, and how to add more. (수업 크레딧)
+            What you hold with each instructor, and how to add more.
           </p>
         </div>
       </div>
@@ -331,7 +331,7 @@ export default function CreditsPage() {
           <>
             {/* Step 1 — who. Rates differ per instructor, so nothing can be
                 priced until this is answered. */}
-            <p className="flabel">1 · Choose an instructor (선생님)</p>
+            <p className="flabel">1 · Choose an instructor</p>
             <div className="grid grid-tight">
               {tutors.map((t) => {
                 const chosen = t.id === tutorId;

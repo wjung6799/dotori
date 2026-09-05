@@ -177,7 +177,6 @@ export default function StudentsPage() {
           <h1>Students</h1>
           <p className="lede">
             Your children, their enrollment forms and the classes they are signed up for.
-            (우리 아이 · 등록 신청서)
           </p>
         </div>
       </div>
@@ -214,13 +213,13 @@ export default function StudentsPage() {
                 {s.grade ? <span className="muted small nowrap">{'  ·  ' + gradeLabel(s.grade)}</span> : null}
               </h2>
               <a className="link" href={surveyHref(s.name)}>
-                {submitted ? 'Edit form (수정) →' : 'Fill out form (작성하기) →'}
+                {submitted ? 'Edit form →' : 'Fill out form →'}
               </a>
             </div>
 
             <div className="row">
               <div className="main">
-                <div className="strong">Enrollment form (신규 학생 등록 신청서)</div>
+                <div className="strong">Enrollment form</div>
                 <div className="meta">One form per student — it tells us how {s.name} learns best.</div>
               </div>
               <span className={submitted ? 'pill ok' : 'pill err'}>
@@ -229,7 +228,7 @@ export default function StudentsPage() {
             </div>
 
             <div style={{ marginTop: '1.1rem' }}>
-              <div className="flabel">Enrolled classes (수강 중인 수업)</div>
+              <div className="flabel">Enrolled classes</div>
               {classes.length === 0 ? (
                 <div className="empty">
                   <span className="ico">📚</span>
@@ -279,8 +278,8 @@ export default function StudentsPage() {
         </div>
 
         <p className="muted small" style={{ marginTop: 0 }}>
-          Adding a student opens their <strong>New Student Enrollment Form</strong> (신규 학생 등록
-          신청서) — one per child, and it is what tells us how they learn. You can come back and
+          Adding a student opens their <strong>New Student Enrollment Form</strong> — one per
+          child, and it is what tells us how they learn. You can come back and
           edit it any time.
         </p>
 
@@ -310,7 +309,7 @@ export default function StudentsPage() {
                     <div className="row" key={i} style={{ alignItems: 'flex-start', rowGap: '0.4rem' }}>
                       <div className="main" style={{ flex: '1 1 220px' }}>
                         <div className="field mb0">
-                          <label htmlFor={`student-name-${i}`}>Student name (학생 이름)</label>
+                          <label htmlFor={`student-name-${i}`}>Student name</label>
                           <input
                             id={`student-name-${i}`}
                             type="text"
@@ -323,7 +322,7 @@ export default function StudentsPage() {
 
                       <div style={{ flex: '0 1 170px' }}>
                         <div className="field mb0">
-                          <label htmlFor={`student-grade-${i}`}>Grade (학년)</label>
+                          <label htmlFor={`student-grade-${i}`}>Grade</label>
                           <select
                             id={`student-grade-${i}`}
                             value={r.grade}

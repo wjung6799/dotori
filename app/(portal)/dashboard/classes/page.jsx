@@ -81,7 +81,7 @@ export default function ClassesPage() {
         <div>
           <h1>Group classes</h1>
           <p className="lede">
-            Your students&rsquo; classes, and what&rsquo;s running this term. (그룹 수업)
+            Your students&rsquo; classes, and what&rsquo;s running this term.
           </p>
         </div>
         <Link href="/contact" className="btn btn-ghost">
@@ -94,7 +94,7 @@ export default function ClassesPage() {
       {/* ── What my students are in ─────────────────────────────── */}
       <section className="card">
         <div className="card-head">
-          <h2>Your students&rsquo; classes (수강 중인 수업)</h2>
+          <h2>Your students&rsquo; classes</h2>
           <Link href="/dashboard/students" className="link">My students →</Link>
         </div>
 

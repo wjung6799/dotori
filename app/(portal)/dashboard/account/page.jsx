@@ -103,7 +103,7 @@ export default function AccountPage() {
 
       <div className="card">
         <div className="card-head">
-          <h2>Contact details (연락처)</h2>
+          <h2>Contact details</h2>
         </div>
 
         <form onSubmit={handleSubmit}>
@@ -164,7 +164,7 @@ export default function AccountPage() {
 
       <div className="card">
         <div className="card-head">
-          <h2>Students (학생)</h2>
+          <h2>Students</h2>
           <Link className="link" href="/dashboard/students">
             Manage students →
           </Link>

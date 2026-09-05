@@ -152,7 +152,7 @@ export default function AdminRequestsPage() {
       </div>
 
       <p className="muted small" style={{ marginTop: 0, marginBottom: '1.1rem' }}>
-        Instructors propose a placement (배치) when they think a student is ready for a class.
+        Instructors propose a placement when they think a student is ready for a class.
         Approving one creates the enrollment <em>and</em> raises an invoice the family pays
         themselves in their portal — nobody has to chase them for a check.
       </p>
@@ -221,7 +221,7 @@ export default function AdminRequestsPage() {
             {r.note ? (
               <div className="row" style={{ marginTop: '0.9rem' }}>
                 <div className="main">
-                  <div className="muted small">Instructor&rsquo;s note (메모)</div>
+                  <div className="muted small">Instructor&rsquo;s note</div>
                   <div>{r.note}</div>
                 </div>
               </div>
@@ -236,7 +236,7 @@ export default function AdminRequestsPage() {
             ) : (
               <div className="row" style={{ marginTop: '0.9rem' }}>
                 <div className="main">
-                  <div className="strong">Tuition to bill (수업료)</div>
+                  <div className="strong">Tuition to bill</div>
                   <div className="muted small">
                     {alreadyPaid
                       ? 'Marked paid offline — no invoice will go out.'
@@ -251,7 +251,7 @@ export default function AdminRequestsPage() {
               // A reason lives on the record forever, so it gets a real textarea
               // rather than a prompt the instructor can never read back.
               <div className="field" style={{ marginTop: '1rem', marginBottom: 0 }}>
-                <label htmlFor={`reason-${r.id}`}>Why are you declining? (사유)</label>
+                <label htmlFor={`reason-${r.id}`}>Why are you declining?</label>
                 <textarea
                   id={`reason-${r.id}`}
                   rows={3}

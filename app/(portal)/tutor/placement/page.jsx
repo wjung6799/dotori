@@ -129,7 +129,7 @@ export default function TutorPlacementPage() {
       if (res.status === 201) {
         setMsg({
           type: 'ok',
-          text: 'Request sent. The office will review it, and approving it raises the invoice (청구서) for the family — you never charge anyone yourself.',
+          text: 'Request sent. The office will review it, and approving it raises the invoice for the family — you never charge anyone yourself.',
         });
         reset();
         loadRequests();
@@ -156,7 +156,7 @@ export default function TutorPlacementPage() {
         <div>
           <h1>Class placement</h1>
           <p className="lede">
-            You know who is ready to move up. Propose a class (반) here and the office decides —
+            You know who is ready to move up. Propose a class here and the office decides —
             approval is what enrols the student and bills the family. Nothing on this page charges
             anyone.
           </p>

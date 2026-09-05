@@ -228,7 +228,7 @@ export default function TutorRatesPage() {
         <div>
           <h1>My rates</h1>
           <p className="lede">
-            What families pay for session packages with you. (수업 요금)
+            What families pay for session packages with you.
           </p>
         </div>
         {data?.tutor ? (

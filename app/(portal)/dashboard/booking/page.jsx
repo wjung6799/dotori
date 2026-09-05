@@ -262,10 +262,10 @@ export default function BookingPage() {
   const remaining = spendable ? (pickedType ? spendable.forType(pickedType) : spendable.total) : null;
 
   const balanceLabel = pickedType
-    ? `${sessionTypeLabel(pickedType)}${selectedTutor ? ` with ${selectedTutor.name}` : ''} (남은 수업)`
+    ? `${sessionTypeLabel(pickedType)}${selectedTutor ? ` with ${selectedTutor.name}` : ''}`
     : selectedTutor
-      ? `Sessions with ${selectedTutor.name} (남은 수업)`
-      : 'Sessions remaining (남은 수업)';
+      ? `Sessions with ${selectedTutor.name}`
+      : 'Sessions remaining';
 
   // The line under the balance. With a declared slot picked it talks only
   // about that slot's kind, because that is the only bucket the booking can
@@ -366,7 +366,7 @@ export default function BookingPage() {
         ) : (
           <>
             <div className="field">
-              <label htmlFor="tutor">Instructor (선생님)</label>
+              <label htmlFor="tutor">Instructor</label>
               <select
                 id="tutor"
                 value={tutorId}
@@ -537,7 +537,7 @@ export default function BookingPage() {
             </div>
 
             <div className="field">
-              <label htmlFor="studentName">Student name (학생 이름)</label>
+              <label htmlFor="studentName">Student name</label>
               <input
                 id="studentName"
                 value={studentName}

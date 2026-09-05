@@ -88,7 +88,7 @@ export default async function OverviewPage() {
   for (const s of students) {
     if (!submittedFor.has(s.name)) {
       todos.push({
-        text: `Enrollment form not submitted for ${s.name}. (${s.name} 등록 신청서 미제출)`,
+        text: `Enrollment form not submitted for ${s.name}.`,
         cta: 'Fill it out',
         href: `/dashboard/students/enrollment-form?student=${encodeURIComponent(s.name)}`,
       });
@@ -125,7 +125,7 @@ export default async function OverviewPage() {
       <div className="page-head">
         <div>
           <h1>Welcome back, {firstName}</h1>
-          <p className="lede">Everything for your family, in one place. (우리 가족 한눈에 보기)</p>
+          <p className="lede">Everything for your family, in one place.</p>
         </div>
         <Link href="/dashboard/booking" className="btn btn-primary">
           Book a 1:1 session
@@ -134,7 +134,7 @@ export default async function OverviewPage() {
 
       {todos.length > 0 ? (
         <section className="todo">
-          <h2>Needs your attention (확인이 필요해요)</h2>
+          <h2>Needs your attention</h2>
           <ul>
             {todos.map((t) => (
               <li key={t.text}>
@@ -150,7 +150,7 @@ export default async function OverviewPage() {
 
       <section className="grid" style={{ marginBottom: '1.1rem' }}>
         <Link href="/dashboard/credits" className="stat" style={{ textDecoration: 'none' }}>
-          <div className="label">Session credits (남은 크레딧)</div>
+          <div className="label">Session credits</div>
           <div className="value">{totalCredits}</div>
           <div className="hint">
             {/* Credits belong to one instructor, so a single total is a summary,
@@ -164,7 +164,7 @@ export default async function OverviewPage() {
         </Link>
 
         <Link href="/dashboard/booking" className="stat" style={{ textDecoration: 'none' }}>
-          <div className="label">Next session (다음 수업)</div>
+          <div className="label">Next session</div>
           <div className={`value${nextSession ? ' sm' : ''}`}>
             {nextSession ? <LocalTime iso={new Date(nextSession.startAt).toISOString()} /> : 'None booked'}
           </div>
@@ -176,7 +176,7 @@ export default async function OverviewPage() {
         </Link>
 
         <Link href="/dashboard/classes" className="stat" style={{ textDecoration: 'none' }}>
-          <div className="label">Enrolled classes (수강 중)</div>
+          <div className="label">Enrolled classes</div>
           <div className="value">{enrollments.length}</div>
           <div className="hint">{enrollments.length ? 'See details below' : 'Browse this term'}</div>
         </Link>
@@ -184,7 +184,7 @@ export default async function OverviewPage() {
 
       <section className="card">
         <div className="card-head">
-          <h2>Upcoming sessions (예정된 수업)</h2>
+          <h2>Upcoming sessions</h2>
           <Link href="/dashboard/booking" className="link">Book or manage →</Link>
         </div>
         {upcoming.length === 0 ? (
@@ -217,7 +217,7 @@ export default async function OverviewPage() {
 
       <section className="card">
         <div className="card-head">
-          <h2>Your students (우리 아이)</h2>
+          <h2>Your students</h2>
           <Link href="/dashboard/students" className="link">Manage students →</Link>
         </div>
         {students.length === 0 ? (
@@ -274,7 +274,7 @@ export default async function OverviewPage() {
       <div className="grid-2">
         <section className="card">
           <div className="card-head">
-            <h2>Recent report cards (성적표)</h2>
+            <h2>Recent report cards</h2>
             <Link href="/dashboard/reports" className="link">See all →</Link>
           </div>
           {reports.length === 0 ? (
@@ -301,7 +301,7 @@ export default async function OverviewPage() {
 
         <section className="card">
           <div className="card-head">
-            <h2>Recent feedback (선생님 피드백)</h2>
+            <h2>Recent feedback</h2>
             <Link href="/dashboard/reports" className="link">See all →</Link>
           </div>
           {feedback.length === 0 ? (

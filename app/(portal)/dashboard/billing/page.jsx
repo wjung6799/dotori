@@ -168,7 +168,7 @@ export default function BillingPage() {
       <div className="page-head">
         <div>
           <h1>Billing</h1>
-          <p className="lede">What you owe, and every payment on your family account. (청구)</p>
+          <p className="lede">What you owe, and every payment on your family account.</p>
         </div>
       </div>
 

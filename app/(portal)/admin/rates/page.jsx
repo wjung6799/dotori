@@ -234,7 +234,7 @@ export default function AdminRatesPage() {
       <div className="page-head">
         <div>
           <h1>Tutor rates</h1>
-          <p className="lede">What each tutor charges for session credits. (수업 요금)</p>
+          <p className="lede">What each tutor charges for session credits.</p>
         </div>
         <Link className="btn btn-ghost btn-sm" href="/admin/booking">
           Tutors &amp; availability →

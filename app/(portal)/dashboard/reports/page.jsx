@@ -55,14 +55,14 @@ export default async function ReportsPage() {
         <div>
           <h1>Reports &amp; feedback</h1>
           <p className="lede">
-            Report cards (성적표) and notes from your instructors, all in one place.
+            Report cards and notes from your instructors, all in one place.
           </p>
         </div>
       </div>
 
       <div className="card">
         <div className="card-head">
-          <h2>Report cards (성적표)</h2>
+          <h2>Report cards</h2>
           {reports.length > 0 ? (
             <span className="muted small nowrap">
               {reports.length} {reports.length === 1 ? 'report' : 'reports'}
@@ -119,7 +119,7 @@ export default async function ReportsPage() {
 
       <div className="card">
         <div className="card-head">
-          <h2>Feedback (선생님 피드백)</h2>
+          <h2>Feedback</h2>
           {feedback.length > 0 ? (
             <span className="muted small nowrap">
               {feedback.length} {feedback.length === 1 ? 'note' : 'notes'}

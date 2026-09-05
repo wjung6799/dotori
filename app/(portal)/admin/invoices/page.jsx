@@ -105,7 +105,7 @@ export default function AdminInvoicesPage() {
         <div>
           <h1>Invoices</h1>
           <p className="lede">
-            Everything the school has billed (청구서) — what is still owed, what is clearing, and
+            Everything the school has billed — what is still owed, what is clearing, and
             what has landed.
           </p>
         </div>

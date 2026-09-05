@@ -104,7 +104,7 @@ export default function TutorCreditsPage() {
         <div>
           <h1>Session tokens</h1>
           <p className="lede">
-            Sessions a family paid you for outside the portal, and what they have left. (수업 토큰)
+            Sessions a family paid you for outside the portal, and what they have left.
           </p>
         </div>
       </div>
