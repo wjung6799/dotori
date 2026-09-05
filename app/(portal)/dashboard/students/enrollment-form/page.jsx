@@ -416,7 +416,12 @@ function SurveyForm() {
                 I acknowledge that I have read and understood the{' '}
                 {/* The handbook itself, one click away — nobody should have to
                     attest to a document they were never handed. */}
-                <a href="/docs/family-handbook-2026-27.pdf" target="_blank" rel="noopener">
+                <a
+                  href="/docs/family-handbook-2026-27.pdf"
+                  target="_blank"
+                  rel="noopener"
+                  style={{ textDecoration: 'underline', textUnderlineOffset: 3 }}
+                >
                   Dotori School Family Handbook
                 </a>
                 , and I agree to comply with the school&rsquo;s policies and guidelines.
