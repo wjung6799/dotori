@@ -3,12 +3,12 @@ import dbConnect from '@/lib/db';
 import Invoice from '@/lib/models/Invoice';
 import Enrollment from '@/lib/models/Enrollment';
 import SessionCredit from '@/lib/models/SessionCredit';
-import { activateInvoiceCredit, releaseInvoiceCredit } from '@/lib/invoicing';
+import { activateInvoiceCredit, releaseInvoiceCredit, sendInvoiceEmail } from '@/lib/invoicing';
 import { getAdminUser, forbidden } from '@/lib/auth-helpers';
 
 export const dynamic = 'force-dynamic';
 
-// PATCH /api/admin/invoices/:id  body { action: 'mark_paid' | 'void' | 'reopen', note? }
+// PATCH /api/admin/invoices/:id  body { action: 'mark_paid' | 'void' | 'reopen' | 'send', note? }
 // The office still takes Zelle and cash, so an invoice has to be settleable by
 // hand — and cancellable when a placement falls through.
 export async function PATCH(request, { params }) {
@@ -100,6 +100,28 @@ export async function PATCH(request, { params }) {
     // Only after the void is durable does the unfulfilled session pack go.
     await releaseInvoiceCredit(invoice);
     return Response.json({ ok: true, status: 'void' });
+  }
+
+  if (action === 'send') {
+    // Email the family the bill as it stands now. Only a live bill is worth
+    // sending; a void one is not owed, and paid/processing have already moved.
+    if (invoice.status !== 'open') {
+      return Response.json({ error: 'Only an open invoice can be sent.' }, { status: 409 });
+    }
+    const summary = (invoice.items.find((it) => it.kind === 'tuition')?.description || '').split(' — ')[0];
+    let sent = false;
+    try {
+      sent = await sendInvoiceEmail(invoice, summary);
+    } catch (err) {
+      console.error('Invoice send failed:', invoice.number, err?.message || err);
+      return Response.json({ error: 'The email could not be sent. Try again.' }, { status: 502 });
+    }
+    if (!sent) {
+      return Response.json({ error: 'This family has no email on file.' }, { status: 400 });
+    }
+    invoice.sentAt = new Date();
+    await invoice.save();
+    return Response.json({ ok: true, sentAt: invoice.sentAt });
   }
 
   if (action === 'reopen') {

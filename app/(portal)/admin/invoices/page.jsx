@@ -68,6 +68,14 @@ export default function AdminInvoicesPage() {
           'Use this only for Zelle or cash the school has actually received.',
       );
       if (!ok) return;
+    } else if (action === 'send') {
+      const ok = window.confirm(
+        `${invoice.sentAt ? 'Re-send' : 'Send'} invoice ${invoice.number} to ${invoice.family}?
+
+` +
+          `They will be emailed the current bill — ${money(invoice.subtotalCents)}.`,
+      );
+      if (!ok) return;
     } else if (action === 'void') {
       const reason = window.prompt(
         `Void ${invoice.number} for ${invoice.family}?\n\nReason (optional — saved on the invoice):`,
@@ -253,11 +261,26 @@ export default function AdminInvoicesPage() {
                                 type="button"
                                 className="btn btn-ghost btn-sm"
                                 disabled={locked}
+                                onClick={() => act(inv, 'send')}
+                              >
+                                {inv.sentAt ? 'Re-send' : 'Send'}
+                              </button>
+                              <button
+                                type="button"
+                                className="btn btn-ghost btn-sm"
+                                disabled={locked}
                                 onClick={() => act(inv, 'void')}
                               >
                                 Void
                               </button>
                             </div>
+                          ) : null}
+                          {inv.status === 'open' && inv.sentAt ? (
+                            <div className="muted small" style={{ marginTop: '0.3rem' }}>
+                              sent <LocalTime iso={inv.sentAt} format="date" />
+                            </div>
+                          ) : inv.status === 'open' ? (
+                            <div className="muted small" style={{ marginTop: '0.3rem' }}>not sent yet</div>
                           ) : null}
 
                           {/* No hand-settling while a debit is in flight: if it
