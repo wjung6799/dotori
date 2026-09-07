@@ -150,6 +150,10 @@ for (const cls of existing) {
 const tutor = await Tutor.findOne({ slug: TUTOR_SLUG });
 if (!tutor) {
   console.error(`\nNo tutor with slug "${TUTOR_SLUG}" — skipping the lesson packages.`);
+} else if (tutor.sellsSessions === false) {
+  // Converted to catalog classes on 2026-09-07 — her teaching is now two Class
+  // entries ("1:1 Private Tutoring", "Saturday Semi-Private"), not pack rates.
+  console.log(`\n${tutor.name} is sold as classes now — pack rates left untouched.`);
 } else {
   const same =
     (tutor.rates || []).length === RATES.length &&
@@ -200,7 +204,10 @@ const OPENINGS = [
   })),
 ];
 
-if (tutor) {
+// Mrs. Jung's tutoring converted to catalog classes on 2026-09-07 (owner:
+  // "튜터 세션을 없애버리고 … 클래스 중 하나로") — a tutor flagged sellsSessions:false
+  // gets neither pack-rate nor slot writes from this sheet any more.
+  if (tutor && tutor.sellsSessions !== false) {
   const open = await TutorSchedule.find({ tutorId: tutor._id, kind: 'session', active: true });
   for (const o of OPENINGS) {
     const label = `${['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'][o.dayOfWeek]} ${String(Math.floor(o.startMinute / 60)).padStart(2, '0')}:${String(o.startMinute % 60).padStart(2, '0')}`;

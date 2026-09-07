@@ -86,7 +86,9 @@ export async function GET() {
     ),
     totalRemaining: [...byTutor.values()].reduce((s, r) => s + r.remaining, 0) + anyTutorRemaining,
     expiredSessions,
-    tutors: tutors.map((t) => ({
+    // Only instructors with something to sell: one converted to class-catalog
+    // teaching (sellsSessions false) has no pack to offer here.
+    tutors: tutors.filter((t) => sessionTypesForTutor(t).length > 0).map((t) => ({
       id: String(t._id),
       name: t.name,
       specialty: t.specialty || '',
