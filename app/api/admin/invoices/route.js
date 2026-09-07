@@ -74,6 +74,7 @@ export async function GET(request) {
       // true and would be wrong the moment a due date is edited.
       overdue: i.status === 'open' && i.dueAt && new Date(i.dueAt).getTime() < now,
       dueAt: i.dueAt,
+      sentAt: i.sentAt,
       issuedAt: i.issuedAt,
       paidAt: i.paidAt,
       paymentMethod: i.paymentMethod,
