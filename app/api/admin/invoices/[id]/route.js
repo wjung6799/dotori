@@ -61,12 +61,16 @@ export async function PATCH(request, { params }) {
     invoice.issuedBy = invoice.issuedBy || '';
     await invoice.save();
 
-    if (invoice.enrollmentId) {
-      await Enrollment.findByIdAndUpdate(invoice.enrollmentId, {
-        paymentStatus: 'paid',
-        paidAt: new Date(),
-        amountPaid: invoice.subtotalCents / 100,
-      });
+    const settleIds = invoice.enrollmentIds?.length
+      ? invoice.enrollmentIds
+      : invoice.enrollmentId
+        ? [invoice.enrollmentId]
+        : [];
+    if (settleIds.length) {
+      await Enrollment.updateMany(
+        { _id: { $in: settleIds } },
+        { paymentStatus: 'paid', paidAt: new Date() },
+      );
     }
     // An assigned session pack rides this bill: money in → sessions on.
     await activateInvoiceCredit(invoice);

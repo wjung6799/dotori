@@ -2154,11 +2154,11 @@ function AddEnrollmentForm({ onAdded }) {
   const [families, setFamilies] = useState([]);
   const [classes, setClasses] = useState([]);
   const [userId, setUserId] = useState('');
-  const [studentName, setStudentName] = useState('');
-  const [classId, setClassId] = useState('');
   const [status, setStatus] = useState('paid');
-  // '' = the class's standard tuition; otherwise one of its named options.
-  const [priceOption, setPriceOption] = useState('');
+  // One or more seats for this family. Two+ pending seats bill on ONE invoice
+  // (the sibling bundle); a single seat, or paid ones, go the plain route.
+  const [rows, setRows] = useState([{ studentName: '', classId: '', priceOption: '' }]);
+  const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState(null); // { ok, text }
 
   useEffect(() => {
@@ -2174,126 +2174,151 @@ function AddEnrollmentForm({ onAdded }) {
     const kids = (f.students || []).map((s) => s.name).filter(Boolean).join(', ');
     return kids ? `${base} (${kids})` : base;
   }
+  const setRow = (i, patch) => setRows((rs) => rs.map((r, j) => (j === i ? { ...r, ...patch } : r)));
+  const refreshClasses = () =>
+    fetch('/api/admin/classes').then((r) => r.json()).then((d) => setClasses((d.classes || []).filter((c) => c.active)));
+
+  const validRows = rows.filter((r) => r.studentName && r.classId);
+  // Two or more pending seats become one invoice; anything else stays per-seat.
+  const willBundle = status === 'pending' && validRows.length >= 2;
 
   async function submit(e) {
     e.preventDefault();
+    if (busy || !userId || validRows.length === 0) return;
+    setBusy(true);
     setMsg(null);
-    const res = await fetch('/api/admin/enrollments', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        userId,
-        studentName,
-        classId,
-        paymentStatus: status,
-        ...(priceOption ? { priceOption } : {}),
-      }),
-    });
-    const d = await res.json().catch(() => ({}));
-    if (!res.ok) {
-      setMsg({ ok: false, text: d.error || 'Failed to enroll.' });
-      return;
+    try {
+      if (willBundle) {
+        const res = await fetch('/api/admin/enrollments/bundle', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            userId,
+            items: validRows.map((r) => ({ classId: r.classId, studentName: r.studentName, ...(r.priceOption ? { priceOption: r.priceOption } : {}) })),
+          }),
+        });
+        const d = await res.json().catch(() => ({}));
+        if (!res.ok) { setMsg({ ok: false, text: d.error || 'Failed to enroll.' }); return; }
+        const disc = d.discountsApplied?.length ? ` · ${d.discountsApplied.join(', ')}` : '';
+        setMsg({ ok: true, text: `${d.seats} seats on invoice ${d.invoice.number} — $${(d.invoice.subtotalCents / 100).toLocaleString()}${disc}.` });
+      } else {
+        // One request per seat: a single enroll, or paid seats (no invoice).
+        const results = [];
+        for (const r of validRows) {
+          const res = await fetch('/api/admin/enrollments', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ userId, studentName: r.studentName, classId: r.classId, paymentStatus: status, ...(r.priceOption ? { priceOption: r.priceOption } : {}) }),
+          });
+          const d = await res.json().catch(() => ({}));
+          if (!res.ok) { setMsg({ ok: false, text: d.error || 'Failed to enroll.' }); return; }
+          results.push(d);
+        }
+        const invs = results.filter((d) => d.invoice).map((d) => d.invoice.number);
+        setMsg({ ok: true, text: invs.length ? `Enrolled — invoice${invs.length > 1 ? 's' : ''} ${invs.join(', ')}.` : `Enrolled ${results.length} seat${results.length > 1 ? 's' : ''}.` });
+      }
+      setRows([{ studentName: '', classId: '', priceOption: '' }]);
+      onAdded?.();
+      refreshClasses();
+    } finally {
+      setBusy(false);
     }
-    setMsg({
-      ok: true,
-      text: d.invoice
-        ? `Enrolled — invoice ${d.invoice.number} for $${(d.invoice.subtotalCents / 100).toLocaleString()}.`
-        : 'Enrolled.',
-    });
-    setStudentName('');
-    setClassId('');
-    setPriceOption('');
-    onAdded?.();
-    // Refresh classes so the per-class counts in the picker stay current.
-    fetch('/api/admin/classes').then((r) => r.json()).then((d2) => setClasses((d2.classes || []).filter((c) => c.active)));
   }
 
   return (
     <form
       onSubmit={submit}
-      style={{
-        display: 'flex',
-        flexWrap: 'wrap',
-        gap: '0.6rem',
-        alignItems: 'flex-end',
-        background: '#faf7f3',
-        borderRadius: 10,
-        padding: '0.9rem 1rem',
-        marginBottom: '1.2rem',
-      }}
+      style={{ background: '#faf7f3', borderRadius: 10, padding: '0.9rem 1rem', marginBottom: '1.2rem' }}
     >
-      <div style={{ minWidth: 220 }}>
-        <label className="flabel">Family</label>
-        <select
-          className="finput"
-          value={userId}
-          onChange={(e) => { setUserId(e.target.value); setStudentName(''); }}
-          required
-        >
-          <option value="">Select a family…</option>
-          {families.map((f) => (
-            <option key={f._id} value={f._id}>{famLabel(f)} ({f.email})</option>
-          ))}
-        </select>
-      </div>
-      <div style={{ minWidth: 150 }}>
-        <label className="flabel">Student</label>
-        {students.length > 0 ? (
-          <select className="finput" value={studentName} onChange={(e) => setStudentName(e.target.value)} required>
-            <option value="">Select…</option>
-            {students.map((s) => <option key={s} value={s}>{s}</option>)}
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.6rem', alignItems: 'flex-end', marginBottom: '0.6rem' }}>
+        <div style={{ minWidth: 240 }}>
+          <label className="flabel">Family</label>
+          <select
+            className="finput"
+            value={userId}
+            onChange={(e) => { setUserId(e.target.value); setRows([{ studentName: '', classId: '', priceOption: '' }]); }}
+            required
+          >
+            <option value="">Select a family…</option>
+            {families.map((f) => (
+              <option key={f._id} value={f._id}>{famLabel(f)} ({f.email})</option>
+            ))}
           </select>
-        ) : (
-          <input className="finput" value={studentName} onChange={(e) => setStudentName(e.target.value)} placeholder="Student name" required />
-        )}
+        </div>
+        <div>
+          <label className="flabel">Status</label>
+          <select className="finput" value={status} onChange={(e) => setStatus(e.target.value)}>
+            <option value="paid">Paid</option>
+            <option value="pending">Pending (invoice)</option>
+          </select>
+        </div>
       </div>
-      <div style={{ minWidth: 240 }}>
-        <label className="flabel">Class</label>
-        <select className="finput" value={classId} onChange={(e) => { setClassId(e.target.value); setPriceOption(''); }} required>
-          <option value="">Select a class…</option>
-          {classes.map((c) => (
-            <option key={c._id} value={c._id}>
-              {c.name} · {c.quarter} · {c.enrolledCount ?? 0}/{c.capacity}
-            </option>
-          ))}
-        </select>
-      </div>
-      {(() => {
-        const chosen = classes.find((c) => c._id === classId);
+
+      {rows.map((row, i) => {
+        const chosen = classes.find((c) => c._id === row.classId);
         const opts = chosen?.priceOptions || [];
-        if (!opts.length) return null;
         return (
-          <div style={{ minWidth: 180 }}>
-            <label className="flabel">Pricing</label>
-            <select className="finput" value={priceOption} onChange={(e) => setPriceOption(e.target.value)}>
-              <option value="">{`Standard · $${chosen.price}`}</option>
-              {opts.map((o) => (
-                <option key={o.label} value={o.label}>{`${o.label} · $${o.price}`}</option>
-              ))}
-            </select>
+          <div key={i} style={{ display: 'flex', flexWrap: 'wrap', gap: '0.6rem', alignItems: 'flex-end', marginBottom: '0.55rem' }}>
+            <div style={{ minWidth: 150 }}>
+              <label className="flabel">Student</label>
+              {students.length > 0 ? (
+                <select className="finput" value={row.studentName} onChange={(e) => setRow(i, { studentName: e.target.value })}>
+                  <option value="">Select…</option>
+                  {students.map((s) => <option key={s} value={s}>{s}</option>)}
+                </select>
+              ) : (
+                <input className="finput" value={row.studentName} onChange={(e) => setRow(i, { studentName: e.target.value })} placeholder="Student name" />
+              )}
+            </div>
+            <div style={{ minWidth: 240 }}>
+              <label className="flabel">Class</label>
+              <select className="finput" value={row.classId} onChange={(e) => setRow(i, { classId: e.target.value, priceOption: '' })}>
+                <option value="">Select a class…</option>
+                {classes.map((c) => (
+                  <option key={c._id} value={c._id}>{c.name} · {c.quarter} · {c.enrolledCount ?? 0}/{c.capacity}</option>
+                ))}
+              </select>
+            </div>
+            {opts.length ? (
+              <div style={{ minWidth: 170 }}>
+                <label className="flabel">Pricing</label>
+                <select className="finput" value={row.priceOption} onChange={(e) => setRow(i, { priceOption: e.target.value })}>
+                  <option value="">{`Standard · $${chosen.price}`}</option>
+                  {opts.map((o) => <option key={o.label} value={o.label}>{`${o.label} · $${o.price}`}</option>)}
+                </select>
+              </div>
+            ) : null}
+            {rows.length > 1 ? (
+              <button type="button" className="btn btn-ghost btn-sm" onClick={() => setRows((rs) => rs.filter((_, j) => j !== i))}>
+                remove
+              </button>
+            ) : null}
           </div>
         );
-      })()}
-      <div>
-        <label className="flabel">Status</label>
-        <select className="finput" value={status} onChange={(e) => setStatus(e.target.value)}>
-          <option value="paid">Paid</option>
-          <option value="pending">Pending</option>
-        </select>
+      })}
+
+      <div style={{ display: 'flex', gap: '0.7rem', alignItems: 'center', flexWrap: 'wrap', marginTop: '0.3rem' }}>
+        <button
+          type="button"
+          className="btn btn-ghost btn-sm"
+          onClick={() => setRows((rs) => [...rs, { studentName: '', classId: '', priceOption: '' }])}
+        >
+          + Add another student
+        </button>
+        <button
+          type="submit"
+          disabled={busy || !userId || validRows.length === 0}
+          style={{ background: '#e8a87c', color: '#fff', border: 'none', borderRadius: 8, padding: '0.6rem 1.4rem', fontWeight: 700, cursor: 'pointer' }}
+        >
+          {busy ? 'Working…' : willBundle ? `Enroll ${validRows.length} — one invoice` : 'Enroll'}
+        </button>
+        {willBundle ? (
+          <span className="muted small">Siblings on one invoice, discounts applied once.</span>
+        ) : null}
+        {msg ? (
+          <span style={{ color: msg.ok ? '#1e7a40' : '#a3261a', fontWeight: 600, fontSize: '0.88rem' }}>{msg.text}</span>
+        ) : null}
       </div>
-      <button
-        type="submit"
-        disabled={!userId || !studentName || !classId}
-        style={{
-          background: '#e8a87c', color: '#fff', border: 'none', borderRadius: 8,
-          padding: '0.65rem 1.4rem', fontWeight: 700, cursor: 'pointer',
-        }}
-      >
-        Enroll
-      </button>
-      {msg ? (
-        <span style={{ color: msg.ok ? '#1e7a40' : '#a3261a', fontWeight: 600, fontSize: '0.88rem' }}>{msg.text}</span>
-      ) : null}
     </form>
   );
 }

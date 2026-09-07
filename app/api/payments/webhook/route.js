@@ -212,14 +212,14 @@ async function settleInvoice(pi) {
     }
   }
 
-  if (invoice.enrollmentId) {
-    // amountPaid tracks tuition actually received — the card fee is processing
-    // cost, never revenue.
-    await Enrollment.findByIdAndUpdate(invoice.enrollmentId, {
-      amountPaid: invoice.subtotalCents / 100,
-      paymentStatus: 'paid',
-      paidAt: new Date(),
-    });
+  // Settle every enrollment on the bill — a sibling bundle carries several.
+  // Falls back to the single enrollmentId for bills raised before bundles.
+  const settleIds = invoice.enrollmentIds?.length ? invoice.enrollmentIds : invoice.enrollmentId ? [invoice.enrollmentId] : [];
+  if (settleIds.length) {
+    await Enrollment.updateMany(
+      { _id: { $in: settleIds } },
+      { paymentStatus: 'paid', paidAt: new Date() },
+    );
   }
 
   console.log(`Invoice ${invoice.number} paid, status ${invoice.status}`);
