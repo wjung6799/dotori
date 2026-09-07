@@ -54,6 +54,7 @@ export async function POST(request) {
   const classId = body?.classId?.toString();
   const studentName = body?.studentName?.toString().trim();
   const paymentStatus = ['pending', 'paid'].includes(body?.paymentStatus) ? body.paymentStatus : 'paid';
+  const priceOptionLabel = body?.priceOption?.toString().trim() || null;
   const notes = (body?.notes || '').toString().trim().slice(0, 500);
   if (!userId || !classId || !studentName) {
     return Response.json({ error: 'Family, student, and class are required.' }, { status: 400 });
@@ -63,6 +64,15 @@ export async function POST(request) {
     await dbConnect();
     const cls = await Class.findById(classId);
     if (!cls) return Response.json({ error: 'Class not found.' }, { status: 404 });
+
+    // A named pricing option must be one the class actually declares — the
+    // invoice follows a pick, never a typed figure.
+    const priceOption = priceOptionLabel
+      ? (cls.priceOptions || []).find((o) => o.label === priceOptionLabel) || null
+      : null;
+    if (priceOptionLabel && !priceOption) {
+      return Response.json({ error: 'That pricing option is not on this class.' }, { status: 400 });
+    }
 
     const existing = await Enrollment.findOne({
       userId, classId, studentName, paymentStatus: { $ne: 'refunded' },
@@ -86,7 +96,7 @@ export async function POST(request) {
       paymentStatus,
       // Record what the seat costs. This used to be left at 0 regardless of the
       // class price, which made every admin-created enrollment look free.
-      amountPaid: Number(cls.price) || 0,
+      amountPaid: priceOption ? Number(priceOption.price) : Number(cls.price) || 0,
       notes: notes || 'Added by admin',
       ...(paymentStatus === 'paid' ? { paidAt: new Date() } : {}),
     });
@@ -100,6 +110,7 @@ export async function POST(request) {
           user: { _id: userId },
           enrollment,
           cls,
+          priceOption,
           issuedBy: 'admin',
         });
       } catch (invErr) {

@@ -36,6 +36,17 @@ export async function GET() {
   }
 }
 
+
+// Pricing options arrive as [{label, price}] from the editor; anything without
+// a label or a positive price is dropped rather than stored broken.
+function cleanPriceOptions(raw) {
+  if (!Array.isArray(raw)) return undefined;
+  return raw
+    .map((o) => ({ label: String(o?.label || '').trim().slice(0, 60), price: Number(o?.price) }))
+    .filter((o) => o.label && Number.isFinite(o.price) && o.price >= 1)
+    .slice(0, 12);
+}
+
 // POST /api/admin/classes
 export async function POST(request) {
   if (!(await getAdminUser())) return forbidden();
@@ -61,6 +72,7 @@ export async function POST(request) {
       // ranged 1:1 listings. Blank means "not set", which must stay null rather
       // than 0 — 0 would render as a real $0 price on the catalog.
       earlyBirdPrice: numOrNull(body?.earlyBirdPrice),
+      priceOptions: cleanPriceOptions(body?.priceOptions) || [],
       priceMax: numOrNull(body?.priceMax),
       // Unlike the two above, blank here means 0 and not "unset": every class
       // charges a materials fee, and for almost all of them the fee is nothing.

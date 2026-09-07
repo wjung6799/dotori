@@ -53,6 +53,9 @@ const BLANK = {
   scheduleKey: '',
   manualEnrolled: '',
   active: true,
+  // [{label, price}] — named per-family/per-arrangement rates the office can
+  // pick at enrollment time. Only the invoice follows the pick.
+  priceOptions: [],
 };
 
 export default function CatalogEditor({ literacySlots }) {
@@ -114,6 +117,7 @@ export default function CatalogEditor({ literacySlots }) {
       schedule: c.schedule || '',
       description: c.description || '',
       price: c.price ?? '',
+      priceOptions: (c.priceOptions || []).map((o) => ({ label: o.label, price: String(o.price) })),
       // 0 shows as blank: "no materials fee" and "no fee entered" are the same
       // thing here, and a literal 0 in the box is noise on every other class.
       materialsFee: c.materialsFee ? c.materialsFee : '',
@@ -142,6 +146,9 @@ export default function CatalogEditor({ literacySlots }) {
       onlineFeeCents: form.onlineFee === '' ? '' : Math.round(Number(form.onlineFee) * 100),
       capacity: Number(form.capacity) || 1,
       manualEnrolled: form.manualEnrolled === '' ? null : Number(form.manualEnrolled),
+      priceOptions: (form.priceOptions || [])
+        .map((o) => ({ label: o.label.trim(), price: Number(o.price) }))
+        .filter((o) => o.label && Number.isFinite(o.price) && o.price >= 1),
     };
     try {
       const isNew = editing === 'new';
@@ -400,6 +407,53 @@ export default function CatalogEditor({ literacySlots }) {
                   placeholder="for ranges, e.g. 1:1"
                 />
               </div>
+            </div>
+
+            <div className="field">
+              <label>Pricing options</label>
+              <p className="hint" style={{ marginTop: 0 }}>
+                Named rates the office can pick when assigning a seat — the invoice follows the
+                pick, the class stays one entry. Leave empty to always bill the tuition above.
+              </p>
+              {(form.priceOptions || []).map((o, i) => (
+                <div key={i} style={{ display: 'flex', gap: '0.5rem', marginBottom: '0.45rem' }}>
+                  <input
+                    className="finput"
+                    style={{ flex: '1 1 180px' }}
+                    value={o.label}
+                    placeholder="e.g. Returning family"
+                    onChange={(e) =>
+                      set('priceOptions', form.priceOptions.map((x, j) => (j === i ? { ...x, label: e.target.value } : x)))
+                    }
+                  />
+                  <input
+                    className="finput"
+                    style={{ width: 110 }}
+                    type="number"
+                    min="1"
+                    step="0.01"
+                    value={o.price}
+                    placeholder="$"
+                    onChange={(e) =>
+                      set('priceOptions', form.priceOptions.map((x, j) => (j === i ? { ...x, price: e.target.value } : x)))
+                    }
+                  />
+                  <button
+                    type="button"
+                    className="btn btn-ghost btn-sm"
+                    onClick={() => set('priceOptions', form.priceOptions.filter((_, j) => j !== i))}
+                  >
+                    remove
+                  </button>
+                </div>
+              ))}
+              <button
+                type="button"
+                className="btn btn-ghost btn-sm"
+                onClick={() => set('priceOptions', [...(form.priceOptions || []), { label: '', price: '' }])}
+              >
+                + Add pricing option
+              </button>
             </div>
 
             <div className="field">

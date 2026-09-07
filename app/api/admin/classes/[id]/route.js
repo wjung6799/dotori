@@ -5,6 +5,17 @@ import { getAdminUser, forbidden } from '@/lib/auth-helpers';
 
 export const dynamic = 'force-dynamic';
 
+
+// Pricing options arrive as [{label, price}] from the editor; anything without
+// a label or a positive price is dropped rather than stored broken.
+function cleanPriceOptions(raw) {
+  if (!Array.isArray(raw)) return undefined;
+  return raw
+    .map((o) => ({ label: String(o?.label || '').trim().slice(0, 60), price: Number(o?.price) }))
+    .filter((o) => o.label && Number.isFinite(o.price) && o.price >= 1)
+    .slice(0, 12);
+}
+
 // PUT /api/admin/classes/:id
 export async function PUT(request, { params }) {
   if (!(await getAdminUser())) return forbidden();
@@ -22,6 +33,10 @@ export async function PUT(request, { params }) {
     if (price !== undefined) update.price = Number(price);
     // Blank clears the field back to null rather than storing 0, which the
     // catalog would otherwise render as a real $0 price.
+    if (body?.priceOptions !== undefined) {
+      const cleaned = cleanPriceOptions(body.priceOptions);
+      if (cleaned !== undefined) update.priceOptions = cleaned;
+    }
     if (body?.earlyBirdPrice !== undefined) {
       update.earlyBirdPrice = body.earlyBirdPrice === '' || body.earlyBirdPrice === null
         ? null

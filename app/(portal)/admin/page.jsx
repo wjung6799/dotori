@@ -2157,6 +2157,8 @@ function AddEnrollmentForm({ onAdded }) {
   const [studentName, setStudentName] = useState('');
   const [classId, setClassId] = useState('');
   const [status, setStatus] = useState('paid');
+  // '' = the class's standard tuition; otherwise one of its named options.
+  const [priceOption, setPriceOption] = useState('');
   const [msg, setMsg] = useState(null); // { ok, text }
 
   useEffect(() => {
@@ -2179,16 +2181,28 @@ function AddEnrollmentForm({ onAdded }) {
     const res = await fetch('/api/admin/enrollments', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ userId, studentName, classId, paymentStatus: status }),
+      body: JSON.stringify({
+        userId,
+        studentName,
+        classId,
+        paymentStatus: status,
+        ...(priceOption ? { priceOption } : {}),
+      }),
     });
     const d = await res.json().catch(() => ({}));
     if (!res.ok) {
       setMsg({ ok: false, text: d.error || 'Failed to enroll.' });
       return;
     }
-    setMsg({ ok: true, text: 'Enrolled.' });
+    setMsg({
+      ok: true,
+      text: d.invoice
+        ? `Enrolled — invoice ${d.invoice.number} for $${(d.invoice.subtotalCents / 100).toLocaleString()}.`
+        : 'Enrolled.',
+    });
     setStudentName('');
     setClassId('');
+    setPriceOption('');
     onAdded?.();
     // Refresh classes so the per-class counts in the picker stay current.
     fetch('/api/admin/classes').then((r) => r.json()).then((d2) => setClasses((d2.classes || []).filter((c) => c.active)));
@@ -2235,7 +2249,7 @@ function AddEnrollmentForm({ onAdded }) {
       </div>
       <div style={{ minWidth: 240 }}>
         <label className="flabel">Class</label>
-        <select className="finput" value={classId} onChange={(e) => setClassId(e.target.value)} required>
+        <select className="finput" value={classId} onChange={(e) => { setClassId(e.target.value); setPriceOption(''); }} required>
           <option value="">Select a class…</option>
           {classes.map((c) => (
             <option key={c._id} value={c._id}>
@@ -2244,6 +2258,22 @@ function AddEnrollmentForm({ onAdded }) {
           ))}
         </select>
       </div>
+      {(() => {
+        const chosen = classes.find((c) => c._id === classId);
+        const opts = chosen?.priceOptions || [];
+        if (!opts.length) return null;
+        return (
+          <div style={{ minWidth: 180 }}>
+            <label className="flabel">Pricing</label>
+            <select className="finput" value={priceOption} onChange={(e) => setPriceOption(e.target.value)}>
+              <option value="">{`Standard · $${chosen.price}`}</option>
+              {opts.map((o) => (
+                <option key={o.label} value={o.label}>{`${o.label} · $${o.price}`}</option>
+              ))}
+            </select>
+          </div>
+        );
+      })()}
       <div>
         <label className="flabel">Status</label>
         <select className="finput" value={status} onChange={(e) => setStatus(e.target.value)}>
