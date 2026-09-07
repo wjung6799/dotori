@@ -267,26 +267,6 @@ export default function AdminPage() {
         String(sv.userId?._id ?? sv.userId) === String(familyId) && sv.studentName === studentName,
     );
 
-  async function removeStudent(f, s) {
-    const fam = [f.firstName, f.lastName].filter(Boolean).join(' ') || f.name || f.email;
-    if (
-      !confirm(
-        `Remove ${s.name} from ${fam}'s student list? Their bookings, reports and forms stay on record — this only takes the student off the family's list.`,
-      )
-    )
-      return;
-    const res = await fetch(`/api/admin/families/${f._id}/students`, {
-      method: 'DELETE',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(s._id ? { studentId: s._id } : { name: s.name }),
-    });
-    if (!res.ok) {
-      const d = await res.json().catch(() => ({}));
-      alert(d.error || 'Failed to remove the student.');
-    }
-    loadFamilies();
-  }
-
   // ── Families filtering ──────────────────────────────────────
   const filteredFamilies = (() => {
     const q = familySearch.toLowerCase();
@@ -308,6 +288,25 @@ export default function AdminPage() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ amountPaid: amount }),
     });
+  };
+
+  // Drop a student from a class: the enrollment row goes away (seat counts
+  // count rows, so the seat frees itself) and an unpaid invoice for it is
+  // voided by the API. Paid enrollments go through Refund instead.
+  const dropEnrollment = async (e) => {
+    const cls = e.classId?.name || 'this class';
+    if (
+      !confirm(
+        `Remove ${e.studentName} from ${cls}? The seat reopens, and any unpaid invoice for it is cancelled.`,
+      )
+    )
+      return;
+    const res = await fetch(`/api/admin/enrollments/${e._id}`, { method: 'DELETE' });
+    const d = await res.json().catch(() => ({}));
+    if (!res.ok) alert(d.error || 'Failed to remove the enrollment.');
+    else if (d.voidedInvoice) alert(`Removed. Invoice ${d.voidedInvoice} was cancelled.`);
+    loadEnrollments();
+    loadStats();
   };
 
   const updateEnrollment = async (id, status) => {
@@ -773,22 +772,6 @@ export default function AdminPage() {
                                             form {openSurveyKey === key ? '▴' : '▾'}
                                           </button>
                                         ) : null}
-                                        <button
-                                          type="button"
-                                          onClick={() => removeStudent(f, s)}
-                                          title="Remove this student from the family's list"
-                                          style={{
-                                            border: '1px solid #e0b4a0',
-                                            background: '#fff',
-                                            color: '#b5654a',
-                                            borderRadius: 6,
-                                            padding: '1px 7px',
-                                            fontSize: '0.76rem',
-                                            cursor: 'pointer',
-                                          }}
-                                        >
-                                          ×
-                                        </button>
                                       </div>
                                     );
                                   })
@@ -983,6 +966,23 @@ export default function AdminPage() {
                                 Refund
                               </button>
                             )}
+                            <button
+                              onClick={() => dropEnrollment(e)}
+                              title="Remove this student from the class"
+                              style={{
+                                background: '#fff',
+                                color: '#b5654a',
+                                border: '1.5px solid #e0b4a0',
+                                borderRadius: 6,
+                                padding: '0.3rem 0.6rem',
+                                cursor: 'pointer',
+                                fontSize: '0.8rem',
+                                fontWeight: 600,
+                                marginLeft: 4,
+                              }}
+                            >
+                              Remove
+                            </button>
                           </td>
                         </tr>
                       );
