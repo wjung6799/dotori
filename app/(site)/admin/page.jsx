@@ -691,6 +691,11 @@ export default function AdminPage() {
                 {label}
               </button>
             ))}
+            {/* Lives on its own page, but belongs in this row — without this
+                the only way in is the portal sidebar. */}
+            <a href="/admin/surveys" className="tab-btn" style={{ textDecoration: 'none' }}>
+              Enrollment Forms ↗
+            </a>
           </div>
 
           {/* FAMILIES */}
