@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 
 import LocalTime from '../../LocalTime';
 import { formatUsd } from '@/lib/pricing';
+import { sessionTypeLabel } from '@/lib/sessionTypes';
 
 // The office view of every session-credit grant, and the only screen that can
 // honour the promise in the pricing FAQ: "packages have an expiry window, but
@@ -169,6 +170,8 @@ export default function AdminCreditsPage() {
       {error ? <div className="notice err">{error}</div> : null}
       {ok ? <div className="notice ok">{ok}</div> : null}
 
+      <AssignOnInvoice onAssigned={load} />
+
       <div className="grid" style={{ marginBottom: '1.1rem' }}>
         {/* Dashes rather than zeros while loading: a real 0 and an unknown must
             not look the same to the office. */}
@@ -259,7 +262,7 @@ export default function AdminCreditsPage() {
 
                         <td>
                           <div className="nowrap">
-                            {remaining} of {total} left
+                            {credit.pending ? `${total} awaiting payment` : `${remaining} of ${total} left`}
                           </div>
                           {credit.note ? <div className="muted small">{credit.note}</div> : null}
                         </td>
@@ -311,7 +314,12 @@ export default function AdminCreditsPage() {
                         </td>
 
                         <td>
-                          {remaining === 0 ? (
+                          {credit.pending ? (
+                            // An office assignment whose invoice has not settled:
+                            // nothing to extend, nothing used — the sessions turn
+                            // on when the bill is paid, or vanish if it is voided.
+                            <span className="pill info nowrap">awaiting payment</span>
+                          ) : remaining === 0 ? (
                             // Nothing left to rescue, so an expiry on this grant
                             // changes nothing for the family.
                             <span className="muted small nowrap">used up</span>
@@ -437,5 +445,159 @@ export default function AdminCreditsPage() {
         </p>
       </div>
     </>
+  );
+}
+
+
+// ── Assign a session pack on an invoice ─────────────────────────────
+// The other way sessions arrive (besides a family self-purchasing a pack, or
+// an offline Zelle grant): the office assigns them like a class seat. The
+// price is whatever the office types — custom pricing lives here — the bill
+// lands in the family's portal, and the sessions activate when it settles.
+// The handbook's quarterly discounts ($100 multi-class, $100 sibling, once
+// per quarter each, with 1:1/semi-private counting as classes) are applied by
+// the server automatically.
+const QUARTERS = [
+  ['fall-2026', 'Fall 2026'],
+  ['winter-2027', 'Winter 2027'],
+  ['spring-2027', 'Spring 2027'],
+  ['summer-2027', 'Summer 2027'],
+];
+
+function AssignOnInvoice({ onAssigned }) {
+  const [families, setFamilies] = useState([]);
+  const [tutors, setTutors] = useState([]);
+  const [userId, setUserId] = useState('');
+  const [studentName, setStudentName] = useState('');
+  const [tutorId, setTutorId] = useState('');
+  const [sessionType, setSessionType] = useState('semi_private');
+  const [sessions, setSessions] = useState('10');
+  const [price, setPrice] = useState(''); // dollars, free-typed — custom pricing
+  const [quarter, setQuarter] = useState(QUARTERS[0][0]);
+  const [busy, setBusy] = useState(false);
+  const [result, setResult] = useState(null); // { ok, text }
+
+  useEffect(() => {
+    fetch('/api/admin/families')
+      .then((r) => r.json())
+      .then((d) => setFamilies(d.families || []))
+      .catch(() => {});
+    fetch('/api/booking/tutors')
+      .then((r) => r.json())
+      .then((d) => setTutors(d.tutors || []))
+      .catch(() => {});
+  }, []);
+
+  const family = families.find((f) => f._id === userId) || null;
+  const students = family?.students || [];
+
+  async function submit(e) {
+    e.preventDefault();
+    setResult(null);
+    const priceCents = Math.round(Number(price) * 100);
+    if (!userId || !studentName || !tutorId) {
+      setResult({ ok: false, text: 'Pick a family, a student, and an instructor.' });
+      return;
+    }
+    if (!Number.isFinite(priceCents) || priceCents < 100) {
+      setResult({ ok: false, text: 'Enter the price in dollars (at least $1).' });
+      return;
+    }
+    setBusy(true);
+    try {
+      const res = await fetch('/api/admin/credits/assign', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId, studentName, tutorId, sessionType, sessions: Number(sessions), priceCents, quarter }),
+      });
+      const d = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setResult({ ok: false, text: d.error || 'Failed to assign the sessions.' });
+        return;
+      }
+      const disc = d.discountsApplied?.length ? ` · applied: ${d.discountsApplied.join(', ')}` : '';
+      setResult({
+        ok: true,
+        text: `Invoice ${d.invoice.number} raised for ${formatUsd(d.invoice.subtotalCents)}${disc}. The sessions activate when it settles.`,
+      });
+      onAssigned?.();
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <div className="card">
+      <div className="card-head">
+        <h2>Assign sessions on an invoice</h2>
+      </div>
+      <p className="muted small" style={{ margin: '0 0 0.9rem' }}>
+        Bills the family in their portal instead of them buying a pack — the price is yours to set.
+        Quarterly discounts ($100 multi-class / $100 sibling, once each per quarter, 1:1 and
+        semi-private count as classes) apply automatically.
+      </p>
+      {result ? (
+        <div className={`notice ${result.ok ? 'ok' : 'err'}`} style={{ marginBottom: '0.9rem' }}>
+          {result.text}
+        </div>
+      ) : null}
+      <form onSubmit={submit} style={{ display: 'flex', flexWrap: 'wrap', gap: '0.7rem', alignItems: 'flex-end' }}>
+        <div className="field" style={{ minWidth: 190 }}>
+          <div className="flabel">Family</div>
+          <select className="finput" value={userId} onChange={(e) => { setUserId(e.target.value); setStudentName(''); }}>
+            <option value="">Choose…</option>
+            {families.map((f) => (
+              <option key={f._id} value={f._id}>
+                {[f.firstName, f.lastName].filter(Boolean).join(' ') || f.name || f.email}
+              </option>
+            ))}
+          </select>
+        </div>
+        <div className="field" style={{ minWidth: 150 }}>
+          <div className="flabel">Student</div>
+          <select className="finput" value={studentName} onChange={(e) => setStudentName(e.target.value)} disabled={!family}>
+            <option value="">Choose…</option>
+            {students.map((st, i) => (
+              <option key={st._id || i} value={st.name}>{st.name}</option>
+            ))}
+          </select>
+        </div>
+        <div className="field" style={{ minWidth: 150 }}>
+          <div className="flabel">Instructor</div>
+          <select className="finput" value={tutorId} onChange={(e) => setTutorId(e.target.value)}>
+            <option value="">Choose…</option>
+            {tutors.map((t) => (
+              <option key={t._id} value={t._id}>{t.name}</option>
+            ))}
+          </select>
+        </div>
+        <div className="field" style={{ minWidth: 140 }}>
+          <div className="flabel">Kind</div>
+          <select className="finput" value={sessionType} onChange={(e) => setSessionType(e.target.value)}>
+            <option value="semi_private">{sessionTypeLabel('semi_private')}</option>
+            <option value="private">{sessionTypeLabel('private')}</option>
+          </select>
+        </div>
+        <div className="field" style={{ width: 90 }}>
+          <div className="flabel">Sessions</div>
+          <input className="finput" type="number" min="1" max="200" value={sessions} onChange={(e) => setSessions(e.target.value)} />
+        </div>
+        <div className="field" style={{ width: 120 }}>
+          <div className="flabel">Price ($)</div>
+          <input className="finput" type="number" min="1" step="0.01" value={price} onChange={(e) => setPrice(e.target.value)} placeholder="custom" />
+        </div>
+        <div className="field" style={{ minWidth: 140 }}>
+          <div className="flabel">Quarter</div>
+          <select className="finput" value={quarter} onChange={(e) => setQuarter(e.target.value)}>
+            {QUARTERS.map(([v, l]) => (
+              <option key={v} value={v}>{l}</option>
+            ))}
+          </select>
+        </div>
+        <button type="submit" className="btn btn-primary" disabled={busy}>
+          {busy ? 'Assigning…' : 'Assign & invoice'}
+        </button>
+      </form>
+    </div>
   );
 }

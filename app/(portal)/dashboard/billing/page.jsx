@@ -23,6 +23,7 @@ function pillClass(status) {
 
 function money(cents) {
   const c = cents || 0;
+  if (c < 0) return '\u2212' + money(-c); // a discount line reads −$100, not $-100
   return '$' + (c / 100).toLocaleString('en-US', {
     minimumFractionDigits: c % 100 === 0 ? 0 : 2,
     maximumFractionDigits: 2,

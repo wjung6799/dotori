@@ -5,6 +5,7 @@ import SessionCredit from '@/lib/models/SessionCredit';
 import Invoice from '@/lib/models/Invoice';
 import User from '@/lib/models/User';
 import { expiryFor } from '@/lib/pricing';
+import { activateInvoiceCredit } from '@/lib/invoicing';
 import { getStripe } from '@/lib/stripe';
 import { sendCreditPurchaseFailed, sendInvoicePaymentFailed, sendOrderConfirmation } from '@/lib/mailer';
 import { createPrintfulOrder } from '@/lib/printful';
@@ -187,9 +188,29 @@ async function settleInvoice(pi) {
     return;
   }
 
+  // Money can land on a bill the office has since voided (an ACH takes days).
+  // Never resurrect a void invoice into 'paid' silently — record that the
+  // payment arrived (the $push above already did) and shout for a human.
+  if (invoice.status === 'void') {
+    console.error(
+      `REFUND NEEDED: payment ${pi.id} (${amountCents}c) landed on VOID invoice ${invoice.number} — the family paid a cancelled bill.`,
+    );
+    return;
+  }
+
   invoice.status = 'paid';
   invoice.paidAt = new Date();
   await invoice.save();
+
+  // An assigned session pack rides this bill: money in → sessions on.
+  if (invoice.creditId) {
+    const activated = await activateInvoiceCredit(invoice);
+    if (!activated) {
+      console.error(
+        `SESSIONS MISSING: invoice ${invoice.number} settled but its session pack ${invoice.creditId} was not pending — re-grant by hand.`,
+      );
+    }
+  }
 
   if (invoice.enrollmentId) {
     // amountPaid tracks tuition actually received — the card fee is processing

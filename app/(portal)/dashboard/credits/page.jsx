@@ -719,7 +719,10 @@ export default function CreditsPage() {
                     </td>
                     <td>
                       {g.pending ? (
-                        <span className="pill info">Bank transfer clearing</span>
+                        // Two ways a pack can be pending: an ACH purchase mid-
+                        // clearing (a Stripe intent exists) or an office
+                        // assignment whose invoice is still unpaid.
+                        <span className="pill info">{g.paid ? 'Bank transfer clearing' : 'Awaiting invoice payment'}</span>
                       ) : g.paid ? (
                         <span className="pill ok">Paid online</span>
                       ) : (

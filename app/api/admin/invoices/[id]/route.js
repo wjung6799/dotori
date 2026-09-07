@@ -2,6 +2,8 @@ import mongoose from 'mongoose';
 import dbConnect from '@/lib/db';
 import Invoice from '@/lib/models/Invoice';
 import Enrollment from '@/lib/models/Enrollment';
+import SessionCredit from '@/lib/models/SessionCredit';
+import { activateInvoiceCredit, releaseInvoiceCredit } from '@/lib/invoicing';
 import { getAdminUser, forbidden } from '@/lib/auth-helpers';
 
 export const dynamic = 'force-dynamic';
@@ -36,6 +38,11 @@ export async function PATCH(request, { params }) {
     if (invoice.status === 'paid') {
       return Response.json({ error: 'Already paid.' }, { status: 409 });
     }
+    // A voided assignment's session pack is gone; reopen first — that path
+    // checks the pack still exists before the bill can look payable again.
+    if (invoice.status === 'void') {
+      return Response.json({ error: 'This invoice is void. Reopen it first.' }, { status: 409 });
+    }
     // A bank debit in flight must not be hand-settled: if the debit later fails
     // the school would believe it had been paid twice over.
     if (invoice.status === 'processing') {
@@ -61,10 +68,21 @@ export async function PATCH(request, { params }) {
         amountPaid: invoice.subtotalCents / 100,
       });
     }
+    // An assigned session pack rides this bill: money in → sessions on.
+    await activateInvoiceCredit(invoice);
     return Response.json({ ok: true, status: 'paid' });
   }
 
   if (action === 'void') {
+    // A bank debit in flight WILL land days from now; voiding underneath it
+    // would delete the pending session pack and then have the webhook settle a
+    // void bill — money taken, sessions gone. Same reason mark_paid refuses.
+    if (invoice.status === 'processing') {
+      return Response.json(
+        { error: 'A bank transfer is still clearing on this invoice. Wait for it to settle or fail.' },
+        { status: 409 },
+      );
+    }
     if (invoice.status === 'paid') {
       return Response.json(
         { error: 'A paid invoice cannot be voided — refund it in Stripe instead.' },
@@ -75,12 +93,22 @@ export async function PATCH(request, { params }) {
     invoice.voidedAt = new Date();
     if (note) invoice.notes = note;
     await invoice.save();
+    // Only after the void is durable does the unfulfilled session pack go.
+    await releaseInvoiceCredit(invoice);
     return Response.json({ ok: true, status: 'void' });
   }
 
   if (action === 'reopen') {
     if (invoice.status !== 'void') {
       return Response.json({ error: 'Only a voided invoice can be reopened.' }, { status: 409 });
+    }
+    // Voiding an assignment deleted its pending session pack; an invoice whose
+    // promise is gone must not come back looking payable.
+    if (invoice.creditId && !(await SessionCredit.exists({ _id: invoice.creditId }))) {
+      return Response.json(
+        { error: 'The session pack on this invoice was cancelled with it. Assign the sessions again instead.' },
+        { status: 409 },
+      );
     }
     invoice.status = 'open';
     invoice.voidedAt = null;
