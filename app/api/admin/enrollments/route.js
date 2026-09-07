@@ -1,7 +1,6 @@
 import dbConnect from '@/lib/db';
 import Enrollment from '@/lib/models/Enrollment';
-import Invoice from '@/lib/models/Invoice';
-import { createClassInvoice } from '@/lib/invoicing';
+import { createClassInvoice, findOpenEnrollmentInvoice, addSeatToInvoice } from '@/lib/invoicing';
 import User from '@/lib/models/User';   // registers model for populate()
 import Class from '@/lib/models/Class'; // registers model for populate()
 import { getAdminUser, forbidden } from '@/lib/auth-helpers';
@@ -104,15 +103,26 @@ export async function POST(request) {
     // Only an unsettled seat gets a bill. Marking it paid means the money
     // already arrived (Zelle, cash, a previous term's credit).
     let invoice = null;
+    let mergedInto = null;
     if (paymentStatus !== 'paid') {
       try {
-        invoice = await createClassInvoice({
-          user: { _id: userId },
-          enrollment,
-          cls,
-          priceOption,
-          issuedBy: 'admin',
-        });
+        // If the family already has an OPEN enrollment invoice this quarter,
+        // this seat joins it — one invoice for the whole family, however the
+        // office enrolls. Otherwise a fresh bill is raised.
+        const open = await findOpenEnrollmentInvoice({ userId, quarter: cls.quarter });
+        const tuitionCents = priceOption ? Math.round(priceOption.price * 100) : Math.round(Number(cls.price || 0) * 100);
+        if (open && tuitionCents > 0) {
+          invoice = await addSeatToInvoice({ invoice: open, cls, studentName, tuitionCents, priceOption, enrollmentId: enrollment._id });
+          mergedInto = invoice.number;
+        } else {
+          invoice = await createClassInvoice({
+            user: { _id: userId },
+            enrollment,
+            cls,
+            priceOption,
+            issuedBy: 'admin',
+          });
+        }
       } catch (invErr) {
         // The seat is real even if the paperwork failed; surface it rather than
         // rolling back a placement the office just made.
@@ -125,6 +135,7 @@ export async function POST(request) {
         ok: true,
         enrollment,
         invoice: invoice ? { id: String(invoice._id), number: invoice.number, subtotalCents: invoice.subtotalCents } : null,
+        mergedInto,
         // Tell the admin why no bill appeared, instead of leaving them guessing.
         invoiceNote:
           paymentStatus === 'paid'

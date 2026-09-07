@@ -82,7 +82,6 @@ export async function POST(request) {
   try {
     const discounts = await quarterlyDiscountLines({
       userId: family._id,
-      studentName,
       quarter,
       baseCents: priceCents,
     });

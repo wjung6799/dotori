@@ -3,7 +3,7 @@ import dbConnect from '@/lib/db';
 import EnrollmentRequest from '@/lib/models/EnrollmentRequest';
 import Enrollment from '@/lib/models/Enrollment';
 import Class from '@/lib/models/Class';
-import { createClassInvoice } from '@/lib/invoicing';
+import { createClassInvoice, findOpenEnrollmentInvoice, addSeatToInvoice } from '@/lib/invoicing';
 import { getAdminUser, forbidden } from '@/lib/auth-helpers';
 
 export const dynamic = 'force-dynamic';
@@ -94,13 +94,21 @@ export async function PATCH(request, { params }) {
   let invoice = null;
   if (!markPaid) {
     try {
-      invoice = await createClassInvoice({
-        user: { _id: req.userId },
-        enrollment,
-        cls,
-        issuedBy: adminName,
-        notes: req.note,
-      });
+      // Same one-invoice-per-family rule as the enrollment desk: join an open
+      // enrollment invoice this quarter if there is one, else raise a fresh bill.
+      const open = await findOpenEnrollmentInvoice({ userId: req.userId, quarter: cls.quarter });
+      const tuitionCents = Math.round(Number(cls.price || 0) * 100);
+      if (open && tuitionCents > 0) {
+        invoice = await addSeatToInvoice({ invoice: open, cls, studentName: req.studentName, tuitionCents, priceOption: null, enrollmentId: enrollment._id });
+      } else {
+        invoice = await createClassInvoice({
+          user: { _id: req.userId },
+          enrollment,
+          cls,
+          issuedBy: adminName,
+          notes: req.note,
+        });
+      }
     } catch (err) {
       console.error('Invoice creation failed approving request', id, err);
     }

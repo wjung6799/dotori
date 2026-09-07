@@ -1,6 +1,7 @@
 import dbConnect from '@/lib/db';
 import Enrollment from '@/lib/models/Enrollment';
 import Invoice from '@/lib/models/Invoice';
+import { removeSeatFromInvoice } from '@/lib/invoicing';
 import User from '@/lib/models/User';   // registers model for populate()
 import Class from '@/lib/models/Class'; // registers model for populate()
 import { getAdminUser, forbidden } from '@/lib/auth-helpers';
@@ -50,8 +51,10 @@ export async function DELETE(request, { params }) {
     const enrollment = await Enrollment.findById(id);
     if (!enrollment) return Response.json({ error: 'Enrollment not found.' }, { status: 404 });
 
+    // The seat may be the primary enrollment of its bill or one merged into it,
+    // so match either link.
     const invoice = await Invoice.findOne({
-      enrollmentId: enrollment._id,
+      $or: [{ enrollmentId: enrollment._id }, { enrollmentIds: enrollment._id }],
       status: { $in: ['open', 'processing'] },
     });
     if (invoice?.status === 'processing') {
@@ -60,13 +63,18 @@ export async function DELETE(request, { params }) {
         { status: 409 },
       );
     }
+
+    // Delete the seat FIRST, so the discount recompute below counts the family's
+    // state WITHOUT it — otherwise a dropped sibling still triggers its discount.
+    await enrollment.deleteOne();
+
+    let voidedInvoice = null;
     if (invoice) {
-      invoice.status = 'void';
-      await invoice.save();
+      const { voided } = await removeSeatFromInvoice({ invoice, enrollmentId: enrollment._id });
+      if (voided) voidedInvoice = invoice.number;
     }
 
-    await enrollment.deleteOne();
-    return Response.json({ ok: true, voidedInvoice: invoice?.number || null });
+    return Response.json({ ok: true, voidedInvoice });
   } catch (err) {
     console.error('Enrollment delete error:', err);
     return Response.json({ error: 'Failed to delete enrollment.' }, { status: 500 });

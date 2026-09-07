@@ -3,7 +3,7 @@ import dbConnect from '@/lib/db';
 import Enrollment from '@/lib/models/Enrollment';
 import Class from '@/lib/models/Class';
 import User from '@/lib/models/User';
-import { createInvoice, bundleDiscountLines } from '@/lib/invoicing';
+import { createInvoice, quarterlyDiscountLines } from '@/lib/invoicing';
 import { getAdminUser, forbidden } from '@/lib/auth-helpers';
 
 export const dynamic = 'force-dynamic';
@@ -100,16 +100,7 @@ export async function POST(request) {
   }
   const quarter = [...quarters][0] || '';
 
-  // Discounts decided across the whole bundle BEFORE the enrollments exist, so
-  // the bundle's own students are not counted against themselves.
   const baseCents = resolved.reduce((sum, r) => sum + r.tuitionCents, 0);
-  const discounts = await bundleDiscountLines({
-    userId: family._id,
-    quarter,
-    items: resolved.map((r) => ({ studentName: r.studentName })),
-    baseCents,
-  });
-
   const created = [];
   try {
     for (const r of resolved) {
@@ -124,6 +115,10 @@ export async function POST(request) {
       });
       created.push({ enr, r });
     }
+
+    // Discounts across everything the family now holds this quarter (the seats
+    // just created included), decided once for the whole bundle.
+    const discounts = await quarterlyDiscountLines({ userId: family._id, quarter, baseCents });
 
     const invoice = await createInvoice({
       userId: family._id,
