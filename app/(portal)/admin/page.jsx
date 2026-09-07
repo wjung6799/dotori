@@ -1,7 +1,6 @@
 'use client';
 
 import { Fragment, useState, useEffect, useCallback, useRef } from 'react';
-import { useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import { LITERACY_SLOTS } from '@/lib/literacySlots';
 import SurveyDetails from './SurveyDetails';
@@ -32,12 +31,6 @@ const pageCss = `
     .flabel { display: block; font-weight: 600; color: #6b5b47; margin-bottom: 0.3rem; font-size: 0.85rem; }
     .finput { width: 100%; padding: 0.65rem 0.8rem; border: 1.5px solid #ddd; border-radius: 8px; font-size: 0.9rem; background: #fff; box-sizing: border-box; }
 
-    @media (max-width: 768px) {
-      .logo-img { display: none !important; }
-      .logo-text { display: inline-block !important; }
-      nav.container { display: flex; align-items: center; padding: 0 1rem; min-height: 56px; }
-      body { padding-top: 0; }
-    }
 `;
 
 // ── Small reusable stat card ──────────────────────────────────
@@ -71,11 +64,9 @@ function StatCard({ label, value, color }) {
 }
 
 export default function AdminPage() {
-  const router = useRouter();
-  const { data: session, status } = useSession();
+  const { data: session } = useSession();
 
   const [adminName, setAdminName] = useState('');
-  const [authChecked, setAuthChecked] = useState(false);
   const [tab, setTab] = useState('families');
 
   // Stats
@@ -225,19 +216,20 @@ export default function AdminPage() {
     setOrders(data.orders || []);
   }, [orderFilterPay, orderFilterFulfill]);
 
-  // ── Init (auth check + initial load) ────────────────────────
+  // ── Init (initial load) ─────────────────────────────────────
+  // Middleware already turns non-admins away from /admin/*, so the page only
+  // has to load its data.
   useEffect(() => {
-    // Auth is handled by Auth.js (next-auth) + middleware (admin role gate).
-    if (status === 'loading') return;
-    if (status !== 'authenticated' || session?.user?.role !== 'admin') {
-      router.push('/login');
-      return;
-    }
-    setAdminName(`Logged in as ${session.user.name || session.user.email}`);
-    setAuthChecked(true);
     loadFamilies();
     loadStats();
-  }, [router, status, session, loadFamilies, loadStats]);
+  }, [loadFamilies, loadStats]);
+
+  // Who is signed in, for the page-head badge.
+  useEffect(() => {
+    if (session?.user) {
+      setAdminName(`Logged in as ${session.user.name || session.user.email}`);
+    }
+  }, [session]);
 
   // ── Tab switching: load data for selected tab ───────────────
   const switchTab = (t) => {
@@ -252,13 +244,13 @@ export default function AdminPage() {
 
   // Reload enrollments when filters change (only when tab active)
   useEffect(() => {
-    if (authChecked && tab === 'enrollments') loadEnrollments();
-  }, [enrollQuarter, enrollStatus, authChecked, tab, loadEnrollments]);
+    if (tab === 'enrollments') loadEnrollments();
+  }, [enrollQuarter, enrollStatus, tab, loadEnrollments]);
 
   // Reload orders when filters change (only when tab active)
   useEffect(() => {
-    if (authChecked && tab === 'orders') loadAdminOrders();
-  }, [orderFilterPay, orderFilterFulfill, authChecked, tab, loadAdminOrders]);
+    if (tab === 'orders') loadAdminOrders();
+  }, [orderFilterPay, orderFilterFulfill, tab, loadAdminOrders]);
 
   // The survey submitted for one family's student, if any.
   const surveyFor = (familyId, studentName) =>
@@ -594,56 +586,29 @@ export default function AdminPage() {
           fontSize: '0.85rem',
         };
 
-  if (!authChecked) {
-    return (
-      <>
-        <style dangerouslySetInnerHTML={{ __html: pageCss }} />
-        <main>
-          <div className="container" style={{ padding: '2rem 1rem 4rem' }}>
-            <p style={{ color: '#aaa' }}>Loading…</p>
-          </div>
-        </main>
-      </>
-    );
-  }
-
   const fulfillerLabel = { printful: 'Printful', lulu: 'Lulu', manual: 'Manual' };
 
   return (
     <>
       <style dangerouslySetInnerHTML={{ __html: pageCss }} />
 
-      <main>
-        <div className="container" style={{ padding: '2rem 1rem 4rem' }}>
-          <div
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              marginBottom: '2rem',
-              flexWrap: 'wrap',
-              gap: '1rem',
-            }}
-          >
-            <h1 style={{ color: '#6b5b47', margin: 0, fontSize: '1.8rem' }}>Admin Dashboard</h1>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-              <a
-                href="/admin/booking"
-                style={{
-                  padding: '8px 16px',
-                  borderRadius: 999,
-                  background: '#e8a87c',
-                  color: '#fff',
-                  fontWeight: 700,
-                  textDecoration: 'none',
-                  fontSize: '0.9rem',
-                }}
-              >
-                Booking Admin →
-              </a>
-              <span style={{ color: '#aaa', fontSize: '0.9rem' }}>{adminName}</span>
-            </div>
-          </div>
+      <div className="page-head">
+        <div>
+          <h1>Families & records</h1>
+          <p className="lede">
+            The school records in one console — families and their enrollment forms,
+            class rosters, seat counts, report cards, and the shop.
+          </p>
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.8rem', flexWrap: 'wrap' }}>
+          <a href="/admin/booking" className="btn btn-primary">
+            Booking Admin →
+          </a>
+          <span className="muted small">{adminName}</span>
+        </div>
+      </div>
+
+      <div>
 
           {/* Stats bar */}
           <div
@@ -1927,8 +1892,7 @@ export default function AdminPage() {
               )}
             </div>
           </div>
-        </div>
-      </main>
+      </div>
 
       {/* Order Edit Modal */}
       {editingOrderId && (

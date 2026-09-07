@@ -1,33 +1,25 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
-import Link from 'next/link';
-import { useSession } from 'next-auth/react';
 import AvailabilityCalendar from '@/components/AvailabilityCalendar';
 
-const BROWN = '#6b5b47';
-const ACCENT = '#e8a87c';
-
+// Middleware already turns non-admins away from /admin/*, and the portal shell
+// provides the chrome — this page only has to worry about the booking data.
 export default function AdminBookingPage() {
-  const { status } = useSession();
   const [tab, setTab] = useState('tutors');
 
-  if (status === 'loading') return <Pad>Loading…</Pad>;
-  if (status !== 'authenticated')
-    return (
-      <Pad>
-        Please <Link href="/login" style={{ color: ACCENT }}>log in</Link> as an admin.
-      </Pad>
-    );
-
   return (
-    <section style={{ maxWidth: 1000, margin: '40px auto', padding: '0 1rem' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 18 }}>
-        <h1 style={{ color: BROWN, margin: 0 }}>Booking Admin</h1>
-        <Link href="/admin" style={{ color: ACCENT, fontWeight: 600 }}>← Main admin</Link>
+    <>
+      <div className="page-head">
+        <div>
+          <h1>Availability</h1>
+          <p className="lede">
+            Instructors and their weekly slots, session credits, upcoming bookings, and placement tests.
+          </p>
+        </div>
       </div>
 
-      <div style={{ display: 'flex', gap: 6, borderBottom: '1px solid #eee', marginBottom: 20, flexWrap: 'wrap' }}>
+      <div style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap', marginBottom: '1.1rem' }}>
         {[
           ['tutors', 'Instructors'],
           ['availability', 'Availability'],
@@ -37,16 +29,9 @@ export default function AdminBookingPage() {
         ].map(([k, label]) => (
           <button
             key={k}
+            type="button"
+            className={`btn btn-sm ${tab === k ? 'btn-primary' : 'btn-ghost'}`}
             onClick={() => setTab(k)}
-            style={{
-              padding: '10px 16px',
-              border: 'none',
-              borderBottom: `3px solid ${tab === k ? ACCENT : 'transparent'}`,
-              background: 'none',
-              color: tab === k ? BROWN : '#9b8b77',
-              fontWeight: 600,
-              cursor: 'pointer',
-            }}
           >
             {label}
           </button>
@@ -58,7 +43,7 @@ export default function AdminBookingPage() {
       {tab === 'sessions' && <SessionsTab />}
       {tab === 'bookings' && <BookingsTab />}
       {tab === 'placements' && <PlacementTab />}
-    </section>
+    </>
   );
 }
 
@@ -103,18 +88,21 @@ function TutorsTab() {
   }
 
   return (
-    <Card>
-      <form onSubmit={add} style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 18 }}>
-        <input placeholder="Instructor name" value={name} onChange={(e) => setName(e.target.value)} style={inp()} required />
-        <input placeholder="Specialty (optional)" value={specialty} onChange={(e) => setSpecialty(e.target.value)} style={inp()} />
-        <button style={btn()}>Add instructor</button>
+    <div className="card">
+      <div className="card-head">
+        <h2>Instructors</h2>
+      </div>
+      <form onSubmit={add} style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', marginBottom: '1.1rem' }}>
+        <input className="input" style={{ width: 'auto', flex: '1 1 180px' }} placeholder="Instructor name" value={name} onChange={(e) => setName(e.target.value)} required />
+        <input className="input" style={{ width: 'auto', flex: '1 1 180px' }} placeholder="Specialty (optional)" value={specialty} onChange={(e) => setSpecialty(e.target.value)} />
+        <button className="btn btn-primary">Add instructor</button>
       </form>
-      {msg && <p style={{ color: '#a3261a' }}>{msg}</p>}
+      {msg && <div className="notice err">{msg}</div>}
       {tutors.map((t) => (
         <TutorRow key={t._id} tutor={t} onChanged={load} onToggle={() => toggle(t)} onRemove={() => remove(t)} />
       ))}
       {tutors.length === 0 && <Empty>No instructors yet. Add one above.</Empty>}
-    </Card>
+    </div>
   );
 }
 
@@ -156,42 +144,40 @@ function TutorRow({ tutor, onChanged, onToggle, onRemove }) {
   }
 
   return (
-    <div style={{ borderBottom: '1px solid #f0ede8', padding: '10px 0' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12 }}>
-        <div>
-          <strong style={{ color: BROWN }}>{tutor.name}</strong>
-          {tutor.specialty ? <span style={{ color: '#9b8b77' }}> · {tutor.specialty}</span> : null}
-          {!tutor.active && <span style={{ color: '#b5654a' }}> (hidden)</span>}
-          <span style={{ marginLeft: 8, fontSize: '0.78rem', color: linked ? '#1e6b2e' : '#b08a5a' }}>
-            {linked ? '● has login' : '○ no login'}
-          </span>
-        </div>
-        <div style={{ display: 'flex', gap: 8 }}>
-          <button onClick={() => setEditing((v) => !v)} style={ghost()}>Edit</button>
-          <button onClick={() => setOpen((v) => !v)} style={ghost()}>Login</button>
-          <button onClick={onToggle} style={ghost()}>{tutor.active ? 'Hide' : 'Show'}</button>
-          <button onClick={onRemove} style={danger()}>Delete</button>
-        </div>
+    <div className="row">
+      <div className="main">
+        <span className="strong">{tutor.name}</span>
+        {tutor.specialty ? <span className="muted"> · {tutor.specialty}</span> : null}
+        {!tutor.active && <span className="pill warn" style={{ marginLeft: 8 }}>hidden</span>}
+        <span className={`pill ${linked ? 'ok' : 'mute'}`} style={{ marginLeft: 8 }}>
+          {linked ? 'has login' : 'no login'}
+        </span>
+      </div>
+      <div style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap' }}>
+        <button type="button" className="btn btn-ghost btn-sm" onClick={() => setEditing((v) => !v)}>Edit</button>
+        <button type="button" className="btn btn-ghost btn-sm" onClick={() => setOpen((v) => !v)}>Login</button>
+        <button type="button" className="btn btn-ghost btn-sm" onClick={onToggle}>{tutor.active ? 'Hide' : 'Show'}</button>
+        <button type="button" className="btn btn-ghost btn-sm" style={{ color: 'var(--err)' }} onClick={onRemove}>Delete</button>
       </div>
       {editing && (
-        <form onSubmit={saveEdit} style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center', marginTop: 10, background: '#faf8f5', padding: 10, borderRadius: 10 }}>
-          <input placeholder="Name" value={editName} onChange={(e) => setEditName(e.target.value)} style={inp()} required />
-          <input placeholder="Specialty / label (e.g. Korean Language Learning)" value={editSpecialty} onChange={(e) => setEditSpecialty(e.target.value)} style={{ ...inp(), minWidth: 240 }} />
-          <button style={btn()}>Save</button>
-          <button type="button" onClick={() => { setEditName(tutor.name); setEditSpecialty(tutor.specialty || ''); setEditing(false); }} style={ghost()}>Cancel</button>
-          <span style={{ fontSize: '0.78rem', color: '#9b8b77', flexBasis: '100%' }}>Leave specialty blank to remove the label entirely.</span>
+        <form onSubmit={saveEdit} style={{ flexBasis: '100%', display: 'flex', gap: '0.5rem', flexWrap: 'wrap', alignItems: 'center' }}>
+          <input className="input" style={{ width: 'auto', flex: '1 1 160px' }} placeholder="Name" value={editName} onChange={(e) => setEditName(e.target.value)} required />
+          <input className="input" style={{ width: 'auto', flex: '1 1 240px' }} placeholder="Specialty / label (e.g. Korean Language Learning)" value={editSpecialty} onChange={(e) => setEditSpecialty(e.target.value)} />
+          <button className="btn btn-primary btn-sm">Save</button>
+          <button type="button" className="btn btn-ghost btn-sm" onClick={() => { setEditName(tutor.name); setEditSpecialty(tutor.specialty || ''); setEditing(false); }}>Cancel</button>
+          <span className="muted small" style={{ flexBasis: '100%' }}>Leave specialty blank to remove the label entirely.</span>
         </form>
       )}
       {open && (
-        <form onSubmit={link} style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center', marginTop: 10, background: '#faf8f5', padding: 10, borderRadius: 10 }}>
-          <input type="email" placeholder="instructor email" value={email} onChange={(e) => setEmail(e.target.value)} style={inp()} required />
-          <input type="password" placeholder="password (only if new account)" value={password} onChange={(e) => setPassword(e.target.value)} style={inp()} />
-          <button style={btn()}>{linked ? 'Re-link' : 'Give login'}</button>
-          {linked && <button type="button" onClick={unlink} style={danger()}>Unlink</button>}
-          <span style={{ fontSize: '0.78rem', color: '#9b8b77', flexBasis: '100%' }}>
+        <form onSubmit={link} style={{ flexBasis: '100%', display: 'flex', gap: '0.5rem', flexWrap: 'wrap', alignItems: 'center' }}>
+          <input className="input" style={{ width: 'auto', flex: '1 1 180px' }} type="email" placeholder="instructor email" value={email} onChange={(e) => setEmail(e.target.value)} required />
+          <input className="input" style={{ width: 'auto', flex: '1 1 180px' }} type="password" placeholder="password (only if new account)" value={password} onChange={(e) => setPassword(e.target.value)} />
+          <button className="btn btn-primary btn-sm">{linked ? 'Re-link' : 'Give login'}</button>
+          {linked && <button type="button" className="btn btn-ghost btn-sm" style={{ color: 'var(--err)' }} onClick={unlink}>Unlink</button>}
+          <span className="muted small" style={{ flexBasis: '100%' }}>
             If the email already has an account, they&apos;re promoted to tutor (password ignored). Otherwise a new tutor login is created with the password.
           </span>
-          {msg && <span style={{ color: msg.includes('Failed') ? '#a3261a' : '#1e6b2e', flexBasis: '100%' }}>{msg}</span>}
+          {msg && <span className="small" style={{ flexBasis: '100%', color: msg.includes('Failed') ? 'var(--err)' : 'var(--ok)' }}>{msg}</span>}
         </form>
       )}
     </div>
@@ -245,11 +231,16 @@ function AvailabilityTab() {
   }
 
   return (
-    <Card>
-      <label style={{ color: BROWN, fontWeight: 600 }}>Instructor:&nbsp;</label>
-      <select value={tutorId} onChange={(e) => setTutorId(e.target.value)} style={{ ...inp(), marginBottom: 16 }}>
-        {tutors.map((t) => <option key={t._id} value={t._id}>{t.name}</option>)}
-      </select>
+    <div className="card">
+      <div className="card-head">
+        <h2>Weekly availability</h2>
+      </div>
+      <div className="field" style={{ maxWidth: 320 }}>
+        <label htmlFor="avail-tutor">Instructor</label>
+        <select id="avail-tutor" value={tutorId} onChange={(e) => setTutorId(e.target.value)}>
+          {tutors.map((t) => <option key={t._id} value={t._id}>{t.name}</option>)}
+        </select>
+      </div>
       {tutorId ? (
         <AvailabilityCalendar
           schedules={schedules}
@@ -260,7 +251,7 @@ function AvailabilityTab() {
           onStopSeries={stopSeries}
         />
       ) : <Empty>Add an instructor first.</Empty>}
-    </Card>
+    </div>
   );
 }
 
@@ -305,42 +296,64 @@ function SessionsTab() {
   }
 
   return (
-    <Card>
-      <form onSubmit={grant} style={{ display: 'grid', gap: 10, maxWidth: 460 }}>
-        <label style={lbl()}>Family</label>
-        <select value={userId} onChange={(e) => setUserId(e.target.value)} style={inp()} required>
-          <option value="">Select a family…</option>
-          {families.map((f) => <option key={f._id} value={f._id}>{famName(f)} ({f.email})</option>)}
-        </select>
-
-        <label style={lbl()}>Sessions to add</label>
-        <input type="number" min="1" value={sessions} onChange={(e) => setSessions(e.target.value)} style={inp()} required />
-
-        <label style={lbl()}>Instructor (optional; leave blank for any instructor)</label>
-        <select value={tutorId} onChange={(e) => setTutorId(e.target.value)} style={inp()}>
-          <option value="">Any instructor</option>
-          {tutors.map((t) => <option key={t._id} value={t._id}>{t.name}</option>)}
-        </select>
-
-        <label style={lbl()}>Note (e.g. &quot;Paid $200 via Zelle&quot;)</label>
-        <input value={note} onChange={(e) => setNote(e.target.value)} style={inp()} />
-
-        <button style={btn()} disabled={!userId}>Add sessions</button>
-        {msg && <span style={{ color: msg === 'Sessions added.' ? '#1e6b2e' : '#a3261a' }}>{msg}</span>}
-      </form>
-
-      <h3 style={{ color: BROWN, marginTop: 24 }}>Recent grants</h3>
-      {grants.map((g) => (
-        <Row key={g._id}>
-          <div style={{ color: BROWN, fontSize: '0.9rem' }}>
-            <strong>{g.userId ? (famName(g.userId)) : 'Family'}</strong> · {g.remainingSessions}/{g.totalSessions} left
-            {g.tutorId ? ` · ${g.tutorId.name}` : ' · any instructor'}
-            {g.note ? <span style={{ color: '#9b8b77' }}> · {g.note}</span> : null}
+    <>
+      <div className="card">
+        <div className="card-head">
+          <h2>Add sessions</h2>
+        </div>
+        <form onSubmit={grant} style={{ maxWidth: 460 }}>
+          <div className="field">
+            <label htmlFor="grant-family">Family</label>
+            <select id="grant-family" value={userId} onChange={(e) => setUserId(e.target.value)} required>
+              <option value="">Select a family…</option>
+              {families.map((f) => <option key={f._id} value={f._id}>{famName(f)} ({f.email})</option>)}
+            </select>
           </div>
-        </Row>
-      ))}
-      {grants.length === 0 && <Empty>No session grants yet.</Empty>}
-    </Card>
+
+          <div className="field">
+            <label htmlFor="grant-sessions">Sessions to add</label>
+            <input id="grant-sessions" type="number" min="1" value={sessions} onChange={(e) => setSessions(e.target.value)} required />
+          </div>
+
+          <div className="field">
+            <label htmlFor="grant-tutor">Instructor (optional; leave blank for any instructor)</label>
+            <select id="grant-tutor" value={tutorId} onChange={(e) => setTutorId(e.target.value)}>
+              <option value="">Any instructor</option>
+              {tutors.map((t) => <option key={t._id} value={t._id}>{t.name}</option>)}
+            </select>
+          </div>
+
+          <div className="field">
+            <label htmlFor="grant-note">Note (e.g. &quot;Paid $200 via Zelle&quot;)</label>
+            <input id="grant-note" value={note} onChange={(e) => setNote(e.target.value)} />
+          </div>
+
+          <button className="btn btn-primary" disabled={!userId}>Add sessions</button>
+          {msg && (
+            <div className={`notice ${msg === 'Sessions added.' ? 'ok' : 'err'}`} style={{ marginTop: '0.9rem', marginBottom: 0 }}>
+              {msg}
+            </div>
+          )}
+        </form>
+      </div>
+
+      <div className="card">
+        <div className="card-head">
+          <h2>Recent grants</h2>
+        </div>
+        {grants.map((g) => (
+          <div className="row" key={g._id}>
+            <div className="main small">
+              <span className="strong">{g.userId ? famName(g.userId) : 'Family'}</span>
+              {' · '}{g.remainingSessions}/{g.totalSessions} left
+              {g.tutorId ? ` · ${g.tutorId.name}` : ' · any instructor'}
+              {g.note ? <span className="muted"> · {g.note}</span> : null}
+            </div>
+          </div>
+        ))}
+        {grants.length === 0 && <Empty>No session grants yet.</Empty>}
+      </div>
+    </>
   );
 }
 
@@ -370,44 +383,36 @@ function BookingsTab() {
   // Placement tests live in their own tab; this list is regular sessions only.
   const sessions = bookings.filter((b) => b.kind !== 'diagnostic');
   return (
-    <Card>
-      <h3 style={{ color: BROWN, marginTop: 0 }}>Upcoming bookings</h3>
+    <div className="card">
+      <div className="card-head">
+        <h2>Upcoming bookings</h2>
+      </div>
       {sessions.map((b) => (
-        <Row key={b._id}>
-          <div style={{ color: BROWN, fontSize: '0.9rem' }}>
-            <strong>{new Date(b.startAt).toLocaleString('en-US', { weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}</strong>
+        <div className="row" key={b._id}>
+          <div className="main small">
+            <span className="strong">{new Date(b.startAt).toLocaleString('en-US', { weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}</span>
             {' · '}{b.studentName} · {b.tutorId?.name || 'Instructor'}
-            {' · '}<span style={{ color: '#9b8b77' }}>{famName(b.userId)}</span>
-            {b.status !== 'scheduled' ? <span style={{ color: '#b5654a' }}> · {b.status}</span> : null}
+            {' · '}<span className="muted">{famName(b.userId)}</span>
+            {b.status !== 'scheduled' ? <span className="pill warn" style={{ marginLeft: 8 }}>{b.status}</span> : null}
           </div>
           {b.status === 'scheduled' ? (
-            <button onClick={() => cancelBooking(b)} style={danger()}>Cancel</button>
+            <button type="button" className="btn btn-ghost btn-sm" style={{ color: 'var(--err)' }} onClick={() => cancelBooking(b)}>Cancel</button>
           ) : null}
-        </Row>
+        </div>
       ))}
       {sessions.length === 0 && <Empty>No upcoming bookings.</Empty>}
-    </Card>
+    </div>
   );
 }
 
 /* ───────────────────────── UI bits ───────────────────────── */
-function Card({ children }) {
-  return <div style={{ background: '#fff', borderRadius: 16, boxShadow: '0 4px 24px rgba(0,0,0,0.06)', padding: '1.5rem' }}>{children}</div>;
-}
-function Row({ children }) {
-  return <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 0', borderBottom: '1px solid #f0ede8', gap: 12 }}>{children}</div>;
-}
-function Pad({ children }) {
-  return <section style={{ maxWidth: 700, margin: '60px auto', padding: '0 1rem', color: BROWN, textAlign: 'center' }}>{children}</section>;
-}
 function Empty({ children }) {
-  return <p style={{ color: '#9b8b77', margin: '8px 0 0' }}>{children}</p>;
+  return (
+    <div className="empty">
+      <p>{children}</p>
+    </div>
+  );
 }
-const inp = () => ({ padding: '9px 12px', borderRadius: 9, border: '1.5px solid #e6ddd2', fontSize: '0.95rem' });
-const lbl = () => ({ color: BROWN, fontWeight: 600, fontSize: '0.88rem' });
-const btn = () => ({ padding: '9px 18px', borderRadius: 9, border: 'none', background: ACCENT, color: '#fff', fontWeight: 700, cursor: 'pointer' });
-const ghost = () => ({ padding: '6px 12px', borderRadius: 8, border: '1.5px solid #e6ddd2', background: '#fff', color: BROWN, cursor: 'pointer', fontSize: '0.85rem' });
-const danger = () => ({ padding: '6px 12px', borderRadius: 8, border: '1.5px solid #e0b4a0', background: '#fff', color: '#b5654a', cursor: 'pointer', fontSize: '0.85rem' });
 
 /* ─────────────────────── Placement Tests ───────────────────────
    Upcoming placement-test (diagnostic) bookings, with the family's contact
@@ -441,39 +446,41 @@ function PlacementTab() {
   }
 
   return (
-    <Card>
-      <h3 style={{ color: BROWN, marginTop: 0 }}>
-        Upcoming placement tests{bookings ? ` (${bookings.filter((b) => b.status === 'scheduled').length})` : ''}
-      </h3>
+    <div className="card">
+      <div className="card-head">
+        <h2>
+          Upcoming placement tests{bookings ? ` (${bookings.filter((b) => b.status === 'scheduled').length})` : ''}
+        </h2>
+      </div>
       {bookings === null ? (
-        <Empty>Loading…</Empty>
+        <p className="muted small">Loading…</p>
       ) : (
         <>
           {bookings.map((b) => {
             const n = parseNotes(b.notes);
             return (
-              <Row key={b._id}>
-                <div style={{ color: BROWN, fontSize: '0.9rem' }}>
-                  <strong>{new Date(b.startAt).toLocaleString('en-US', { weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}</strong>
-                  {' · '}<strong>{b.studentName}</strong>
-                  {n.Grade ? <span style={{ color: '#9b8b77' }}> · Grade {n.Grade}</span> : null}
+              <div className="row" key={b._id}>
+                <div className="main small">
+                  <span className="strong">{new Date(b.startAt).toLocaleString('en-US', { weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}</span>
+                  {' · '}<span className="strong">{b.studentName}</span>
+                  {n.Grade ? <span className="muted"> · Grade {n.Grade}</span> : null}
                   {' · '}{b.tutorId?.name || 'Instructor'}
-                  {b.status !== 'scheduled' ? <span style={{ color: '#b5654a' }}> · {b.status}</span> : null}
-                  <div style={{ color: '#9b8b77', fontSize: '0.82rem', marginTop: 3 }}>
+                  {b.status !== 'scheduled' ? <span className="pill warn" style={{ marginLeft: 8 }}>{b.status}</span> : null}
+                  <div className="muted small" style={{ marginTop: 3 }}>
                     {[n.Parent && `Parent: ${n.Parent}`, n.Email, n.Phone, n.Track && `Track: ${n.Track}`]
                       .filter(Boolean)
                       .join(' · ')}
                   </div>
                 </div>
                 {b.status === 'scheduled' ? (
-                  <button onClick={() => cancelBooking(b)} style={danger()}>Cancel</button>
+                  <button type="button" className="btn btn-ghost btn-sm" style={{ color: 'var(--err)' }} onClick={() => cancelBooking(b)}>Cancel</button>
                 ) : null}
-              </Row>
+              </div>
             );
           })}
           {bookings.length === 0 && <Empty>No upcoming placement tests.</Empty>}
         </>
       )}
-    </Card>
+    </div>
   );
 }

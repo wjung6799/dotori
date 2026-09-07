@@ -1,7 +1,6 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
-import Link from 'next/link';
 import SurveyDetails from '../SurveyDetails';
 
 // The enrollment-form ledger, student by student: every student any family has
@@ -9,9 +8,6 @@ import SurveyDetails from '../SurveyDetails';
 // the form is in and what it said about the media release. Click a column to
 // sort (submitted-or-not included, which is how the office chases stragglers);
 // click a submitted row to read the whole form in place.
-
-const BROWN = '#6b5b47';
-const DARK = '#4a3c28';
 
 function famName(u) {
   if (!u) return 'Family';
@@ -109,40 +105,50 @@ export default function AdminSurveysPage() {
     };
   }, [rows]);
 
+  // portal.css has no sortable-header affordance, so the cursor + arrows stay inline.
   const th = (key, label) => (
     <th
       onClick={() => clickSort(key)}
       title="Sort"
-      style={{ cursor: 'pointer', whiteSpace: 'nowrap', userSelect: 'none' }}
+      style={{ cursor: 'pointer', userSelect: 'none' }}
     >
       {label} {sort.key === key ? (sort.dir === 1 ? '▲' : '▼') : ''}
     </th>
   );
 
   return (
-    <main style={{ marginTop: 72 }}>
-      <div className="container" style={{ maxWidth: 980 }}>
-        <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', margin: '2rem 0 1rem' }}>
-          <h1 style={{ color: DARK, fontSize: '1.6rem', margin: 0 }}>Enrollment Forms</h1>
-          <Link href="/admin" style={{ color: '#8b7355', fontWeight: 600 }}>← Admin home</Link>
+    <>
+      <div className="page-head">
+        <div>
+          <h1>Enrollment forms</h1>
+          {counts ? (
+            <p className="lede">
+              {counts.students} students · <strong>{counts.submitted}</strong> forms in
+              {counts.missing ? <> · <strong>{counts.missing}</strong> missing</> : null}
+              {' '}· media release: <strong>{counts.mediaYes} agreed</strong>
+              {counts.mediaNo ? <> / <strong>{counts.mediaNo} declined</strong></> : null}
+            </p>
+          ) : (
+            <p className="lede">Which enrollment forms are in, student by student.</p>
+          )}
+        </div>
+      </div>
+
+      <div className="card">
+        <div className="card-head">
+          <h2>Students</h2>
         </div>
 
-        {counts ? (
-          <p style={{ color: BROWN, margin: '0 0 1.25rem', fontSize: '0.92rem' }}>
-            {counts.students} students · <strong>{counts.submitted}</strong> forms in
-            {counts.missing ? <> · <strong style={{ color: '#b5654a' }}>{counts.missing}</strong> missing</> : null}
-            {' '}· media release: <strong style={{ color: '#1e7a40' }}>{counts.mediaYes} agreed</strong>
-            {counts.mediaNo ? <> / <strong style={{ color: '#b5654a' }}>{counts.mediaNo} declined</strong></> : null}
-          </p>
-        ) : null}
-
         {sorted === null ? (
-          <p style={{ color: BROWN }}>Loading…</p>
+          <p className="muted mb0">Loading…</p>
         ) : sorted.length === 0 ? (
-          <p style={{ color: BROWN }}>No students yet.</p>
+          <div className="empty">
+            <span className="ico">📋</span>
+            <p>No students yet.</p>
+          </div>
         ) : (
-          <div style={{ overflowX: 'auto', background: '#fff', borderRadius: 12, boxShadow: '0 4px 14px rgba(139,115,85,0.08)', marginBottom: '3rem' }}>
-            <table className="admin-table" style={{ width: '100%' }}>
+          <div className="table-wrap">
+            <table className="data">
               <thead>
                 <tr>
                   {th('student', 'Student')}
@@ -170,7 +176,7 @@ export default function AdminSurveysPage() {
           </div>
         )}
       </div>
-    </main>
+    </>
   );
 }
 
@@ -179,50 +185,48 @@ function SurveyRow({ row: r, open, onToggle }) {
     <>
       <tr
         onClick={onToggle}
-        style={{ cursor: r.survey ? 'pointer' : 'default', background: open ? '#fdfbf8' : undefined }}
+        style={{ cursor: r.survey ? 'pointer' : 'default', background: open ? 'var(--surface-2)' : undefined }}
         title={r.survey ? 'Click to read the form' : 'No form submitted yet'}
       >
         <td>
-          <strong style={{ color: DARK }}>{r.studentName}</strong>
+          <span className="strong">{r.studentName}</span>
           {r.orphan ? (
-            <span style={{ color: '#9b8b77', fontSize: '0.78rem' }}> · no longer on the family&rsquo;s list</span>
+            <span className="muted small"> · no longer on the family&rsquo;s list</span>
           ) : null}
         </td>
         <td>
-          {r.familyName}
-          {r.familyEmail ? (
-            <>
-              <br />
-              <span style={{ color: '#aaa', fontSize: '0.78rem' }}>{r.familyEmail}</span>
-            </>
-          ) : null}
+          <div>{r.familyName}</div>
+          {r.familyEmail ? <div className="muted small">{r.familyEmail}</div> : null}
         </td>
         <td>{r.grade || '–'}</td>
-        <td>
+        <td className="nowrap">
           {r.survey ? (
-            <span style={{ color: '#1e7a40', fontWeight: 700 }}>✓ in {open ? '▴' : '▾'}</span>
+            <>
+              <span className="pill ok">✓ in</span>
+              <span className="muted small"> {open ? '▴' : '▾'}</span>
+            </>
           ) : (
-            <span style={{ color: '#b5654a', fontWeight: 700 }}>missing</span>
+            <span className="pill err">missing</span>
           )}
         </td>
         <td>
           {r.survey ? (
             r.survey.mediaRelease === 'agree' ? (
-              <span style={{ color: '#1e7a40', fontWeight: 600 }}>agreed</span>
+              <span className="pill ok">agreed</span>
             ) : (
-              <span style={{ color: '#b5654a', fontWeight: 600 }}>declined</span>
+              <span className="pill warn">declined</span>
             )
           ) : (
             '–'
           )}
         </td>
-        <td style={{ fontSize: '0.82rem', whiteSpace: 'nowrap' }}>
+        <td className="small nowrap">
           {r.survey?.createdAt ? new Date(r.survey.createdAt).toLocaleDateString() : '–'}
         </td>
       </tr>
       {open ? (
         <tr>
-          <td colSpan={6} style={{ background: '#fdfbf8', padding: 0 }}>
+          <td colSpan={6} style={{ background: 'var(--surface-2)', padding: 0 }}>
             <SurveyDetails survey={r.survey} />
           </td>
         </tr>

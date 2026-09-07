@@ -39,7 +39,9 @@ const FAMILY_NAV = [
 ];
 
 // Staff share the portal shell so there is one console shape for the whole
-// school. The legacy tabbed /admin page is still linked until its tabs move here.
+// school. Every admin surface now lives inside it — the last marketing-site
+// stragglers (/admin's tabs, booking, reviews, surveys, waitlist) moved in on
+// 2026-09-07.
 const ADMIN_NAV = [
   {
     section: null,
