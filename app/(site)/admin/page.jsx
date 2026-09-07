@@ -1,9 +1,10 @@
 'use client';
 
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { Fragment, useState, useEffect, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import { LITERACY_SLOTS } from '@/lib/literacySlots';
+import SurveyDetails from './SurveyDetails';
 
 const quarterLabel = {
   'fall-2025': 'Fall 2025',
@@ -82,6 +83,10 @@ export default function AdminPage() {
 
   // Families
   const [allFamilies, setAllFamilies] = useState([]);
+  // Submitted enrollment surveys, keyed against families by (userId, student
+  // name) so each student's form is one click away from their family row.
+  const [familySurveys, setFamilySurveys] = useState([]);
+  const [openSurveyKey, setOpenSurveyKey] = useState('');
   const [familySearch, setFamilySearch] = useState('');
 
   // Enrollments
@@ -154,6 +159,10 @@ export default function AdminPage() {
   // ── Data loaders ────────────────────────────────────────────
 
   const loadFamilies = useCallback(async () => {
+    fetch('/api/admin/surveys')
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => setFamilySurveys(d?.surveys || []))
+      .catch(() => {});
     const res = await fetch('/api/admin/families');
     const data = await res.json();
     setAllFamilies(data.families || []);
@@ -250,6 +259,33 @@ export default function AdminPage() {
   useEffect(() => {
     if (authChecked && tab === 'orders') loadAdminOrders();
   }, [orderFilterPay, orderFilterFulfill, authChecked, tab, loadAdminOrders]);
+
+  // The survey submitted for one family's student, if any.
+  const surveyFor = (familyId, studentName) =>
+    familySurveys.find(
+      (sv) =>
+        String(sv.userId?._id ?? sv.userId) === String(familyId) && sv.studentName === studentName,
+    );
+
+  async function removeStudent(f, s) {
+    const fam = [f.firstName, f.lastName].filter(Boolean).join(' ') || f.name || f.email;
+    if (
+      !confirm(
+        `Remove ${s.name} from ${fam}'s student list? Their bookings, reports and forms stay on record — this only takes the student off the family's list.`,
+      )
+    )
+      return;
+    const res = await fetch(`/api/admin/families/${f._id}/students`, {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(s._id ? { studentId: s._id } : { name: s.name }),
+    });
+    if (!res.ok) {
+      const d = await res.json().catch(() => ({}));
+      alert(d.error || 'Failed to remove the student.');
+    }
+    loadFamilies();
+  }
 
   // ── Families filtering ──────────────────────────────────────
   const filteredFamilies = (() => {
@@ -694,30 +730,89 @@ export default function AdminPage() {
                     </tr>
                   </thead>
                   <tbody>
-                    {filteredFamilies.map((f) => (
-                      <tr key={f._id}>
-                        <td>
-                          <strong>
-                            {f.firstName} {f.lastName}
-                          </strong>
-                        </td>
-                        <td>{f.email}</td>
-                        <td>{f.phone || '–'}</td>
-                        <td>
-                          {(f.students || []).length
-                            ? (f.students || []).map((s, i) => (
-                                <span key={i}>
-                                  {s.name}
-                                  {s.grade ? ` (Gr. ${s.grade})` : ''}
-                                  {i < (f.students || []).length - 1 ? <br /> : null}
-                                </span>
-                              ))
-                            : '–'}
-                        </td>
-                        <td style={{ textAlign: 'center' }}>{f.enrollmentCount}</td>
-                        <td>{new Date(f.createdAt).toLocaleDateString()}</td>
-                      </tr>
-                    ))}
+                    {filteredFamilies.map((f) => {
+                      const openSurvey = (f.students || [])
+                        .map((st) => surveyFor(f._id, st.name))
+                        .find((sv) => sv && openSurveyKey === `${f._id}|${sv.studentName}`);
+                      return (
+                        <Fragment key={f._id}>
+                          <tr>
+                            <td>
+                              <strong>
+                                {f.firstName} {f.lastName}
+                              </strong>
+                            </td>
+                            <td>{f.email}</td>
+                            <td>{f.phone || '–'}</td>
+                            <td>
+                              {(f.students || []).length
+                                ? (f.students || []).map((s, i) => {
+                                    const sv = surveyFor(f._id, s.name);
+                                    const key = `${f._id}|${s.name}`;
+                                    return (
+                                      <div key={s._id || i} style={{ display: 'flex', alignItems: 'center', gap: 6, whiteSpace: 'nowrap' }}>
+                                        <span>
+                                          {s.name}
+                                          {s.grade ? ` (Gr. ${s.grade})` : ''}
+                                        </span>
+                                        {sv ? (
+                                          <button
+                                            type="button"
+                                            onClick={() => setOpenSurveyKey(openSurveyKey === key ? '' : key)}
+                                            title="View this student's enrollment form"
+                                            style={{
+                                              border: '1px solid #e6ddd2',
+                                              background: openSurveyKey === key ? '#f6efe6' : '#fff',
+                                              color: '#8b7355',
+                                              borderRadius: 6,
+                                              padding: '1px 8px',
+                                              fontSize: '0.76rem',
+                                              cursor: 'pointer',
+                                            }}
+                                          >
+                                            form {openSurveyKey === key ? '▴' : '▾'}
+                                          </button>
+                                        ) : null}
+                                        <button
+                                          type="button"
+                                          onClick={() => removeStudent(f, s)}
+                                          title="Remove this student from the family's list"
+                                          style={{
+                                            border: '1px solid #e0b4a0',
+                                            background: '#fff',
+                                            color: '#b5654a',
+                                            borderRadius: 6,
+                                            padding: '1px 7px',
+                                            fontSize: '0.76rem',
+                                            cursor: 'pointer',
+                                          }}
+                                        >
+                                          ×
+                                        </button>
+                                      </div>
+                                    );
+                                  })
+                                : '–'}
+                            </td>
+                            <td style={{ textAlign: 'center' }}>{f.enrollmentCount}</td>
+                            <td>{new Date(f.createdAt).toLocaleDateString()}</td>
+                          </tr>
+                          {openSurvey ? (
+                            <tr>
+                              <td colSpan={6} style={{ background: '#fdfbf8' }}>
+                                <div style={{ color: '#4a3c28', fontWeight: 700, padding: '0.6rem 1.2rem 0' }}>
+                                  Enrollment form · {openSurvey.studentName}
+                                  <span style={{ color: '#9b8b77', fontWeight: 500 }}>
+                                    {openSurvey.createdAt ? ` · submitted ${new Date(openSurvey.createdAt).toLocaleDateString()}` : ''}
+                                  </span>
+                                </div>
+                                <SurveyDetails survey={openSurvey} />
+                              </td>
+                            </tr>
+                          ) : null}
+                        </Fragment>
+                      );
+                    })}
                   </tbody>
                 </table>
               )}
