@@ -3,15 +3,18 @@ import Feedback from '@/lib/models/Feedback';
 import User from '@/lib/models/User';
 import { getMyTutor } from '@/lib/tutor-helpers';
 import { unauthorized } from '@/lib/auth-helpers';
+import { canEditFeedback } from '@/lib/feedback-helpers';
 
 export const dynamic = 'force-dynamic';
 
-// GET /api/tutor/feedback: recent feedback (for the tutor's review list).
+// GET /api/tutor/feedback: recent feedback (for the tutor's review list). Each
+// row carries `canEdit` so the page knows which notes to offer Edit/Delete on.
 export async function GET() {
-  const { user } = await getMyTutor();
+  const { user, tutor } = await getMyTutor();
   if (!user) return unauthorized();
   await dbConnect();
-  const feedback = await Feedback.find({}).sort({ createdAt: -1 }).limit(200);
+  const rows = await Feedback.find({}).sort({ createdAt: -1 }).limit(200).lean();
+  const feedback = rows.map((fb) => ({ ...fb, canEdit: canEditFeedback(fb, user, tutor) }));
   return Response.json({ feedback });
 }
 
@@ -43,7 +46,7 @@ export async function POST(request) {
       studentName: (studentName || '').trim(),
       text: text.trim(),
     });
-    return Response.json({ ok: true, feedback });
+    return Response.json({ ok: true, feedback: { ...feedback.toObject(), canEdit: true } });
   } catch (err) {
     console.error('Create feedback error:', err);
     return Response.json({ error: 'Failed to save feedback.' }, { status: 500 });

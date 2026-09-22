@@ -1,4 +1,4 @@
-import { sendDiagnosticRequestAlert, sendDiagnosticRequestConfirmation } from '@/lib/mailer';
+import { ASSESSMENT_CC, sendDiagnosticRequestAlert, sendDiagnosticRequestConfirmation } from '@/lib/mailer';
 import { rateLimit, check, record, clientIp } from '@/lib/rate-limit';
 
 export const dynamic = 'force-dynamic';
@@ -57,6 +57,7 @@ export async function POST(request) {
   try {
     await sendDiagnosticRequestAlert({
       to: SCHOOL_EMAIL,
+      cc: ASSESSMENT_CC,
       parentName,
       email,
       phone,

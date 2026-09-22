@@ -8,7 +8,7 @@ import { attemptBooking } from '@/lib/booking';
 import { slotTimesForDate, scheduleMatchesDate } from '@/lib/slots';
 import { whenLabel } from '@/lib/recurring';
 import { rateLimit, clientIp } from '@/lib/rate-limit';
-import { sendBookingConfirmation, sendTutorBookingAlert } from '@/lib/mailer';
+import { ASSESSMENT_CC, sendBookingConfirmation, sendTutorBookingAlert } from '@/lib/mailer';
 
 export const dynamic = 'force-dynamic';
 
@@ -193,20 +193,25 @@ export async function POST(request) {
     } catch (mailErr) {
       console.error('Diagnostic family email failed:', mailErr);
     }
+    // The assessment lead goes to the tutor who owns the slot, with the owner
+    // copied (ASSESSMENT_CC). If the slot has no emailable tutor, the owner
+    // becomes the recipient so the booking never lands unseen.
     try {
-      if (tutor?.userId) {
-        const tutorUser = await User.findById(tutor.userId).select('email firstName name');
-        if (tutorUser?.email) {
-          await sendTutorBookingAlert({
-            to: tutorUser.email,
-            tutorName: tutorUser.firstName || tutor.name || '',
-            studentName,
-            parentName: `${parentName} (${email}${phone ? ', ' + phone : ''})`,
-            whenLabel: label,
-            subject: `Free Diagnostic${trackLabel ? ' · ' + trackLabel : ''}`,
-            siteUrl,
-          });
-        }
+      const tutorUser = tutor?.userId
+        ? await User.findById(tutor.userId).select('email firstName name')
+        : null;
+      const to = tutorUser?.email || ASSESSMENT_CC;
+      if (to) {
+        await sendTutorBookingAlert({
+          to,
+          cc: tutorUser?.email ? ASSESSMENT_CC : undefined,
+          tutorName: tutorUser?.firstName || tutor?.name || '',
+          studentName,
+          parentName: `${parentName} (${email}${phone ? ', ' + phone : ''})`,
+          whenLabel: label,
+          subject: `Free Diagnostic${trackLabel ? ' · ' + trackLabel : ''}`,
+          siteUrl,
+        });
       }
     } catch (mailErr) {
       console.error('Diagnostic tutor email failed:', mailErr);

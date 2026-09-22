@@ -42,6 +42,12 @@ export default function TutorFeedbackPage() {
   const [text, setText] = useState('');
   const [msg, setMsg] = useState(null); // { ok, text }
   const [busy, setBusy] = useState(false);
+  // Inline editing of a sent note: which row is open, its draft, and a per-row
+  // busy flag so Save/Delete on one note doesn't lock the others.
+  const [editingId, setEditingId] = useState(null);
+  const [draft, setDraft] = useState({ text: '', studentName: '' });
+  const [rowBusy, setRowBusy] = useState(null);
+  const [rowMsg, setRowMsg] = useState(null); // { id, text }
 
   const load = useCallback(async () => {
     try {
@@ -92,6 +98,62 @@ export default function TutorFeedbackPage() {
       setMsg({ ok: false, text: 'Could not reach the server. Try again.' });
     } finally {
       setBusy(false);
+    }
+  }
+
+  function startEdit(it) {
+    setRowMsg(null);
+    setEditingId(it._id);
+    setDraft({ text: it.text || '', studentName: it.studentName || '' });
+  }
+
+  function cancelEdit() {
+    setEditingId(null);
+    setDraft({ text: '', studentName: '' });
+  }
+
+  async function saveEdit(id) {
+    if (rowBusy || !draft.text.trim()) return;
+    setRowBusy(id);
+    setRowMsg(null);
+    try {
+      const res = await fetch(`/api/tutor/feedback/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text: draft.text, studentName: draft.studentName }),
+      });
+      const d = await res.json();
+      if (!res.ok) {
+        setRowMsg({ id, text: d.error || 'Could not save the change.' });
+        return;
+      }
+      setItems((prev) => prev.map((it) => (it._id === id ? d.feedback : it)));
+      cancelEdit();
+    } catch {
+      setRowMsg({ id, text: 'Could not reach the server. Try again.' });
+    } finally {
+      setRowBusy(null);
+    }
+  }
+
+  async function remove(it) {
+    if (rowBusy) return;
+    const who = famName(famById(it.userId));
+    if (!window.confirm(`Delete this note to ${who}? The family will no longer see it.`)) return;
+    setRowBusy(it._id);
+    setRowMsg(null);
+    try {
+      const res = await fetch(`/api/tutor/feedback/${it._id}`, { method: 'DELETE' });
+      if (!res.ok) {
+        setRowMsg({ id: it._id, text: await readError(res, 'Could not delete the note.') });
+        return;
+      }
+      setItems((prev) => prev.filter((x) => x._id !== it._id));
+      if (editingId === it._id) cancelEdit();
+    } catch {
+      setRowMsg({ id: it._id, text: 'Could not reach the server. Try again.' });
+    } finally {
+      setRowBusy(null);
     }
   }
 
@@ -194,6 +256,9 @@ export default function TutorFeedbackPage() {
           <div className="stack">
             {items.map((it) => {
               const written = iso(it.createdAt);
+              const edited = iso(it.updatedAt);
+              const isEditing = editingId === it._id;
+              const thisBusy = rowBusy === it._id;
               return (
                 <div className="row" key={it._id}>
                   {/* Full width: the note itself is the content, not a trailing
@@ -201,17 +266,77 @@ export default function TutorFeedbackPage() {
                   <div className="main" style={{ flex: '1 1 100%' }}>
                     <div className="meta">
                       <span className="strong">{famName(famById(it.userId))}</span>
-                      {it.studentName ? ` · ${it.studentName}` : ''}
+                      {!isEditing && it.studentName ? ` · ${it.studentName}` : ''}
                       {written ? (
                         <>
                           {' · '}
                           <LocalTime iso={written} format="date" />
                         </>
                       ) : null}
+                      {edited ? (
+                        <>
+                          {' · edited '}
+                          <LocalTime iso={edited} format="date" />
+                        </>
+                      ) : null}
                     </div>
-                    <p className="mb0" style={{ marginTop: '0.35rem', whiteSpace: 'pre-wrap' }}>
-                      {it.text}
-                    </p>
+
+                    {isEditing ? (
+                      <div style={{ marginTop: '0.5rem' }}>
+                        <div className="field">
+                          <label htmlFor={`fb-edit-student-${it._id}`}>Student name (optional)</label>
+                          <input
+                            id={`fb-edit-student-${it._id}`}
+                            value={draft.studentName}
+                            onChange={(e) => setDraft((d) => ({ ...d, studentName: e.target.value }))}
+                          />
+                        </div>
+                        <div className="field">
+                          <label htmlFor={`fb-edit-text-${it._id}`}>Feedback</label>
+                          <textarea
+                            id={`fb-edit-text-${it._id}`}
+                            value={draft.text}
+                            onChange={(e) => setDraft((d) => ({ ...d, text: e.target.value }))}
+                            style={{ minHeight: 120, resize: 'vertical' }}
+                          />
+                        </div>
+                        <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+                          <button
+                            type="button"
+                            className="btn btn-accent btn-sm"
+                            onClick={() => saveEdit(it._id)}
+                            disabled={thisBusy || !draft.text.trim()}
+                          >
+                            {thisBusy ? 'Saving…' : 'Save changes'}
+                          </button>
+                          <button type="button" className="btn btn-ghost btn-sm" onClick={cancelEdit} disabled={thisBusy}>
+                            Cancel
+                          </button>
+                        </div>
+                      </div>
+                    ) : (
+                      <>
+                        <p className="mb0" style={{ marginTop: '0.35rem', whiteSpace: 'pre-wrap' }}>
+                          {it.text}
+                        </p>
+                        {it.canEdit ? (
+                          <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', marginTop: '0.6rem' }}>
+                            <button type="button" className="btn btn-ghost btn-sm" onClick={() => startEdit(it)} disabled={thisBusy}>
+                              Edit
+                            </button>
+                            <button type="button" className="btn btn-ghost btn-sm" onClick={() => remove(it)} disabled={thisBusy}>
+                              {thisBusy ? 'Deleting…' : 'Delete'}
+                            </button>
+                          </div>
+                        ) : null}
+                      </>
+                    )}
+
+                    {rowMsg && rowMsg.id === it._id ? (
+                      <div className="notice err" style={{ marginTop: '0.6rem', marginBottom: 0 }}>
+                        {rowMsg.text}
+                      </div>
+                    ) : null}
                   </div>
                 </div>
               );
