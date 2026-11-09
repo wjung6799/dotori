@@ -300,8 +300,9 @@ export default function TutorFeedbackPage() {
   // quarter. "By class" starts from the classes running now (with their
   // rosters, so a class or student with no notes yet still shows), then
   // files each note under its class and student. Notes from a class that's no
-  // longer running keep their own group; notes with no class sit in "Not in a
-  // class" at the end. "By student" is every student's notes across classes.
+  // longer running keep their own group; notes with no class are private
+  // sessions and sit in "Private sessions" at the end. "By student" is every
+  // student's notes across classes.
   // Notes stay newest-first inside each leaf.
   const tree = useMemo(() => {
     const groups = new Map();
@@ -335,7 +336,7 @@ export default function TutorFeedbackPage() {
       if (!g) {
         g = {
           key: cKey,
-          label: it.classId ? it.className || 'Past class' : 'Not in a class',
+          label: it.classId ? it.className || 'Past class' : 'Private sessions',
           live: false,
           count: 0,
           latest: null,
