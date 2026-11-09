@@ -182,7 +182,7 @@ export default function TutorFeedbackPage() {
       }
       setBatchMsg({
         ok: true,
-        text: `Sent ${d.saved} ${d.saved === 1 ? 'note' : 'notes'}${d.emailed ? ` and emailed ${d.emailed} ${d.emailed === 1 ? 'family' : 'families'}` : ''}.`,
+        text: `Sent ${d.saved} ${d.saved === 1 ? 'note' : 'notes'}.`,
       });
       setDrafts({});
       setOpenLast({});
@@ -214,7 +214,7 @@ export default function TutorFeedbackPage() {
       else {
         setMsg({
           ok: true,
-          text: d.emailed ? 'Feedback sent and the family was emailed.' : 'Feedback sent.',
+          text: 'Feedback sent.',
         });
         setText('');
         setStudentName('');
@@ -604,8 +604,7 @@ export default function TutorFeedbackPage() {
         <div>
           <h1>Feedback</h1>
           <p className="lede">
-            Write notes home after a lesson. Families read them on their Reports &amp; feedback page and get an email
-            when a new one arrives.
+            Write notes home after a lesson. Families read them on their Reports &amp; feedback page.
           </p>
         </div>
       </div>

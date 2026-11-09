@@ -4,7 +4,6 @@ import User from '@/lib/models/User';
 import Class from '@/lib/models/Class';
 import Enrollment from '@/lib/models/Enrollment';
 import { classifyNote } from '@/lib/feedbackClassify';
-import { sendFeedbackNotification } from '@/lib/mailer';
 import { getMyTutor } from '@/lib/tutor-helpers';
 import { unauthorized } from '@/lib/auth-helpers';
 import { canEditFeedback } from '@/lib/feedback-helpers';
@@ -35,7 +34,7 @@ export async function GET(request) {
 }
 
 // POST /api/tutor/feedback, body: { userId, studentName, text, classId?, lessonDate? }
-// The "one student" form. The family gets the same email nudge as a batch send.
+// The "one student" form. Like a batch send, no email goes out.
 export async function POST(request) {
   const { user: author, tutor } = await getMyTutor();
   if (!author) return unauthorized();
@@ -47,7 +46,7 @@ export async function POST(request) {
     }
 
     await dbConnect();
-    const family = await User.findOne({ _id: userId, role: 'family' }).select('_id email firstName name');
+    const family = await User.findOne({ _id: userId, role: 'family' }).select('_id');
     if (!family) return Response.json({ error: 'Family not found.' }, { status: 404 });
     let cls = classId ? await Class.findById(classId).select('name').lean() : null;
     let name = (studentName || '').trim();
@@ -104,21 +103,7 @@ export async function POST(request) {
       text: text.trim(),
     });
 
-    let emailed = false;
-    if (family.email) {
-      try {
-        await sendFeedbackNotification({
-          to: family.email,
-          parentName: family.firstName || family.name || '',
-          notes: [{ studentName: feedback.studentName || 'your student', className: cls?.name || '', lessonLabel: '', tutorName }],
-          siteUrl: process.env.SITE_URL || '',
-        });
-        emailed = true;
-      } catch (err) {
-        console.error('Feedback notification failed:', err);
-      }
-    }
-    return Response.json({ ok: true, emailed, feedback: { ...feedback.toObject(), canEdit: true, className: cls?.name || '' } });
+    return Response.json({ ok: true, feedback: { ...feedback.toObject(), canEdit: true, className: cls?.name || '' } });
   } catch (err) {
     console.error('Create feedback error:', err);
     return Response.json({ error: 'Failed to save feedback.' }, { status: 500 });
