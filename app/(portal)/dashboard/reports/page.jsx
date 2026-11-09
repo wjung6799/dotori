@@ -7,6 +7,7 @@ import Class from '@/lib/models/Class'; // registers the model for populate()
 import { getCurrentUser } from '@/lib/auth-helpers';
 
 import LocalTime from '../../LocalTime';
+import FeedbackThread from '../../FeedbackThread';
 
 // Rendered per request against the signed-in family's own documents, so there is
 // never a stale report card cached from another session.
@@ -25,6 +26,14 @@ function quarterLabel(q) {
   const [season, year] = String(q).split('-');
   if (!year) return q || '—';
   return season.charAt(0).toUpperCase() + season.slice(1) + ' ' + year;
+}
+
+// "2026-09-24" → "Sep 24". A lesson date is a plain calendar day, so it is
+// built in UTC from its parts rather than shifted through a timezone.
+function lessonLabel(ymd) {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(ymd || '')) return '';
+  const [y, m, d] = ymd.split('-').map(Number);
+  return new Date(Date.UTC(y, m - 1, d)).toLocaleDateString('en-US', { month: 'short', day: 'numeric', timeZone: 'UTC' });
 }
 
 // .lean() hands back real Date objects; LocalTime needs an ISO string.
@@ -46,8 +55,22 @@ export default async function ReportsPage() {
       .populate('classId', 'name')
       .sort({ uploadedAt: -1 })
       .lean(),
-    Feedback.find({ userId: user._id }).sort({ createdAt: -1 }).limit(200).lean(),
+    Feedback.find({ userId: user._id }).populate('classId', 'name').sort({ createdAt: -1 }).limit(200).lean(),
   ]);
+
+  // Notes grouped by child, newest first inside each group. A note without a
+  // student name goes under the family's own heading so nothing is hidden.
+  const groups = [];
+  for (const f of feedback) {
+    const key = (f.studentName || '').trim().toLowerCase() || '__family';
+    let g = groups.find((x) => x.key === key);
+    if (!g) {
+      g = { key, label: (f.studentName || '').trim() || 'Your family', notes: [] };
+      groups.push(g);
+    }
+    g.notes.push(f);
+  }
+  const weekAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
 
   return (
     <>
@@ -133,31 +156,62 @@ export default async function ReportsPage() {
             <p>No feedback yet. Your instructor&rsquo;s notes will show up here after class.</p>
           </div>
         ) : (
-          <div className="stack">
-            {feedback.map((f) => {
-              const written = iso(f.createdAt);
-              return (
-                <div className="row" key={String(f._id)}>
-                  {/* Full width so the note reads as a block, not a two-column row —
-                      this is the page where parents actually read the whole thing. */}
-                  <div className="main" style={{ flex: '1 1 100%' }}>
-                    <div className="meta">
-                      {f.studentName ? `${f.studentName} · ` : ''}
-                      {f.tutorName || 'Dotori School'}
-                      {written ? (
-                        <>
-                          {' · '}
-                          <LocalTime iso={written} format="date" />
-                        </>
-                      ) : null}
-                    </div>
-                    <p className="mb0" style={{ marginTop: '0.35rem', whiteSpace: 'pre-wrap' }}>
-                      {f.text}
-                    </p>
-                  </div>
+          <div className="stack" style={{ gap: '1.4rem' }}>
+            {groups.map((g) => (
+              <section key={g.key}>
+                {groups.length > 1 || g.key === '__family' ? (
+                  <h3 style={{ margin: '0 0 0.6rem', fontSize: '1rem' }}>
+                    {g.label}
+                    <span className="muted small" style={{ fontWeight: 400, marginLeft: '0.5rem' }}>
+                      {g.notes.length} {g.notes.length === 1 ? 'note' : 'notes'}
+                    </span>
+                  </h3>
+                ) : null}
+                <div className="stack">
+                  {g.notes.map((f) => {
+                    const written = iso(f.createdAt);
+                    const isNew = f.createdAt && new Date(f.createdAt).getTime() > weekAgo;
+                    const where = [f.classId?.name, f.lessonDate ? `lesson on ${lessonLabel(f.lessonDate)}` : ''].filter(Boolean).join(' · ');
+                    return (
+                      <div className="row" key={String(f._id)}>
+                        {/* Full width so the note reads as a block, not a two-column row —
+                            this is the page where parents actually read the whole thing. */}
+                        <div className="main" style={{ flex: '1 1 100%' }}>
+                          <div className="meta" style={{ display: 'flex', flexWrap: 'wrap', gap: '0.25rem 0.5rem', alignItems: 'baseline' }}>
+                            {where ? <span className="strong">{where}</span> : null}
+                            <span>
+                              {f.tutorName || 'Dotori School'}
+                              {written ? (
+                                <>
+                                  {' · '}
+                                  <LocalTime iso={written} format="date" />
+                                </>
+                              ) : null}
+                            </span>
+                            {isNew ? <span className="pill ok">New</span> : null}
+                          </div>
+                          <p className="mb0" style={{ marginTop: '0.35rem', whiteSpace: 'pre-wrap' }}>
+                            {f.text}
+                          </p>
+                          <FeedbackThread
+                            endpoint={`/api/feedback/${f._id}/replies`}
+                            viewer="family"
+                            otherName={f.tutorName}
+                            replies={(f.replies || []).map((r) => ({
+                              _id: String(r._id),
+                              from: r.from,
+                              authorName: r.authorName,
+                              text: r.text,
+                              createdAt: iso(r.createdAt),
+                            }))}
+                          />
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
-              );
-            })}
+              </section>
+            ))}
           </div>
         )}
       </div>

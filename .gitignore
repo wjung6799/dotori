@@ -35,6 +35,8 @@ next-env.d.ts
 
 # Verification builds (see distDir in next.config.mjs)
 /.next-verify/
+/.next-local/
+/.next-e2e/
 
 # Local agent tooling scratch — not part of the app
 /.nitpicker/
