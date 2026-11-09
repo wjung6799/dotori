@@ -63,10 +63,23 @@ export async function POST(request) {
       const live = await Class.find({ _id: { $in: seats.map((e) => e.classId) } })
         .select('name schedule quarter')
         .lean();
+      // The family's filed notes, for the classifier's sibling guard (it is
+      // pure, so the lookup is preloaded here).
+      const filed = await Feedback.find({ userId: family._id, classId: { $ne: null } })
+        .select('classId studentName lessonDate')
+        .lean();
+      const hasNote = ({ classId: k, studentName: sn, lessonDate: d }) =>
+        filed.some(
+          (f) =>
+            String(f.classId) === String(k) &&
+            (f.studentName || '').toLowerCase() === String(sn || '').toLowerCase() &&
+            f.lessonDate === d,
+        );
       const r = classifyNote(
         { text, studentName: name, createdAt: new Date() },
         seats,
         new Map(live.map((c) => [String(c._id), c])),
+        hasNote,
       );
       if (r.classId) {
         cls = live.find((c) => String(c._id) === String(r.classId));

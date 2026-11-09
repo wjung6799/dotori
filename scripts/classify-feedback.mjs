@@ -43,6 +43,10 @@ try {
   }
 
   const notes = await db.collection('feedbacks').find().sort({ createdAt: 1 }).toArray();
+  // Which (class, student, lesson) already has a note, for the sibling guard.
+  const key = (k, s, d) => `${k}|${String(s || '').toLowerCase()}|${d}`;
+  const taken = new Set(notes.filter((n) => n.classId).map((n) => key(n.classId, n.studentName, n.lessonDate)));
+  const hasNote = ({ classId, studentName, lessonDate }) => taken.has(key(classId, studentName, lessonDate));
   const ops = [];
   const unresolved = [];
   const renamed = [];
@@ -60,7 +64,7 @@ try {
       }
       continue;
     }
-    const r = classifyNote(n, fam, byId);
+    const r = classifyNote(n, fam, byId, hasNote);
     if (!r.classId) {
       unresolved.push({ n, why: r.why });
       continue;
