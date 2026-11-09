@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import LocalTime from '../../LocalTime';
+import { SessionTypeDetail, SessionTypePill } from '../../SessionType';
 import {
   PRIVATE,
   SEMI_PRIVATE,
@@ -664,13 +665,12 @@ export default function BookingPage() {
                     {b.recurringId && (
                       <span className="pill info" style={{ marginLeft: '0.5rem' }} title="Part of a weekly booking">↻ weekly</span>
                     )}
-                    {b.isPrivate && (
-                      <span className="pill warn" style={{ marginLeft: '0.5rem' }} title="Private session (whole slot, 2 sessions)">★ private</span>
-                    )}
+                    <SessionTypePill session={b.session} style={{ marginLeft: '0.5rem' }} />
                   </div>
                   <div className="meta">
                     {b.studentName} · {b.tutorId?.name || 'Tutor'}{b.subject ? ` · ${b.subject}` : ''}
                   </div>
+                  <SessionTypeDetail session={b.session} />
                 </div>
                 <button type="button" className="btn btn-ghost btn-sm" onClick={() => cancel(b._id)}>Cancel</button>
               </div>

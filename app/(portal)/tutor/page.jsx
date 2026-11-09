@@ -5,6 +5,7 @@ import Link from 'next/link';
 
 import { formatUsd } from '@/lib/pricing';
 import LocalTime from '../LocalTime';
+import { SessionTypeDetail, SessionTypePill } from '../SessionType';
 
 // The instructor's landing page. Everything here is a read: one number per
 // question an instructor actually asks on arriving ("what's on today", "am I
@@ -202,12 +203,11 @@ export default function TutorOverviewPage() {
                     {' · '}
                     <LocalTime iso={new Date(b.startAt).toISOString()} />
                   </span>
+                  <SessionTypeDetail session={b.session} />
                 </span>
-                {/* A private booking takes the whole slot (two credits), so it is
-                    worth flagging before the instructor expects a group. */}
-                <span className={`pill ${b.isPrivate ? 'info' : 'mute'}`}>
-                  {b.isPrivate ? 'Private' : 'Regular'}
-                </span>
+                {/* Private vs semi-private decides how the instructor plans the
+                    hour, so it sits right next to the name. */}
+                <SessionTypePill session={b.session} />
               </div>
             ))}
           </div>

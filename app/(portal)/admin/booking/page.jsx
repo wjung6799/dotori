@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import AvailabilityCalendar from '@/components/AvailabilityCalendar';
+import { SessionTypeDetail, SessionTypePill } from '../../SessionType';
 
 // Middleware already turns non-admins away from /admin/*, and the portal shell
 // provides the chrome — this page only has to worry about the booking data.
@@ -393,7 +394,9 @@ function BookingsTab() {
             <span className="strong">{new Date(b.startAt).toLocaleString('en-US', { weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}</span>
             {' · '}{b.studentName} · {b.tutorId?.name || 'Instructor'}
             {' · '}<span className="muted">{famName(b.userId)}</span>
+            <SessionTypePill session={b.session} style={{ marginLeft: 8 }} />
             {b.status !== 'scheduled' ? <span className="pill warn" style={{ marginLeft: 8 }}>{b.status}</span> : null}
+            <SessionTypeDetail session={b.session} />
           </div>
           {b.status === 'scheduled' ? (
             <button type="button" className="btn btn-ghost btn-sm" style={{ color: 'var(--err)' }} onClick={() => cancelBooking(b)}>Cancel</button>

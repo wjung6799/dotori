@@ -3,6 +3,7 @@ import Booking from '@/lib/models/Booking';
 import User from '@/lib/models/User';   // registers model for populate()
 import Tutor from '@/lib/models/Tutor';  // registers model for populate()
 import { getAdminUser, forbidden } from '@/lib/auth-helpers';
+import { annotateSessions } from '@/lib/bookingSession';
 
 export const dynamic = 'force-dynamic';
 
@@ -24,7 +25,7 @@ export async function GET(request) {
       .populate('tutorId', 'name')
       .sort({ startAt: -1 })
       .limit(500);
-    return Response.json({ bookings });
+    return Response.json({ bookings: await annotateSessions(bookings, { showOthers: true }) });
   } catch (err) {
     console.error('Admin bookings fetch error:', err);
     return Response.json({ error: 'Failed to fetch bookings.' }, { status: 500 });

@@ -11,8 +11,10 @@ import SessionCredit from '@/lib/models/SessionCredit';
 import Class from '@/lib/models/Class'; // registers the model for populate()
 import Tutor from '@/lib/models/Tutor'; // registers the model for populate()
 import { getCurrentUser } from '@/lib/auth-helpers';
+import { annotateSessions } from '@/lib/bookingSession';
 
 import LocalTime from '../LocalTime';
+import { SessionTypeDetail, SessionTypePill } from '../SessionType';
 
 export const dynamic = 'force-dynamic';
 
@@ -41,7 +43,7 @@ export default async function OverviewPage() {
 
   const now = new Date();
 
-  const [credits, upcoming, enrollments, surveys, reports, feedback] = await Promise.all([
+  const [credits, upcomingRaw, enrollments, surveys, reports, feedback] = await Promise.all([
     SessionCredit.find({ userId: user._id, remainingSessions: { $gt: 0 } })
       .populate('tutorId', 'name')
       .lean(),
@@ -58,6 +60,7 @@ export default async function OverviewPage() {
     Report.find({ userId: user._id }).populate('classId', 'name').sort({ uploadedAt: -1 }).limit(3).lean(),
     Feedback.find({ userId: user._id }).sort({ createdAt: -1 }).limit(2).lean(),
   ]);
+  const upcoming = await annotateSessions(upcomingRaw);
 
   const totalCredits = credits.reduce((sum, c) => sum + (c.remainingSessions || 0), 0);
 
@@ -205,10 +208,9 @@ export default async function OverviewPage() {
                     {b.studentName}
                     {b.tutorId?.name ? ` · ${b.tutorId.name}` : ''}
                   </span>
+                  <SessionTypeDetail session={b.session} />
                 </span>
-                <span className={`pill ${b.kind === 'diagnostic' ? 'info' : b.isPrivate ? 'info' : 'ok'}`}>
-                  {b.kind === 'diagnostic' ? 'Assessment' : b.isPrivate ? 'Private' : 'Scheduled'}
-                </span>
+                <SessionTypePill session={b.session} />
               </div>
             ))}
           </div>

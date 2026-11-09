@@ -4,6 +4,7 @@ import Booking from '@/lib/models/Booking';
 import RecurringBooking from '@/lib/models/RecurringBooking';
 import Tutor from '@/lib/models/Tutor'; // registers model for populate()
 import { getCurrentUser, unauthorized } from '@/lib/auth-helpers';
+import { annotateSessions } from '@/lib/bookingSession';
 
 export const dynamic = 'force-dynamic';
 
@@ -67,7 +68,14 @@ export async function GET() {
       byTutorAndType[key] = (byTutorAndType[key] || 0) + (c.remainingSessions || 0);
     }
 
-    return Response.json({ totalRemaining, byTutorAndType, credits, expired, bookings, recurring });
+    return Response.json({
+      totalRemaining,
+      byTutorAndType,
+      credits,
+      expired,
+      bookings: await annotateSessions(bookings),
+      recurring,
+    });
   } catch (err) {
     console.error('Booking me error:', err);
     return Response.json({ error: 'Failed to load your bookings.' }, { status: 500 });

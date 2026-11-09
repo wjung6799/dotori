@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from 'react';
 
 import LocalTime from '../../LocalTime';
+import { SessionTypeDetail, SessionTypePill } from '../../SessionType';
 
 // Family display name, always with the student name(s) attached: "Parent (Student)".
 const famName = (f) => {
@@ -316,12 +317,14 @@ export default function TutorBookingsPage() {
                 <div className="main">
                   <span className="strong"><LocalTime iso={b.startAt} /></span>
                   {' · '}{b.studentName}
+                  <SessionTypePill session={b.session} style={{ marginLeft: '0.4rem' }} />
                   {b.recurringId && (
                     <span className="pill info" title="Part of a weekly booking" style={{ marginLeft: '0.4rem' }}>
                       ↻ weekly
                     </span>
                   )}
                   <div className="meta">{famName(b.userId)}</div>
+                  <SessionTypeDetail session={b.session} />
                 </div>
                 <button className="btn btn-ghost btn-sm" onClick={() => cancelBooking(b._id)}>
                   Cancel
@@ -355,12 +358,14 @@ export default function TutorBookingsPage() {
                 <div className="main">
                   <span className="strong"><LocalTime iso={b.startAt} /></span>
                   {' · '}{b.studentName}
+                  <SessionTypePill session={b.session} style={{ marginLeft: '0.4rem' }} />
                   {b.status === 'completed' && (
                     <span className="pill ok" title="Attendance logged after the session" style={{ marginLeft: '0.4rem' }}>
                       ✓ logged
                     </span>
                   )}
                   <div className="meta">{famName(b.userId)}</div>
+                  <SessionTypeDetail session={b.session} />
                 </div>
                 {/* Only a logged session can be undone here; removing one that was booked
                     normally would refund a credit for a session actually delivered. */}

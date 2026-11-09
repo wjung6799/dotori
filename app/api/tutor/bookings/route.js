@@ -6,6 +6,7 @@ import RecurringBooking from '@/lib/models/RecurringBooking';
 import { unauthorized } from '@/lib/auth-helpers';
 import { getMyTutor, notTutor } from '@/lib/tutor-helpers';
 import { attemptBooking } from '@/lib/booking';
+import { annotateSessions } from '@/lib/bookingSession';
 import { fillRecurringSeries, whenLabel } from '@/lib/recurring';
 import { DOW_LABELS, minuteLabel } from '@/lib/slots';
 import { sendBookingConfirmation, sendRecurringUpdate } from '@/lib/mailer';
@@ -31,7 +32,7 @@ export async function GET(request) {
     .populate('userId', 'firstName lastName email name students')
     .sort({ startAt: past ? -1 : 1 })
     .limit(past ? 100 : 500);
-  return Response.json({ bookings });
+  return Response.json({ bookings: await annotateSessions(bookings, { showOthers: true }) });
 }
 
 const STATUS_FOR = { schedule_unavailable: 404, not_offered: 400, past: 400, full: 409, duplicate: 409, error: 500 };
