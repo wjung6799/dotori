@@ -3,7 +3,7 @@ import Feedback from '@/lib/models/Feedback';
 import User from '@/lib/models/User';
 import Class from '@/lib/models/Class';
 import Enrollment from '@/lib/models/Enrollment';
-import { classifyNote } from '@/lib/feedbackClassify';
+import { classifyNote, fallbackPrivateClass, headerLessonDate } from '@/lib/feedbackClassify';
 import { getMyTutor } from '@/lib/tutor-helpers';
 import { unauthorized } from '@/lib/auth-helpers';
 import { canEditFeedback } from '@/lib/feedback-helpers';
@@ -84,6 +84,11 @@ export async function POST(request) {
         cls = live.find((c) => String(c._id) === String(r.classId));
         name = r.studentName;
         date = date || r.lessonDate;
+      } else {
+        // Nothing matched (a private-lesson family with no enrollment, say):
+        // notes without a class are private lessons, so file under the 1:1 class.
+        cls = fallbackPrivateClass(await Class.find({ active: true }).select('name active').lean());
+        if (cls && !date) date = headerLessonDate(text, new Date());
       }
     }
 

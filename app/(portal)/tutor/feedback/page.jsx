@@ -301,8 +301,8 @@ export default function TutorFeedbackPage() {
   // rosters, so a class or student with no notes yet still shows), then
   // files each note under its class and student. Notes from a class that's no
   // longer running keep their own group; notes with no class are private
-  // sessions and sit in "Private sessions" at the end. "By student" is every
-  // student's notes across classes.
+  // lessons and sit under the 1:1 class. "By student" is every student's
+  // notes across classes.
   // Notes stay newest-first inside each leaf.
   const tree = useMemo(() => {
     const groups = new Map();
@@ -324,19 +324,25 @@ export default function TutorFeedbackPage() {
       });
     }
 
+    // A note without a class is a private lesson, so it shows under the 1:1
+    // private tutoring class rather than in a group of its own.
+    const privateKey = String(
+      (classes || []).find((c) => /private|1\s*:\s*1/i.test(c.name) && !/semi/i.test(c.name))?._id || '__none',
+    );
+
     const students = new Map();
     for (const it of items || []) {
       const fam = famById(it.userId);
       const sKey = `${it.userId}|${(it.studentName || '').trim().toLowerCase()}`;
       const sLabel = it.studentName || famName(fam);
       const sSub = it.studentName ? famName(fam).split(' (')[0] : '';
-      const cKey = it.classId ? String(it.classId) : '__none';
+      const cKey = it.classId ? String(it.classId) : privateKey;
 
       let g = groups.get(cKey);
       if (!g) {
         g = {
           key: cKey,
-          label: it.classId ? it.className || 'Past class' : 'Private sessions',
+          label: it.classId ? it.className || 'Past class' : 'Other notes',
           live: false,
           count: 0,
           latest: null,
